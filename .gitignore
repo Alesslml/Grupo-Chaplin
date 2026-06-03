@@ -1,0 +1,27 @@
+# Dependencias
+node_modules/
+
+# Build outputs
+dist/
+.output/
+.nitro/
+.cache/
+
+# Entorno local
+*.local
+.env
+.env.*
+!.env.example
+
+# Sistema
+.DS_Store
+*.log
+
+# Archivos sueltos en la raíz (ya copiados a sus rutas correctas)
+Josue.png
+Chaplin-logo.png
+"Chaplin logo fondo blanco.jpg"
+PROGRAMA DE MANO.pdf
+
+# Claude local settings
+.claude/
