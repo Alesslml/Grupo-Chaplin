@@ -4,7 +4,8 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { PageLayout } from "@/components/chaplin/PageLayout";
 import { PageHero } from "@/components/chaplin/PageHero";
-import { Instagram, Facebook, MessageCircle, MapPin, Phone, Mail } from "lucide-react";
+import { Instagram, Facebook, MessageCircle, MapPin, Phone } from "lucide-react";
+import { TikTokIcon } from "@/components/chaplin/TikTokIcon";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -50,6 +51,14 @@ const canales = [
     cta: "Ver página",
   },
   {
+    icon: TikTokIcon,
+    title: "TikTok",
+    value: "@chaplingrupocultural",
+    sub: "Detrás de escena y ensayos",
+    href: "https://www.tiktok.com/@chaplingrupocultural",
+    cta: "Ver perfil",
+  },
+  {
     icon: MapPin,
     title: "Ubicación",
     value: "Ica, Perú",
@@ -59,14 +68,14 @@ const canales = [
   },
 ];
 
-const motivaciones = [
-  "Inscribirse en un taller",
-  "Información sobre funciones",
-  "Participar en FESMICA",
-  "Contratar a Chaplin",
-  "Trabajar con Harold",
-  "Prensa y medios",
-  "Otro",
+const talleresDeInteres = [
+  "Baby Chaplin (3 a 5 años)",
+  "Chaplin Kids (6 a 11 años)",
+  "Taller Convenio Sanluisano",
+  "Chaplin Teens (12 a 17 años)",
+  "Primer Acto (adultos)",
+  "Taller de Montaje (Shrek)",
+  "Aún no lo sé",
 ];
 
 /* ─── Canales ─────────────────────────────────────────────────────────────── */
@@ -143,11 +152,11 @@ function FormularioSection() {
   const ref = useRef<HTMLElement>(null);
   const [enviado, setEnviado] = useState(false);
   const [form, setForm] = useState({
-    nombre: "",
-    email: "",
-    telefono: "",
-    motivo: "",
-    mensaje: "",
+    nombreCompleto: "",
+    edad: "",
+    taller: "",
+    whatsapp: "",
+    consulta: "",
   });
 
   const handleChange = (
@@ -159,7 +168,7 @@ function FormularioSection() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const text = encodeURIComponent(
-      `Hola, soy ${form.nombre}.\nMotivo: ${form.motivo}\n${form.mensaje}\nContacto: ${form.email} · ${form.telefono}`
+      `Hola, soy ${form.nombreCompleto} (${form.edad}).\nTaller de interés: ${form.taller}\n${form.consulta}\nMi WhatsApp: ${form.whatsapp}`
     );
     window.open(`https://wa.me/51956060826?text=${text}`, "_blank");
     setEnviado(true);
@@ -210,9 +219,9 @@ function FormularioSection() {
 
             <div className="frm-fade space-y-6">
               {[
-                { icon: Phone,   label: "Teléfono",  value: "956 060 826" },
-                { icon: Mail,    label: "Instagram",  value: "@chaplin.grupocultural" },
-                { icon: MapPin,  label: "Ciudad",     value: "Ica, Perú" },
+                { icon: Phone,     label: "Teléfono",  value: "956 060 826" },
+                { icon: Instagram, label: "Instagram", value: "@chaplin.grupocultural" },
+                { icon: MapPin,    label: "Ciudad",    value: "Ica, Perú" },
               ].map((item) => {
                 const Icon = item.icon;
                 return (
@@ -250,57 +259,45 @@ function FormularioSection() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className={labelClass}>Nombre *</label>
-                    <input
-                      type="text"
-                      name="nombre"
-                      required
-                      value={form.nombre}
-                      onChange={handleChange}
-                      placeholder="Tu nombre"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Email</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={form.email}
-                      onChange={handleChange}
-                      placeholder="tu@email.com"
-                      className={inputClass}
-                    />
-                  </div>
+                <div>
+                  <label className={labelClass}>Nombre completo *</label>
+                  <input
+                    type="text"
+                    name="nombreCompleto"
+                    required
+                    value={form.nombreCompleto}
+                    onChange={handleChange}
+                    placeholder="Tu nombre completo"
+                    className={inputClass}
+                  />
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-6">
                   <div>
-                    <label className={labelClass}>Teléfono</label>
+                    <label className={labelClass}>Edad *</label>
                     <input
-                      type="tel"
-                      name="telefono"
-                      value={form.telefono}
+                      type="text"
+                      name="edad"
+                      required
+                      value={form.edad}
                       onChange={handleChange}
-                      placeholder="+51 000 000 000"
+                      placeholder="En caso de menores, nombre del apoderado"
                       className={inputClass}
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>Motivo *</label>
+                    <label className={labelClass}>Taller de tu interés *</label>
                     <select
-                      name="motivo"
+                      name="taller"
                       required
-                      value={form.motivo}
+                      value={form.taller}
                       onChange={handleChange}
                       className={`${inputClass} cursor-pointer`}
                     >
                       <option value="" disabled className="bg-negro text-blanco/60">
                         Selecciona...
                       </option>
-                      {motivaciones.map((m) => (
+                      {talleresDeInteres.map((m) => (
                         <option key={m} value={m} className="bg-negro text-blanco">
                           {m}
                         </option>
@@ -310,12 +307,26 @@ function FormularioSection() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>Mensaje *</label>
-                  <textarea
-                    name="mensaje"
+                  <label className={labelClass}>Número de WhatsApp *</label>
+                  <input
+                    type="tel"
+                    name="whatsapp"
                     required
+                    value={form.whatsapp}
+                    onChange={handleChange}
+                    placeholder="+51 000 000 000"
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClass}>
+                    ¿Tienes alguna consulta específica o experiencia previa en teatro?
+                  </label>
+                  <textarea
+                    name="consulta"
                     rows={5}
-                    value={form.mensaje}
+                    value={form.consulta}
                     onChange={handleChange}
                     placeholder="Cuéntanos qué necesitas..."
                     className={`${inputClass} resize-none`}
@@ -327,6 +338,8 @@ function FormularioSection() {
                 </button>
 
                 <p className="font-body text-blanco/60 text-xs text-center">
+                  Tu información será tratada con confidencialidad para brindarte la
+                  mejor asesoría en tu proceso de formación con Chaplin Grupo Cultural.
                   Al enviar se abrirá WhatsApp con tu mensaje listo para confirmar.
                 </p>
               </form>

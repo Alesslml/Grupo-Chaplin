@@ -46,6 +46,7 @@ interface Obra {
 }
 
 const obras: Obra[] = [
+  /* ── Temporada 2026 ── */
   {
     title: "Heathers · El Musical",
     year: "2026",
@@ -74,106 +75,272 @@ const obras: Obra[] = [
     ],
   },
   {
+    title: "SING, Ven y Canta",
+    year: "2026",
+    tipo: "Musical",
+    img: sing,
+    tag: "PRÓXIMA",
+    autores: "Chaplin Grupo Cultural",
+    director: "Gerson Juaze y Harold López",
+    sinopsis:
+      "Un musical que celebra la voz como herramienta de encuentro: canto, comunidad y la invitación a subir al escenario a cantar junto al elenco. Sábado 15 de agosto de 2026.",
+  },
+  {
+    title: "Jesucristo Rockstar",
+    year: "2026",
+    tipo: "Musical",
+    img: king,
+    tag: "PRÓXIMA",
+    autores: "Andrew Lloyd Webber y Tim Rice",
+    director: "Harold López Segovia",
+    sinopsis:
+      "El clásico rock-ópera que narra los últimos días de Jesucristo desde la mirada humana de sus discípulos, especialmente Judas. Rock, fe y escena en una sola noche. Octubre de 2026.",
+  },
+  {
+    title: "SHREK, El inicio de la aventura",
+    year: "2026",
+    tipo: "Familiar",
+    img: family,
+    tag: "PRÓXIMA",
+    autores: "Basado en DreamWorks",
+    director: "Harold López Segovia",
+    sinopsis:
+      "El ogro más querido del cine llega al escenario iqueño en una aventura familiar sobre la amistad, la aceptación y encontrar la belleza donde menos se espera. Diciembre de 2026.",
+  },
+
+  /* ── 2025 ── */
+  {
+    title: "GREASE, El musical",
+    year: "2025",
+    tipo: "Musical",
+    img: musical,
+    autores: "Jim Jacobs y Warren Casey",
+    director: "Yerson Luján",
+    sinopsis:
+      "Los años 50, el amor adolescente y el rock and roll se encuentran en Rydell High. Danny y Sandy protagonizan el musical juvenil más icónico de todos los tiempos.",
+  },
+  {
     title: "El Rey León",
-    year: "2022",
+    year: "2025",
     tipo: "Musical",
     img: king,
     autores: "Elton John y Tim Rice",
     director: "Harold López Segovia",
     sinopsis:
-      "El clásico eterno de Elton John y Tim Rice cobró vida sobre el escenario iqueño. Simba, Mufasa, Scar y todo el orgullo de las tierras salvajes en una producción que emocionó a público de todas las edades. Un viaje épico sobre la herencia, el deber y el ciclo de la vida.",
+      "El clásico eterno de Elton John y Tim Rice cobró vida sobre el escenario iqueño. Simba, Mufasa, Scar y todo el orgullo de las tierras salvajes en una producción que emocionó a público de todas las edades.",
     canciones: [
       "El círculo de la vida", "Yo voy a ser el rey", "¿Puedo sentirme el amor esta noche?",
       "Hakuna Matata", "Somos uno", "El tiempo de esperar",
     ],
   },
   {
-    title: "TOC TOC",
-    year: "2023",
-    tipo: "Comedia",
-    img: comedy,
-    autores: "Laurent Baffie",
+    title: "Tus Amigos Nunca Te Harían Daño",
+    year: "2025",
+    tipo: "Drama",
+    img: drama,
+    autores: "Chaplin Grupo Cultural",
     director: "Harold López Segovia",
-    sinopsis:
-      "Seis pacientes con Trastorno Obsesivo Compulsivo coinciden en la sala de espera de un psiquiatra que nunca llega. Lo que comienza como una tortura de tics y manías se convierte en la comedia más aplaudida del año. Una obra que habla de nuestras rarezas con ternura y carcajadas.",
+    sinopsis: "Sinopsis próximamente.",
   },
+
+  /* ── 2024 ── */
   {
-    title: "Mamma Mia",
-    year: "2022",
+    title: "Hércules",
+    year: "2024",
     tipo: "Musical",
     img: musical,
-    autores: "Catherine Johnson · Música: ABBA",
-    director: "Harold López Segovia",
+    autores: "Alan Menken · Disney",
+    director: "Carlos Espino",
     sinopsis:
-      "El musical definitivo de ABBA. Sophie está a punto de casarse y quiere que su padre la lleve al altar, pero hay un problema: no sabe quién es. A través de canciones icónicas, una isla griega y tres posibles padres, Mamma Mia celebra la familia, el amor y la libertad.",
-    canciones: [
-      "Dancing Queen", "Mamma Mia", "The Winner Takes It All",
-      "Super Trouper", "Voulez-Vous", "Fernando", "Gimme! Gimme! Gimme!",
-    ],
+      "El semidiós griego criado entre mortales busca demostrar que es un verdadero héroe para recuperar su lugar en el Olimpo. Acción, mitología y humor en un musical familiar.",
   },
   {
-    title: "Encanto",
+    title: "El Gran Showman",
     year: "2024",
-    tipo: "Familiar",
-    img: family,
-    autores: "Lin-Manuel Miranda · Disney",
-    director: "Harold López Segovia",
-    sinopsis:
-      "La familia Madrigal vive en una casa mágica en las montañas de Colombia. Cada miembro tiene un don extraordinario... excepto Mirabel. Cuando la magia de la casa empieza a desvanecerse, será ella quien tenga que salvarla. Un espectáculo sobre el amor familiar, la identidad y el poder de ser uno mismo.",
-    canciones: [
-      "Surface Pressure", "What Else Can I Do?", "We Don't Talk About Bruno",
-      "Waiting on a Miracle", "Colombia, mi encanto",
-    ],
-  },
-  {
-    title: "The Greatest Showman",
-    year: "2023",
     tipo: "Musical",
     img: sing,
     autores: "Benj Pasek y Justin Paul",
     director: "Harold López Segovia",
     sinopsis:
-      "Inspirado en la historia de P.T. Barnum, este espectáculo celebra a quienes no encajan, a los que sueñan en grande y a los que construyen un circo con su valentía. Con una banda sonora que no se olvida, es una declaración de amor a lo extraordinario de ser diferente.",
+      "Inspirado en la historia de P.T. Barnum, este espectáculo celebra a quienes no encajan, a los que sueñan en grande y a los que construyen un circo con su valentía.",
     canciones: [
       "The Greatest Show", "A Million Dreams", "Come Alive",
       "This Is Me", "The Other Side", "Rewrite the Stars",
     ],
   },
   {
-    title: "Coco",
+    title: "Camino a OZ",
     year: "2024",
+    tipo: "Familiar",
+    img: family,
+    autores: "Basado en El Mago de Oz",
+    director: "Daniela Lengua",
+    sinopsis: "Sinopsis próximamente.",
+  },
+  {
+    title: "Él me mintió (3ra temporada)",
+    year: "2024",
+    tipo: "Comedia",
+    img: comedy,
+    autores: "Basado en el musical MENTIRAS",
+    director: "Harold López Segovia",
+    sinopsis:
+      "Tercera temporada de la comedia de enredos que consolidó a Chaplin en Ica, con nuevas complicaciones y el mismo ingenio de siempre.",
+  },
+  {
+    title: "El Grinch",
+    year: "2024",
+    tipo: "Familiar",
+    img: family,
+    autores: "Basado en Dr. Seuss",
+    director: "Harold López Segovia",
+    sinopsis:
+      "El personaje que odia la Navidad se propone arruinarla en Villa Quién, hasta que descubre que la Navidad puede significar algo más.",
+  },
+
+  /* ── 2023 ── */
+  {
+    title: "Encanto",
+    year: "2023",
+    tipo: "Familiar",
+    img: family,
+    autores: "Lin-Manuel Miranda · Disney",
+    director: "Harold López Segovia",
+    sinopsis:
+      "La familia Madrigal vive en una casa mágica en las montañas de Colombia. Cada miembro tiene un don extraordinario... excepto Mirabel, quien tendrá que salvar la magia de la casa.",
+    canciones: [
+      "Surface Pressure", "What Else Can I Do?", "We Don't Talk About Bruno",
+      "Waiting on a Miracle", "Colombia, mi encanto",
+    ],
+  },
+  {
+    title: "Mamma Mia",
+    year: "2023",
+    tipo: "Musical",
+    img: musical,
+    autores: "Catherine Johnson · Música: ABBA",
+    director: "Harold López Segovia",
+    sinopsis:
+      "El musical definitivo de ABBA. Sophie está a punto de casarse y quiere que su padre la lleve al altar, pero no sabe quién es, entre tres posibles candidatos.",
+    canciones: [
+      "Dancing Queen", "Mamma Mia", "The Winner Takes It All",
+      "Super Trouper", "Voulez-Vous", "Fernando", "Gimme! Gimme! Gimme!",
+    ],
+  },
+  {
+    title: "Él me mintió (2da temporada)",
+    year: "2023",
+    tipo: "Comedia",
+    img: comedy,
+    autores: "Basado en el musical MENTIRAS",
+    director: "Harold López Segovia",
+    sinopsis: "Segunda temporada de la comedia de enredos amorosos que ya era un éxito consolidado en Ica.",
+  },
+
+  /* ── 2022 ── */
+  {
+    title: "Él me mintió (1ra temporada)",
+    year: "2022",
+    tipo: "Comedia",
+    img: comedy,
+    autores: "Basado en el musical MENTIRAS",
+    director: "Harold López Segovia",
+    sinopsis:
+      "La producción que consolidó a Chaplin en Ica. Esta comedia de enredos amorosos fue la primera en demostrar que el teatro local podía llenar funciones de manera sostenida.",
+  },
+  {
+    title: "TOC TOC (2da temporada)",
+    year: "2022",
+    tipo: "Comedia",
+    img: comedy,
+    autores: "Laurent Baffie",
+    director: "Harold López Segovia",
+    sinopsis:
+      "Seis pacientes con Trastorno Obsesivo Compulsivo coinciden en la sala de espera de un psiquiatra que nunca llega. Una comedia sobre nuestras rarezas, con ternura y carcajadas.",
+  },
+  {
+    title: "COCO, El musical",
+    year: "2022",
     tipo: "Familiar",
     img: family,
     autores: "Adrian Molina · Disney / Pixar",
     director: "Harold López Segovia",
     sinopsis:
-      "Miguel sueña con ser músico, pero su familia lo tiene prohibido. En el Día de los Muertos, cruza accidentalmente a la Tierra de los Muertos y emprende un viaje para encontrar a su tatarabuelo. Un espectáculo sobre la memoria, los sueños y el amor que trasciende la muerte.",
+      "Miguel sueña con ser músico, pero su familia lo tiene prohibido. En el Día de los Muertos cruza a la Tierra de los Muertos en busca de su tatarabuelo.",
     canciones: [
       "Recuérdame", "La Llorona", "Un poco loco",
       "Proud Corazón", "Mucho más que tú",
     ],
   },
+
+  /* ── 2021 ── */
   {
-    title: "Pinocho",
+    title: "Me-estresas",
     year: "2021",
-    tipo: "Drama",
-    img: drama,
-    autores: "Basado en Carlo Collodi",
-    director: "Harold López Segovia",
-    sinopsis:
-      "La primera producción dramática mayor de Chaplin. El clásico de Collodi reinventado con crudeza y belleza escénica. Un muñeco de madera que quiere ser real; un padre que construye un hijo del vacío. Una historia sobre la mentira, el crecimiento y el amor incondicional.",
-  },
-  {
-    title: "Él me mintió",
-    year: "2020–2022",
     tipo: "Comedia",
     img: comedy,
     autores: "Chaplin Grupo Cultural",
+    director: "Harold López y Thalia Castillon",
+    sinopsis: "Sinopsis próximamente.",
+  },
+
+  /* ── 2020 (microteatro virtual) ── */
+  {
+    title: "El Bucle",
+    year: "2020",
+    tipo: "Drama",
+    img: drama,
+    tag: "MICROTEATRO VIRTUAL",
+    autores: "Chaplin Grupo Cultural",
+    director: "Harold López Segovia",
+    sinopsis: "Sinopsis próximamente.",
+  },
+  {
+    title: "El Purgatorio",
+    year: "2020",
+    tipo: "Drama",
+    img: drama,
+    tag: "MICROTEATRO VIRTUAL",
+    autores: "Chaplin Grupo Cultural",
+    director: "Harold López Segovia",
+    sinopsis: "Sinopsis próximamente.",
+  },
+  {
+    title: "Dos para el camino",
+    year: "2020",
+    tipo: "Drama",
+    img: drama,
+    tag: "MICROTEATRO VIRTUAL",
+    autores: "Chaplin Grupo Cultural",
+    director: "Harold López Segovia",
+    sinopsis: "Sinopsis próximamente.",
+  },
+
+  /* ── 2019 (fundación) ── */
+  {
+    title: "TOC TOC (1ra temporada)",
+    year: "2019",
+    tipo: "Comedia",
+    img: comedy,
+    tag: "OASIS",
+    autores: "Laurent Baffie",
     director: "Harold López Segovia",
     sinopsis:
-      "La producción que consolidó a Chaplin en Ica. Presentada en 3 temporadas consecutivas, esta comedia de enredos amorosos fue la primera en demostrar que el teatro local podía llenar funciones de manera sostenida. El punto de partida de todo.",
+      "Seis pacientes con Trastorno Obsesivo Compulsivo coinciden en la sala de espera de un psiquiatra que nunca llega. La primera temporada de la comedia más aplaudida de Chaplin.",
+  },
+  {
+    title: "LARCO, El musical",
+    year: "2019",
+    tipo: "Musical",
+    img: musical,
+    autores: "Chaplin Grupo Cultural",
+    director: "Harold López Segovia",
+    sinopsis: "Sinopsis próximamente.",
   },
 ];
+
+// Año más reciente primero. parseInt toma el primer año en rangos tipo "2020–2022".
+const obrasOrdenadas = [...obras].sort((a, b) => parseInt(b.year) - parseInt(a.year));
 
 const filtros: Tipo[] = ["Todos", "Musical", "Drama", "Comedia", "Familiar"];
 
@@ -329,7 +496,7 @@ function ProduccionesPage() {
   const [filtro, setFiltro] = useState<Tipo>("Todos");
   const [obraAbierta, setObraAbierta] = useState<string | null>(null);
 
-  const filtered = filtro === "Todos" ? obras : obras.filter((o) => o.tipo === filtro);
+  const filtered = filtro === "Todos" ? obrasOrdenadas : obrasOrdenadas.filter((o) => o.tipo === filtro);
 
   const toggleObra = (title: string) => {
     setObraAbierta((prev) => (prev === title ? null : title));

@@ -1,12 +1,21 @@
-import { Instagram, Facebook, MessageCircle } from "lucide-react";
+import { Instagram, Facebook, MessageCircle, Youtube } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { TikTokIcon } from "@/components/chaplin/TikTokIcon";
 
 const navLinks = [
   { to: "/nosotros", label: "Nosotros" },
   { to: "/producciones", label: "Producciones" },
   { to: "/talleres", label: "Talleres" },
-  { to: "/fesmica", label: "FESMICA" },
+  { to: "/fesmica", label: "Festival" },
+  { to: "/aliados", label: "Aliados" },
+  { to: "/equipo", label: "Equipo" },
+  { to: "/noticias", label: "Noticias" },
   { to: "/contacto", label: "Contacto" },
+];
+
+const legalLinks = [
+  { to: "/terminos", label: "Términos y condiciones" },
+  { to: "/libro-de-reclamaciones", label: "Libro de Reclamaciones" },
 ];
 
 export function Footer() {
@@ -116,15 +125,42 @@ export function Footer() {
                   Chaplin Grupo Cultural
                 </a>
               </li>
+              <li className="flex items-center gap-3">
+                <TikTokIcon size={16} className="text-rojo" />
+                <a
+                  href="https://www.tiktok.com/@chaplingrupocultural"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-rojo transition"
+                >
+                  @chaplingrupocultural
+                </a>
+              </li>
+              <li className="flex items-center gap-3">
+                <Youtube size={16} className="text-gris-humo" />
+                <span className="text-blanco/40">YouTube — próximamente</span>
+              </li>
             </ul>
             <p className="font-body text-blanco/50 text-xs">Ica · Perú</p>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-[#1a1a1a] text-center">
-          <p className="font-body text-gris-humo text-xs">
-            © 2025 Chaplin Grupo Cultural — Ica, Perú. Cada función, una promesa.
+        <div className="pt-8 border-t border-[#1a1a1a] flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="font-body text-gris-humo text-xs text-center md:text-left">
+            Todos los derechos reservados © 2026. Desarrollada por Alejandro &amp; Jonathan López.
           </p>
+          <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {legalLinks.map((l) => (
+              <li key={l.to}>
+                <Link
+                  to={l.to}
+                  className="font-body text-gris-humo hover:text-rojo text-xs transition-colors"
+                >
+                  {l.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </footer>

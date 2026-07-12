@@ -5,9 +5,15 @@ const links = [
   { to: "/nosotros", label: "Nosotros" },
   { to: "/producciones", label: "Producciones" },
   { to: "/talleres", label: "Talleres" },
-  { to: "/fesmica", label: "FESMICA" },
+  { to: "/fesmica", label: "Festival" },
+  { to: "/aliados", label: "Aliados" },
+  { to: "/equipo", label: "Equipo" },
+  { to: "/noticias", label: "Noticias" },
   { to: "/contacto", label: "Contacto" },
 ];
+
+// TODO: reemplazar por el link real cuando exista el sistema de compra propio de Chaplin.
+const TICKETS_URL = "https://teleticket.com.pe";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -41,15 +47,15 @@ export function Navbar() {
           </Link>
 
           {/* Links desktop */}
-          <ul className="hidden lg:flex items-center gap-10">
+          <ul className="hidden xl:flex items-center gap-6">
             {links.map((l) => (
               <li key={l.to}>
                 <Link
                   to={l.to}
-                  className="font-body font-semibold text-[13px] uppercase tracking-[0.2em] text-blanco hover:text-rojo transition-colors duration-300"
+                  className="font-body font-semibold text-[12px] uppercase tracking-[0.15em] text-blanco hover:text-rojo transition-colors duration-300"
                   activeProps={{
                     className:
-                      "font-body font-semibold text-[13px] uppercase tracking-[0.2em] text-rojo transition-colors duration-300",
+                      "font-body font-semibold text-[12px] uppercase tracking-[0.15em] text-rojo transition-colors duration-300",
                   }}
                 >
                   {l.label}
@@ -58,16 +64,27 @@ export function Navbar() {
             ))}
           </ul>
 
-          {/* Hamburger mobile */}
-          <button
-            onClick={() => setOpen(true)}
-            aria-label="Abrir menú"
-            className="lg:hidden flex flex-col gap-1.5 w-8"
-          >
-            <span className="h-[2px] bg-blanco w-full" />
-            <span className="h-[2px] bg-rojo w-2/3 ml-auto" />
-            <span className="h-[2px] bg-blanco w-full" />
-          </button>
+          <div className="flex items-center gap-5">
+            <a
+              href={TICKETS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden md:inline-flex font-body font-bold text-[12px] uppercase tracking-[0.2em] text-negro bg-rojo px-5 py-2.5 hover:bg-blanco transition-colors duration-300"
+            >
+              Entradas
+            </a>
+
+            {/* Hamburger mobile */}
+            <button
+              onClick={() => setOpen(true)}
+              aria-label="Abrir menú"
+              className="xl:hidden flex flex-col gap-1.5 w-8"
+            >
+              <span className="h-[2px] bg-blanco w-full" />
+              <span className="h-[2px] bg-rojo w-2/3 ml-auto" />
+              <span className="h-[2px] bg-blanco w-full" />
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -99,22 +116,33 @@ export function Navbar() {
             </button>
           </div>
 
-          <ul className="flex-1 px-8 py-8 space-y-0">
+          <ul className="flex-1 px-8 py-8 space-y-0 overflow-y-auto">
             {links.map((l) => (
               <li key={l.to} className="border-b border-gris-humo/20">
                 <Link
                   to={l.to}
                   onClick={() => setOpen(false)}
-                  className="font-display text-3xl text-blanco hover:text-rojo block tracking-wide py-5 transition-colors duration-300"
-                  activeProps={{ className: "font-display text-3xl text-rojo block tracking-wide py-5" }}
+                  className="font-display text-2xl text-blanco hover:text-rojo block tracking-wide py-4 transition-colors duration-300"
+                  activeProps={{ className: "font-display text-2xl text-rojo block tracking-wide py-4" }}
                 >
                   {l.label}
                 </Link>
               </li>
             ))}
+            <li className="pt-5">
+              <a
+                href={TICKETS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="inline-block font-body font-bold text-sm uppercase tracking-[0.2em] text-negro bg-rojo px-6 py-3"
+              >
+                Entradas
+              </a>
+            </li>
           </ul>
 
-          <div className="px-8 py-8 border-t border-rojo">
+          <div className="px-8 py-8 border-t border-rojo shrink-0">
             <p className="font-body text-xs uppercase tracking-[0.3em] text-gris-humo mb-2">
               Ica · Perú
             </p>

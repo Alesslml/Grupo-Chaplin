@@ -25,3 +25,6 @@ PROGRAMA DE MANO.pdf
 
 # Claude local settings
 .claude/
+
+# Vercel local build/link artifacts
+.vercel/

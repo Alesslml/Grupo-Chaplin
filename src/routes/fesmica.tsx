@@ -56,28 +56,29 @@ const ediciones = [
     num: "I",
     year: "2024",
     titulo: "Primera Edición",
-    desc: "El inicio de todo. 12 obras, 6 compañías participantes y un público iqueño que descubrió el microteatro como nunca antes.",
-    obras: "12 obras",
-    companias: "6 compañías",
+    desc: "El inicio de todo. El nacimiento del Festival de Microteatro de Ica, creado por Chaplin Grupo Cultural para dinamizar el talento local y honrar a los personajes ilustres del teatro iqueño.",
     img: drama,
   },
   {
     num: "II",
-    year: "2024",
+    year: "2025",
     titulo: "Segunda Edición",
-    desc: "Duplicamos la ambición. Compañías de Lima y Arequipa se sumaron al festival. El microteatro empezó a ser noticia nacional.",
-    obras: "18 obras",
-    companias: "9 compañías",
+    desc: "El festival se consolida como una cita anual en el calendario cultural de Ica, cada mes de marzo, en el marco del Día Mundial del Teatro.",
     img: musical,
   },
   {
     num: "III",
-    year: "2025",
+    year: "2026",
     titulo: "Tercera Edición",
-    desc: "FESMICA se consolida como el festival de microteatro más importante del sur del Perú. Nuevos espacios, nuevo público, mismo espíritu.",
-    obras: "20+ obras",
-    companias: "12 compañías",
+    desc: "FESMICA sigue creciendo como epicentro de la dramaturgia local, conectando el legado de los maestros del teatro iqueño con el talento de las nuevas generaciones.",
     img: comedy,
+  },
+  {
+    num: "IV",
+    year: "2027",
+    titulo: "Cuarta Edición",
+    desc: "La próxima edición de FESMICA. Síguenos en redes para conocer fechas, bases de postulación y el elenco de compañías participantes.",
+    img: fesmicaImg,
     proxima: true,
   },
 ];
@@ -122,13 +123,19 @@ function QueEsSection() {
               Festival de Microteatro de Ica
             </p>
             <p className="qe-fade font-body text-blanco/80 text-base md:text-lg leading-[1.8] mb-5 max-w-lg">
-              Tres días. Más de quince obras de quince minutos. Un festival donde el
-              teatro se vuelve íntimo, fugaz, eléctrico.
+              El teatro es una fuerza viva que debe celebrarse, compartirse y expandirse.
+              Desde el 2024 asumimos con orgullo la organización del Festival de
+              Microteatro de Ica, un evento nacido con la vocación de convertirse en el
+              epicentro de la dramaturgia local.
             </p>
             <p className="qe-fade font-body text-blanco/60 text-base leading-[1.8] max-w-lg">
-              Chaplin lo creó, Ica lo adoptó, el Perú lo aplaude. FESMICA nació de
-              la convicción de que el teatro puede ser una experiencia radical:
-              personal, intensa y sin concesiones.
+              Cada mes de marzo, coincidiendo con la conmemoración del Día Mundial del
+              Teatro, transformamos nuestra ciudad en un escenario vibrante donde la
+              brevedad y la intensidad de las historias toman el protagonismo. Más que un
+              encuentro artístico, el FESMICA es un espacio de memoria y reconocimiento:
+              honramos con profunda gratitud a los personajes ilustres que han cimentado
+              el camino del teatro iqueño, conectando el legado de nuestros maestros con
+              el talento de las nuevas generaciones.
             </p>
           </div>
 
@@ -195,7 +202,7 @@ function EdicionesSection() {
           </h2>
         </header>
 
-        <div className="grid md:grid-cols-3 gap-px bg-negro/10">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-negro/10">
           {ediciones.map((e) => (
             <div key={e.num} className="ed-card group relative bg-gris-claro overflow-hidden">
               <div className="relative aspect-[4/3] overflow-hidden">
@@ -219,18 +226,8 @@ function EdicionesSection() {
               </div>
               <div className="p-8">
                 <p className="font-body uppercase tracking-[0.3em] text-rojo text-[10px] mb-3">{e.year}</p>
-                <h3 className="font-display text-negro text-3xl mb-4">{e.titulo}</h3>
-                <p className="font-body text-gris-humo text-sm leading-[1.8] mb-6">{e.desc}</p>
-                <div className="flex items-center gap-6 pt-4 border-t border-negro/10">
-                  <div>
-                    <p className="font-display text-rojo text-2xl">{e.obras}</p>
-                    <p className="font-body text-[10px] uppercase tracking-[0.2em] text-gris-humo">presentadas</p>
-                  </div>
-                  <div>
-                    <p className="font-display text-negro text-2xl">{e.companias}</p>
-                    <p className="font-body text-[10px] uppercase tracking-[0.2em] text-gris-humo">participantes</p>
-                  </div>
-                </div>
+                <h3 className="font-display text-negro text-2xl mb-4">{e.titulo}</h3>
+                <p className="font-body text-gris-humo text-sm leading-[1.8]">{e.desc}</p>
               </div>
             </div>
           ))}
@@ -306,7 +303,7 @@ function FesmicaPage() {
       <PageHero
         eyebrow="Chaplin presenta"
         title={<>FESMICA</>}
-        subtitle="El Festival de Microteatro de Ica. Tres días, quince minutos por obra, cero concesiones. Teatro que te entra por la piel."
+        subtitle="El Festival de Microteatro de Ica, creado por Chaplin Grupo Cultural. Cada mes de marzo, el teatro se vuelve íntimo, fugaz, eléctrico."
         bg={fesmicaImg}
       />
       <QueEsSection />

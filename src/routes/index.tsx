@@ -8,6 +8,7 @@ import ensemble from "@/assets/ensemble.jpg";
 import musicalImg from "@/assets/show-musical.jpg";
 import dramaImg from "@/assets/show-drama.jpg";
 import fesmicaImg from "@/assets/fesmica.jpg";
+import { Camera, HelpCircle } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -98,14 +99,102 @@ function SeccionesTeasers() {
   );
 }
 
+/* ─── Misión, visión y frase de Chaplin ──────────────────────────────────── */
+function SobreChaplinSection() {
+  return (
+    <section className="bg-negro grain py-24 lg:py-32">
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
+        <p className="font-body italic text-rojo text-lg md:text-2xl text-center max-w-2xl mx-auto mb-16">
+          "Un día sin reír es un día perdido." — Charles Chaplin
+        </p>
+
+        <div className="grid md:grid-cols-2 gap-12 lg:gap-20 mb-16">
+          <div>
+            <p className="font-body uppercase tracking-[0.4em] text-rojo text-xs mb-4">Misión</p>
+            <p className="font-body text-blanco/75 text-base leading-[1.8]">
+              Impulsar y promover el desarrollo del teatro y las artes escénicas en la
+              región Ica, brindando una formación artística integral e inclusiva. Busca
+              formar actores, directores y productores priorizando la disciplina, el
+              desarrollo de habilidades blandas y el talento por encima de barreras
+              económicas.
+            </p>
+          </div>
+          <div>
+            <p className="font-body uppercase tracking-[0.4em] text-rojo text-xs mb-4">Visión</p>
+            <p className="font-body text-blanco/75 text-base leading-[1.8]">
+              Consolidarse como un referente cultural a nivel nacional, destacando por la
+              calidad de sus puestas en escena. Su meta principal es fortalecer y
+              democratizar la actividad teatral en una región con escasa infraestructura,
+              inspirando a nuevas generaciones mediante el arte.
+            </p>
+          </div>
+        </div>
+
+        <div className="text-center">
+          <p className="font-body text-blanco/60 text-sm max-w-xl mx-auto mb-6">
+            Chaplin Grupo Cultural nació en Ica en 2019 con la convicción de que el teatro
+            transforma vidas, comunidades y ciudades. Hoy somos más de 20 producciones y
+            6 años de historia después.
+          </p>
+          <Link to="/nosotros" className="btn-outline">
+            Más información
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── FAQ + comunidad ─────────────────────────────────────────────────────── */
+function ComunidadSection() {
+  return (
+    <section className="bg-gris-claro py-20 lg:py-28 text-negro">
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-12 grid md:grid-cols-2 gap-10">
+        <div className="flex items-start gap-5 border-l-2 border-rojo pl-6">
+          <HelpCircle className="text-rojo shrink-0 mt-1" size={28} strokeWidth={1.5} />
+          <div>
+            <h3 className="font-display text-negro text-2xl mb-2">¿Tienes dudas?</h3>
+            <p className="font-body text-gris-humo text-sm mb-4 leading-relaxed">
+              Respondemos las preguntas más frecuentes sobre nuestros talleres y funciones.
+            </p>
+            <Link to="/talleres" hash="faq" className="font-body text-[12px] uppercase tracking-[0.25em] text-rojo hover:text-negro transition-colors">
+              Ver preguntas frecuentes →
+            </Link>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-5 border-l-2 border-rojo pl-6">
+          <Camera className="text-rojo shrink-0 mt-1" size={28} strokeWidth={1.5} />
+          <div>
+            <h3 className="font-display text-negro text-2xl mb-2">¿Viste alguna de nuestras obras?</h3>
+            <p className="font-body text-gris-humo text-sm mb-4 leading-relaxed">
+              Déjanos tu comentario y/o tu foto. Nos encanta saber cómo viviste la función.
+            </p>
+            <a
+              href="https://wa.me/51956060826?text=Hola,%20quiero%20dejarles%20un%20comentario%20sobre%20una%20de%20sus%20obras"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-body text-[12px] uppercase tracking-[0.25em] text-rojo hover:text-negro transition-colors"
+            >
+              Escribir por WhatsApp →
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Index() {
   return (
     <PageLayout>
       <Hero />
       <SeccionesTeasers />
       <ProximaFuncion />
+      <SobreChaplinSection />
       <Reconocimientos />
       <Aliados />
+      <ComunidadSection />
     </PageLayout>
   );
 }

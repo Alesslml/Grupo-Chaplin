@@ -9,7 +9,7 @@ import ensemble from "@/assets/ensemble.jpg";
 import f1 from "@/assets/family-1.jpg";
 import f2 from "@/assets/family-2.jpg";
 import f3 from "@/assets/family-3.jpg";
-import { Heart, Star, Users } from "lucide-react";
+import { Heart, Star, Users, BadgeCheck, Theater, GraduationCap, Sparkles, LifeBuoy } from "lucide-react";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -55,13 +55,14 @@ const valores = [
 ];
 
 const hitos = [
-  { year: "2019", label: "Fundación", desc: "Chaplin Grupo Cultural nace en Ica el 21 de octubre con la misión de transformar el arte escénico regional." },
-  { year: "2020", label: "Primeras obras", desc: "A pesar de la pandemia, el elenco mantiene activos los ensayos y estrena sus primeras producciones." },
-  { year: "2021", label: "Pinocho", desc: "Primera producción dramática mayor que consolida la identidad artística de la compañía." },
-  { year: "2022", label: "Musicales", desc: "El Rey León y Mamma Mia catapultan a Chaplin como la compañía musical de referencia en Ica." },
-  { year: "2023", label: "Expansión", desc: "Heathers, TOC TOC y The Greatest Showman —tres producciones en un año— demuestran la madurez del elenco." },
-  { year: "2024", label: "FESMICA", desc: "Nace el Festival de Microteatro de Ica, posicionando a Chaplin como creador de cultura, no solo intérprete." },
-  { year: "2025", label: "Jesucristo Rockstar", desc: "La producción más ambiciosa de la historia de Chaplin: rock, fe y escena en una sola noche." },
+  { year: "2019", label: "Fundación", desc: "Chaplin Grupo Cultural nace en Ica el 21 de octubre. Estrena TOC TOC (1ra temporada) y LARCO, el musical." },
+  { year: "2020", label: "Microteatro virtual", desc: "En plena pandemia, el grupo sostiene el vínculo artístico con El Bucle, El Purgatorio y Dos para el camino, y el concurso virtual \"SI YO FUERA\"." },
+  { year: "2021", label: "Me-estresas", desc: "Nueva producción bajo la codirección de Harold López y Thalia Castillon, en plena reactivación post-pandemia." },
+  { year: "2022", label: "Regreso a las tablas", desc: "El me mintió (1ra temporada), TOC TOC (2da temporada) y COCO marcan la vuelta con fuerza a la producción presencial." },
+  { year: "2023", label: "Expansión musical", desc: "El me mintió (2da temporada), Encanto y Mamma Mia consolidan a Chaplin como referente musical iqueño." },
+  { year: "2024", label: "Nace FESMICA", desc: "Hércules, El Gran Showman, Camino a OZ, El me mintió (3ra temporada) y El Grinch, junto al nacimiento del Festival de Microteatro de Ica." },
+  { year: "2025", label: "Segunda edición de FESMICA", desc: "Grease, El Rey León y Tus Amigos Nunca Te Harían Daño, en el año de la II edición del festival." },
+  { year: "2026", label: "Heathers, El Musical", desc: "Estreno de Heathers y temporada con SING, Jesucristo Rockstar y SHREK, en el año de la III edición de FESMICA." },
 ];
 
 const testimonios = [
@@ -123,9 +124,12 @@ function IdentidadSection() {
             </h2>
             <div className="id-line linea-roja mb-8" />
             <p className="id-reveal font-body text-blanco/80 text-base md:text-lg leading-[1.8] mb-5 max-w-xl">
-              Somos Chaplin Grupo Cultural. Una compañía teatral profesional que
-              nació en Ica con una convicción: el teatro transforma vidas,
-              comunidades y ciudades. Cada función es una promesa cumplida.
+              Fundado el 21 de octubre de 2019, Chaplin Grupo Cultural nace bajo la
+              premisa de que el arte es una herramienta fundamental de transformación
+              social y bienestar comunitario. Liderado por su director general, el
+              Lic. Josue Harold López Segovia, el colectivo ha logrado descentralizar
+              la cultura en Ica, elevando los estándares de la producción artística
+              regional a niveles de competitividad nacional.
             </p>
             <p className="id-reveal font-body text-blanco/60 text-base leading-[1.8] mb-12 max-w-xl">
               Más de seis años subiendo el telón, formando elenco, abriendo
@@ -158,6 +162,159 @@ function IdentidadSection() {
             </div>
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Misión, Visión y avales ─────────────────────────────────────────────── */
+function MisionVisionSection() {
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from(".mv-fade", {
+        opacity: 0,
+        y: 30,
+        duration: 0.9,
+        stagger: 0.1,
+        ease: "power3.out",
+        scrollTrigger: { trigger: ref.current, start: "top 80%" },
+      });
+    }, ref);
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <section ref={ref} className="bg-negro-profundo grain py-28 lg:py-40">
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
+        <div className="grid md:grid-cols-2 gap-12 lg:gap-20 mb-24">
+          <div className="mv-fade">
+            <p className="font-body uppercase tracking-[0.4em] text-rojo text-xs mb-4">Misión</p>
+            <p className="font-body text-blanco/75 text-base leading-[1.8]">
+              Brindar una formación artística completa y pedagógica que permita el
+              desarrollo de la expresión oral, corporal y dramática de nuestros
+              integrantes. Realizamos puestas en escena de alta calidad con el objetivo
+              de formar no solo artistas, sino mejores personas y espectadores críticos.
+            </p>
+          </div>
+          <div className="mv-fade">
+            <p className="font-body uppercase tracking-[0.4em] text-rojo text-xs mb-4">Visión</p>
+            <p className="font-body text-blanco/75 text-base leading-[1.8]">
+              Consolidarnos como un grupo cultural reconocido a nivel nacional por
+              nuestra calidad de servicio. Buscamos promover valores a través de la
+              educación artística en beneficio de nuestros alumnos y la sociedad,
+              ofreciendo siempre espectáculos innovadores en el mundo del teatro.
+            </p>
+          </div>
+        </div>
+
+        <header className="mv-fade max-w-2xl mb-14">
+          <p className="font-body uppercase tracking-[0.4em] text-rojo text-xs mb-5">Avalados por</p>
+          <h2 className="font-display text-blanco text-4xl md:text-5xl leading-[0.95]">
+            LA CRÍTICA Y LA PEDAGOGÍA<br />NOS RESPALDAN.
+          </h2>
+        </header>
+
+        <div className="grid md:grid-cols-2 gap-px bg-gris-textura mb-20">
+          <div className="mv-fade bg-negro-suave p-8 lg:p-10">
+            <GraduationCap className="text-rojo mb-5" size={32} strokeWidth={1.2} />
+            <h3 className="font-display text-blanco text-2xl mb-3">Autoridad Pedagógica</h3>
+            <p className="font-body text-blanco/60 text-sm leading-[1.8]">
+              El grupo ha sido convocado como Jurado de los Juegos Florales Escolares
+              Nacionales (etapa regional) en más de 6 ediciones, consolidándose como
+              referente técnico y educativo en la región.
+            </p>
+          </div>
+          <div className="mv-fade bg-negro-suave p-8 lg:p-10">
+            <BadgeCheck className="text-rojo mb-5" size={32} strokeWidth={1.2} />
+            <h3 className="font-display text-blanco text-2xl mb-3">Validación de la Crítica</h3>
+            <p className="font-body text-blanco/60 text-sm leading-[1.8]">
+              El grupo ha sido reconocido por el prestigioso portal nacional "Oficio
+              Crítico", galardón que sitúa las producciones iqueñas al mismo nivel
+              competitivo que las grandes salas de la capital.
+            </p>
+          </div>
+        </div>
+
+        <div className="mv-fade max-w-3xl">
+          <p className="font-body text-blanco/70 text-base leading-[1.8] mb-5">
+            Chaplin destaca por ser una plataforma de desarrollo integral. Bajo la
+            supervisión del equipo directivo, el talento interno ha evolucionado hacia
+            roles de liderazgo, destacando las direcciones de{" "}
+            <span className="text-blanco">Daniela Lengua</span> (Camino a Oz),{" "}
+            <span className="text-blanco">Carlos Espino</span> (Hércules),{" "}
+            <span className="text-blanco">Yerson Luján</span> (Grease) y{" "}
+            <span className="text-blanco">Gerson Juaze</span> (SING, Ven y Canta —
+            producción 2026).
+          </p>
+          <p className="font-body text-blanco/60 text-base leading-[1.8]">
+            El grupo cuenta con un historial de éxitos y producciones de alta
+            complejidad técnica: Mamma Mia, The Greatest Showman, Encanto, Coco, El Rey
+            León, Él me mintió (3 temporadas consecutivas), TOC TOC, Tus Amigos Nunca Te
+            Harían Daño y Pinocho, entre otras. En 2026 lidera con el estreno de{" "}
+            <span className="text-rojo">Heathers, El Musical</span>.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Ecosistema Chaplin ──────────────────────────────────────────────────── */
+const ecosistema = [
+  { icon: Theater, title: "FESMICA", desc: "Organizadores del Festival de Microteatro de Ica, una plataforma clave para dinamizar el talento local." },
+  { icon: GraduationCap, title: "Talleres Formativos", desc: "Programas especializados en habilidades socioemocionales y técnicas de desinhibición." },
+  { icon: Sparkles, title: "Innovación en Crisis", desc: "Durante la pandemia, el grupo mantuvo el vínculo artístico mediante el concurso virtual \"SI YO FUERA\"." },
+  { icon: LifeBuoy, title: "Asesoría Técnica", desc: "Soporte y consultoría para organizaciones del sector cultural." },
+];
+
+function EcosistemaSection() {
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from(".eco-card", {
+        opacity: 0,
+        y: 30,
+        duration: 0.8,
+        stagger: 0.1,
+        ease: "power3.out",
+        scrollTrigger: { trigger: ref.current, start: "top 80%" },
+      });
+    }, ref);
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <section ref={ref} className="bg-gris-claro py-24 lg:py-32 text-negro">
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
+        <header className="max-w-2xl mb-16">
+          <p className="font-body uppercase tracking-[0.4em] text-rojo text-xs mb-5">Más allá del escenario</p>
+          <h2 className="font-display text-negro text-4xl md:text-5xl lg:text-6xl leading-[0.95]">
+            UN ECOSISTEMA<br />ARTÍSTICO RESILIENTE.
+          </h2>
+        </header>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-negro/10">
+          {ecosistema.map((e) => {
+            const Icon = e.icon;
+            return (
+              <div key={e.title} className="eco-card bg-gris-claro p-8">
+                <Icon className="text-rojo mb-5" size={30} strokeWidth={1.2} />
+                <h3 className="font-display text-negro text-xl mb-3">{e.title}</h3>
+                <p className="font-body text-gris-humo text-[13px] leading-[1.7]">{e.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="font-body text-gris-humo text-sm leading-[1.8] max-w-2xl mt-16">
+          Chaplin Grupo Cultural representa la excelencia ante los desafíos. Al crear
+          sus propios espacios y formar un público fiel, el grupo reafirma su
+          compromiso de usar el escenario como un puente hacia la identidad, el
+          bienestar y la cultura.
+        </p>
       </div>
     </section>
   );
@@ -441,7 +598,9 @@ function NosotrosPage() {
       />
       <IdentidadSection />
       <Harold />
+      <MisionVisionSection />
       <ValoresSection />
+      <EcosistemaSection />
       <HistoriaSection />
       <FamiliaSection />
       <NosotrosCta />
