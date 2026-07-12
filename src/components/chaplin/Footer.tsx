@@ -117,7 +117,7 @@ export function Footer() {
               <li className="flex items-center gap-3">
                 <Facebook size={16} className="text-rojo" />
                 <a
-                  href="https://facebook.com/chaplingrupocultural"
+                  href="https://www.facebook.com/profile.php?id=100063470896115&locale=es_LA"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-rojo transition"

@@ -47,7 +47,7 @@ const canales = [
     title: "Facebook",
     value: "Chaplin Grupo Cultural",
     sub: "Eventos y funciones",
-    href: "https://facebook.com/chaplingrupocultural",
+    href: "https://www.facebook.com/profile.php?id=100063470896115&locale=es_LA",
     cta: "Ver página",
   },
   {
