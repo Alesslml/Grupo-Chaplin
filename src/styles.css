@@ -226,6 +226,38 @@
   color: var(--negro);
 }
 
+/* ──────────────────────────────────────────────
+   Tema claro/oscuro — encuesta y panel de resultados
+   ────────────────────────────────────────────── */
+[data-survey-theme="dark"] {
+  --t-bg: var(--negro);
+  --t-card: var(--negro-suave);
+  --t-track: var(--gris-textura);
+  --t-border: var(--gris-textura);
+  --t-fg: var(--blanco);
+  --t-fg-80: rgba(255, 255, 255, 0.8);
+  --t-fg-70: rgba(255, 255, 255, 0.7);
+  --t-fg-60: rgba(255, 255, 255, 0.6);
+  --t-fg-50: rgba(255, 255, 255, 0.5);
+  --t-fg-40: rgba(255, 255, 255, 0.4);
+  --t-fg-25: rgba(255, 255, 255, 0.25);
+  --t-input-bg: rgba(0, 0, 0, 0.6);
+}
+[data-survey-theme="light"] {
+  --t-bg: var(--gris-claro);
+  --t-card: #ffffff;
+  --t-track: #e6e6e6;
+  --t-border: #e0e0e0;
+  --t-fg: var(--negro);
+  --t-fg-80: rgba(0, 0, 0, 0.8);
+  --t-fg-70: rgba(0, 0, 0, 0.7);
+  --t-fg-60: rgba(0, 0, 0, 0.6);
+  --t-fg-50: rgba(0, 0, 0, 0.5);
+  --t-fg-40: rgba(0, 0, 0, 0.4);
+  --t-fg-25: rgba(0, 0, 0, 0.2);
+  --t-input-bg: rgba(255, 255, 255, 0.9);
+}
+
 /* Link con subrayado animado */
 .link-underline {
   position: relative;

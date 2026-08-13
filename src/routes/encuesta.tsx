@@ -10,6 +10,7 @@ import {
   type OverallRating,
   type VenueRating,
 } from "@/lib/survey";
+import { ThemeToggle, useSurveyTheme } from "@/components/chaplin/ThemeToggle";
 
 export const Route = createFileRoute("/encuesta")({
   head: () => ({
@@ -133,7 +134,7 @@ function Chip({
       className={`font-body text-[13px] uppercase tracking-[0.15em] px-5 py-3 border transition-all duration-300 ${
         active
           ? "bg-rojo border-rojo text-negro font-bold"
-          : "bg-transparent border-gris-textura text-blanco/70 hover:border-rojo hover:text-rojo"
+          : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-70)] hover:border-rojo hover:text-rojo"
       }`}
     >
       {children}
@@ -143,7 +144,7 @@ function Chip({
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <p className="font-body text-[11px] uppercase tracking-[0.3em] text-blanco/80 mb-4">
+    <p className="font-body text-[11px] uppercase tracking-[0.3em] text-[var(--t-fg-80)] mb-4">
       {children} {required && <span className="text-rojo">*</span>}
     </p>
   );
@@ -162,7 +163,7 @@ function RatingScale({ value, onChange }: { value: number; onChange: (v: number)
           className={`w-11 h-11 border font-display text-lg transition-all duration-300 ${
             n <= value
               ? "bg-rojo border-rojo text-negro"
-              : "bg-transparent border-gris-textura text-blanco/50 hover:border-rojo/60"
+              : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-50)] hover:border-rojo/60"
           }`}
         >
           {n}
@@ -185,7 +186,7 @@ function NpsScale({ value, onChange }: { value: number | null; onChange: (v: num
           className={`w-10 h-10 border font-display text-base transition-all duration-300 ${
             value === n
               ? "bg-rojo border-rojo text-negro"
-              : "bg-transparent border-gris-textura text-blanco/50 hover:border-rojo/60"
+              : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-50)] hover:border-rojo/60"
           }`}
         >
           {n}
@@ -196,10 +197,11 @@ function NpsScale({ value, onChange }: { value: number | null; onChange: (v: num
 }
 
 const inputClass =
-  "w-full bg-negro/60 border-2 border-blanco/25 focus:border-rojo outline-none px-4 py-3 font-body text-blanco text-base placeholder:text-blanco/40 transition-colors duration-300";
+  "w-full bg-[var(--t-input-bg)] border-2 border-[var(--t-fg-25)] focus:border-rojo outline-none px-4 py-3 font-body text-[var(--t-fg)] text-base placeholder:text-[var(--t-fg-40)] transition-colors duration-300";
 
 /* ─── Página ──────────────────────────────────────────────────────────────── */
 function EncuestaPage() {
+  const [theme, toggleTheme] = useSurveyTheme();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(initialState);
   const [submitting, setSubmitting] = useState(false);
@@ -275,13 +277,19 @@ function EncuestaPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-negro grain flex items-center justify-center px-6 py-20">
+      <div
+        data-survey-theme={theme}
+        className="min-h-screen bg-[var(--t-bg)] grain flex items-center justify-center px-6 py-20 relative"
+      >
+        <div className="absolute top-6 right-6">
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        </div>
         <div className="max-w-md text-center">
           <div className="w-20 h-20 mx-auto mb-8 border-2 border-rojo flex items-center justify-center">
             <Check className="text-rojo" size={36} strokeWidth={2} />
           </div>
-          <h1 className="font-display text-blanco text-4xl md:text-5xl mb-6">¡GRACIAS!</h1>
-          <p className="font-body text-blanco/70 leading-relaxed mb-2">
+          <h1 className="font-display text-[var(--t-fg)] text-4xl md:text-5xl mb-6">¡GRACIAS!</h1>
+          <p className="font-body text-[var(--t-fg-70)] leading-relaxed mb-2">
             Tu opinión ya quedó registrada. Nos ayuda muchísimo a mejorar cada función.
           </p>
           <p className="font-body italic text-rojo text-sm">— Chaplin Grupo Cultural</p>
@@ -291,37 +299,40 @@ function EncuestaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-negro grain flex flex-col">
+    <div data-survey-theme={theme} className="min-h-screen bg-[var(--t-bg)] grain flex flex-col">
       {/* Header */}
-      <header className="px-6 pt-10 pb-6 text-center">
+      <header className="px-6 pt-10 pb-6 text-center relative">
+        <div className="absolute top-6 right-6">
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        </div>
         <img
           src="/logo-chaplin.png"
           alt="Chaplin Grupo Cultural"
           className="h-12 w-auto mx-auto mb-6"
-          style={{ filter: "invert(1) hue-rotate(180deg)" }}
+          style={theme === "dark" ? { filter: "invert(1) hue-rotate(180deg)" } : undefined}
         />
         <p className="font-body uppercase tracking-[0.4em] text-rojo text-[11px] mb-3">
           Encuesta de satisfacción
         </p>
-        <h1 className="font-display text-blanco text-3xl md:text-4xl leading-none">{EVENT_LABEL}</h1>
+        <h1 className="font-display text-[var(--t-fg)] text-3xl md:text-4xl leading-none">{EVENT_LABEL}</h1>
       </header>
 
       {/* Progress bar */}
       <div className="px-6 mb-8 max-w-xl mx-auto w-full">
-        <div className="h-[3px] bg-gris-textura w-full">
+        <div className="h-[3px] bg-[var(--t-track)] w-full">
           <div
             className="h-full bg-rojo transition-all duration-500"
             style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
           />
         </div>
-        <p className="font-body text-blanco/40 text-[10px] uppercase tracking-[0.25em] mt-3">
+        <p className="font-body text-[var(--t-fg-40)] text-[10px] uppercase tracking-[0.25em] mt-3">
           Paso {step + 1} de {TOTAL_STEPS}
         </p>
       </div>
 
       {/* Contenido */}
       <main className="flex-1 px-6 pb-32 max-w-xl mx-auto w-full">
-        <div className="bg-negro-suave border border-gris-textura p-6 md:p-10 space-y-10">
+        <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 md:p-10 space-y-10">
           {step === 0 && (
             <>
               <div>
@@ -364,7 +375,7 @@ function EncuestaPage() {
                 <div className="space-y-5">
                   {categoryRatings.map((c) => (
                     <div key={String(c.key)} className="flex items-center justify-between gap-4 flex-wrap">
-                      <span className="font-body text-blanco/80 text-sm">{c.label}</span>
+                      <span className="font-body text-[var(--t-fg-80)] text-sm">{c.label}</span>
                       <RatingScale
                         value={form[c.key] as number}
                         onChange={(v) => set(c.key, v as FormState[typeof c.key])}
@@ -449,7 +460,7 @@ function EncuestaPage() {
                   Del 0 al 10, ¿qué tan probable es que recomiendes Chaplin Grupo Cultural?
                 </FieldLabel>
                 <NpsScale value={form.npsScore} onChange={(v) => set("npsScore", v)} />
-                <div className="flex justify-between mt-2 font-body text-blanco/40 text-[10px] uppercase tracking-[0.2em]">
+                <div className="flex justify-between mt-2 font-body text-[var(--t-fg-40)] text-[10px] uppercase tracking-[0.2em]">
                   <span>Nada probable</span>
                   <span>Muy probable</span>
                 </div>
@@ -475,13 +486,13 @@ function EncuestaPage() {
       </main>
 
       {/* Navegación fija */}
-      <div className="fixed bottom-0 left-0 right-0 bg-negro border-t border-gris-textura px-6 py-5 z-20">
+      <div className="fixed bottom-0 left-0 right-0 bg-[var(--t-bg)] border-t border-[var(--t-border)] px-6 py-5 z-20">
         <div className="max-w-xl mx-auto flex items-center justify-between gap-4">
           <button
             type="button"
             onClick={() => setStep((s) => Math.max(0, s - 1))}
             disabled={step === 0}
-            className="flex items-center gap-1 font-body text-[12px] uppercase tracking-[0.2em] text-blanco/60 hover:text-rojo transition-colors disabled:opacity-0 disabled:pointer-events-none"
+            className="flex items-center gap-1 font-body text-[12px] uppercase tracking-[0.2em] text-[var(--t-fg-60)] hover:text-rojo transition-colors disabled:opacity-0 disabled:pointer-events-none"
           >
             <ChevronLeft size={16} /> Atrás
           </button>
