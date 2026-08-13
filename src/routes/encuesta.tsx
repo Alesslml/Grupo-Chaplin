@@ -357,8 +357,8 @@ function EncuestaPage() {
             <>
               <div>
                 <p className="font-body text-[var(--t-fg-70)] text-sm leading-relaxed mb-8">
-                  Antes de empezar, cuéntanos quién eres. Usamos estos datos solo para contactarte
-                  si necesitamos más detalles sobre tu experiencia.
+                  Chaplin Grupo Cultural agradece de antemano el llenado de la siguiente encuesta
+                  de satisfacción.
                 </p>
                 <FieldLabel required>Nombre completo</FieldLabel>
                 <input
