@@ -17,9 +17,11 @@ import { Route as NosotrosRouteImport } from './routes/nosotros'
 import { Route as LibroDeReclamacionesRouteImport } from './routes/libro-de-reclamaciones'
 import { Route as FesmicaRouteImport } from './routes/fesmica'
 import { Route as EquipoRouteImport } from './routes/equipo'
+import { Route as EncuestaRouteImport } from './routes/encuesta'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as AliadosRouteImport } from './routes/aliados'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminEncuestasRouteImport } from './routes/admin/encuestas'
 
 const TerminosRoute = TerminosRouteImport.update({
   id: '/terminos',
@@ -61,6 +63,11 @@ const EquipoRoute = EquipoRouteImport.update({
   path: '/equipo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EncuestaRoute = EncuestaRouteImport.update({
+  id: '/encuesta',
+  path: '/encuesta',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContactoRoute = ContactoRouteImport.update({
   id: '/contacto',
   path: '/contacto',
@@ -76,11 +83,17 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminEncuestasRoute = AdminEncuestasRouteImport.update({
+  id: '/admin/encuestas',
+  path: '/admin/encuestas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/aliados': typeof AliadosRoute
   '/contacto': typeof ContactoRoute
+  '/encuesta': typeof EncuestaRoute
   '/equipo': typeof EquipoRoute
   '/fesmica': typeof FesmicaRoute
   '/libro-de-reclamaciones': typeof LibroDeReclamacionesRoute
@@ -89,11 +102,13 @@ export interface FileRoutesByFullPath {
   '/producciones': typeof ProduccionesRoute
   '/talleres': typeof TalleresRoute
   '/terminos': typeof TerminosRoute
+  '/admin/encuestas': typeof AdminEncuestasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/aliados': typeof AliadosRoute
   '/contacto': typeof ContactoRoute
+  '/encuesta': typeof EncuestaRoute
   '/equipo': typeof EquipoRoute
   '/fesmica': typeof FesmicaRoute
   '/libro-de-reclamaciones': typeof LibroDeReclamacionesRoute
@@ -102,12 +117,14 @@ export interface FileRoutesByTo {
   '/producciones': typeof ProduccionesRoute
   '/talleres': typeof TalleresRoute
   '/terminos': typeof TerminosRoute
+  '/admin/encuestas': typeof AdminEncuestasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/aliados': typeof AliadosRoute
   '/contacto': typeof ContactoRoute
+  '/encuesta': typeof EncuestaRoute
   '/equipo': typeof EquipoRoute
   '/fesmica': typeof FesmicaRoute
   '/libro-de-reclamaciones': typeof LibroDeReclamacionesRoute
@@ -116,6 +133,7 @@ export interface FileRoutesById {
   '/producciones': typeof ProduccionesRoute
   '/talleres': typeof TalleresRoute
   '/terminos': typeof TerminosRoute
+  '/admin/encuestas': typeof AdminEncuestasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -123,6 +141,7 @@ export interface FileRouteTypes {
     | '/'
     | '/aliados'
     | '/contacto'
+    | '/encuesta'
     | '/equipo'
     | '/fesmica'
     | '/libro-de-reclamaciones'
@@ -131,11 +150,13 @@ export interface FileRouteTypes {
     | '/producciones'
     | '/talleres'
     | '/terminos'
+    | '/admin/encuestas'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/aliados'
     | '/contacto'
+    | '/encuesta'
     | '/equipo'
     | '/fesmica'
     | '/libro-de-reclamaciones'
@@ -144,11 +165,13 @@ export interface FileRouteTypes {
     | '/producciones'
     | '/talleres'
     | '/terminos'
+    | '/admin/encuestas'
   id:
     | '__root__'
     | '/'
     | '/aliados'
     | '/contacto'
+    | '/encuesta'
     | '/equipo'
     | '/fesmica'
     | '/libro-de-reclamaciones'
@@ -157,12 +180,14 @@ export interface FileRouteTypes {
     | '/producciones'
     | '/talleres'
     | '/terminos'
+    | '/admin/encuestas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AliadosRoute: typeof AliadosRoute
   ContactoRoute: typeof ContactoRoute
+  EncuestaRoute: typeof EncuestaRoute
   EquipoRoute: typeof EquipoRoute
   FesmicaRoute: typeof FesmicaRoute
   LibroDeReclamacionesRoute: typeof LibroDeReclamacionesRoute
@@ -171,6 +196,7 @@ export interface RootRouteChildren {
   ProduccionesRoute: typeof ProduccionesRoute
   TalleresRoute: typeof TalleresRoute
   TerminosRoute: typeof TerminosRoute
+  AdminEncuestasRoute: typeof AdminEncuestasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -231,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EquipoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/encuesta': {
+      id: '/encuesta'
+      path: '/encuesta'
+      fullPath: '/encuesta'
+      preLoaderRoute: typeof EncuestaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contacto': {
       id: '/contacto'
       path: '/contacto'
@@ -252,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/encuestas': {
+      id: '/admin/encuestas'
+      path: '/admin/encuestas'
+      fullPath: '/admin/encuestas'
+      preLoaderRoute: typeof AdminEncuestasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -259,6 +299,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AliadosRoute: AliadosRoute,
   ContactoRoute: ContactoRoute,
+  EncuestaRoute: EncuestaRoute,
   EquipoRoute: EquipoRoute,
   FesmicaRoute: FesmicaRoute,
   LibroDeReclamacionesRoute: LibroDeReclamacionesRoute,
@@ -267,6 +308,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProduccionesRoute: ProduccionesRoute,
   TalleresRoute: TalleresRoute,
   TerminosRoute: TerminosRoute,
+  AdminEncuestasRoute: AdminEncuestasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

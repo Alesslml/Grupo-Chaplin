@@ -29,3 +29,4 @@ PROGRAMA DE MANO.pdf
 # Vercel local build/link artifacts
 .vercel/
 .vercel
+.env*
