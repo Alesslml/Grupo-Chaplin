@@ -24,6 +24,9 @@ export const Route = createFileRoute("/encuesta")({
 
 /* ─── Estado del formulario ───────────────────────────────────────────────── */
 interface FormState {
+  fullName: string;
+  phone: string;
+  email: string;
   ageRange: string;
   companion: Companion | "";
   overallRating: OverallRating | "";
@@ -44,6 +47,9 @@ interface FormState {
 }
 
 const initialState: FormState = {
+  fullName: "",
+  phone: "",
+  email: "",
   ageRange: "",
   companion: "",
   overallRating: "",
@@ -115,7 +121,7 @@ const venueOptions: { value: VenueRating; label: string }[] = [
   { value: "malo", label: "Malo" },
 ];
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 /* ─── Chips reutilizables ─────────────────────────────────────────────────── */
 function Chip({
@@ -221,8 +227,10 @@ function EncuestaPage() {
   const canAdvance = () => {
     switch (step) {
       case 0:
-        return form.companion !== "";
+        return form.fullName.trim() !== "" && form.phone.trim() !== "";
       case 1:
+        return form.companion !== "";
+      case 2:
         return (
           form.overallRating !== "" &&
           form.ratingActuacion > 0 &&
@@ -232,9 +240,9 @@ function EncuestaPage() {
           form.ratingVestuario > 0 &&
           form.ratingIluminacion > 0
         );
-      case 2:
-        return form.likedMost.length > 0;
       case 3:
+        return form.likedMost.length > 0;
+      case 4:
         return form.discoveryChannel !== "" && form.venueRating !== "" && form.scheduleOk !== null;
       default:
         return true;
@@ -248,6 +256,9 @@ function EncuestaPage() {
     try {
       await submitSurvey({
         data: {
+          fullName: form.fullName.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim(),
           ageRange: form.ageRange,
           companion: form.companion as Companion,
           overallRating: form.overallRating as OverallRating,
@@ -289,10 +300,19 @@ function EncuestaPage() {
             <Check className="text-rojo" size={36} strokeWidth={2} />
           </div>
           <h1 className="font-display text-[var(--t-fg)] text-4xl md:text-5xl mb-6">¡GRACIAS!</h1>
-          <p className="font-body text-[var(--t-fg-70)] leading-relaxed mb-2">
+          <p className="font-body text-[var(--t-fg-70)] leading-relaxed mb-8">
             Tu opinión ya quedó registrada. Nos ayuda muchísimo a mejorar cada función.
           </p>
-          <p className="font-body italic text-rojo text-sm">— Chaplin Grupo Cultural</p>
+          <p className="font-body italic text-rojo text-sm mb-6">— Chaplin Grupo Cultural</p>
+          <img
+            src="/logo-chaplin.png"
+            alt="Chaplin Grupo Cultural"
+            className="h-10 w-auto mx-auto mb-3"
+            style={theme === "dark" ? { filter: "invert(1) hue-rotate(180deg)" } : undefined}
+          />
+          <p className="font-body uppercase tracking-[0.35em] text-[var(--t-fg-50)] text-[11px]">
+            Pasión por el teatro
+          </p>
         </div>
       </div>
     );
@@ -336,6 +356,41 @@ function EncuestaPage() {
           {step === 0 && (
             <>
               <div>
+                <p className="font-body text-[var(--t-fg-70)] text-sm leading-relaxed mb-8">
+                  Antes de empezar, cuéntanos quién eres. Usamos estos datos solo para contactarte
+                  si necesitamos más detalles sobre tu experiencia.
+                </p>
+                <FieldLabel required>Nombre completo</FieldLabel>
+                <input
+                  type="text"
+                  value={form.fullName}
+                  onChange={(e) => set("fullName", e.target.value)}
+                  placeholder="Tu nombre y apellido"
+                  className={`${inputClass} mb-6`}
+                />
+                <FieldLabel required>Celular</FieldLabel>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => set("phone", e.target.value)}
+                  placeholder="+51 000 000 000"
+                  className={`${inputClass} mb-6`}
+                />
+                <FieldLabel>Correo electrónico</FieldLabel>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => set("email", e.target.value)}
+                  placeholder="tu@correo.com (opcional)"
+                  className={inputClass}
+                />
+              </div>
+            </>
+          )}
+
+          {step === 1 && (
+            <>
+              <div>
                 <FieldLabel>Edad</FieldLabel>
                 <div className="flex flex-wrap gap-2">
                   {ageRanges.map((r) => (
@@ -358,7 +413,7 @@ function EncuestaPage() {
             </>
           )}
 
-          {step === 1 && (
+          {step === 2 && (
             <>
               <div>
                 <FieldLabel required>En general, ¿qué tal te pareció la obra?</FieldLabel>
@@ -387,7 +442,7 @@ function EncuestaPage() {
             </>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <>
               <div>
                 <FieldLabel required>¿Qué fue lo que más te gustó? (elige una o más)</FieldLabel>
@@ -412,7 +467,7 @@ function EncuestaPage() {
             </>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <>
               <div>
                 <FieldLabel required>¿Cómo te enteraste del evento?</FieldLabel>
@@ -453,7 +508,7 @@ function EncuestaPage() {
             </>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <>
               <div>
                 <FieldLabel required>

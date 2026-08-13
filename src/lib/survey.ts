@@ -24,6 +24,9 @@ export type DiscoveryChannel =
 export type VenueRating = "excelente" | "bueno" | "regular" | "malo";
 
 export interface SurveyPayload {
+  fullName: string;
+  phone: string;
+  email: string;
   ageRange: string;
   companion: Companion;
   overallRating: OverallRating;
@@ -50,13 +53,14 @@ export const submitSurvey = createServerFn({ method: "POST" })
     const sql = getSql();
     await sql`
       insert into survey_responses (
-        event_slug, age_range, companion, overall_rating,
+        event_slug, full_name, phone, email, age_range, companion, overall_rating,
         rating_actuacion, rating_direccion, rating_musica,
         rating_coreografia, rating_vestuario, rating_iluminacion,
         liked_most, favorite_moment, discovery_channel, venue_rating,
         schedule_ok, schedule_preference, nps_score, improvement_comment
       ) values (
-        ${EVENT_SLUG}, ${data.ageRange || null}, ${data.companion}, ${data.overallRating},
+        ${EVENT_SLUG}, ${data.fullName}, ${data.phone}, ${data.email || null},
+        ${data.ageRange || null}, ${data.companion}, ${data.overallRating},
         ${data.ratingActuacion}, ${data.ratingDireccion}, ${data.ratingMusica},
         ${data.ratingCoreografia}, ${data.ratingVestuario}, ${data.ratingIluminacion},
         ${data.likedMost}, ${data.favoriteMoment || null}, ${data.discoveryChannel}, ${data.venueRating},
@@ -185,4 +189,69 @@ export const getSurveyStats = createServerFn({ method: "POST" })
       recentComments: recentComments.slice(0, 30),
       favoriteMoments: favoriteMoments.slice(0, 30),
     };
+  });
+
+export interface SurveyResponseRow {
+  id: string;
+  createdAt: string;
+  fullName: string | null;
+  phone: string | null;
+  email: string | null;
+  ageRange: string | null;
+  companion: Companion | null;
+  overallRating: OverallRating | null;
+  ratingActuacion: number | null;
+  ratingDireccion: number | null;
+  ratingMusica: number | null;
+  ratingCoreografia: number | null;
+  ratingVestuario: number | null;
+  ratingIluminacion: number | null;
+  likedMost: LikedItem[];
+  favoriteMoment: string | null;
+  discoveryChannel: DiscoveryChannel | null;
+  venueRating: VenueRating | null;
+  scheduleOk: boolean | null;
+  schedulePreference: string | null;
+  npsScore: number | null;
+  improvementComment: string | null;
+}
+
+// Lista completa (CRM): cada fila es una persona que llenó la encuesta,
+// con sus datos de contacto y todas sus respuestas individuales.
+export const getSurveyResponses = createServerFn({ method: "POST" })
+  .inputValidator((data: { password: string }) => data)
+  .handler(async ({ data }): Promise<SurveyResponseRow[]> => {
+    if (!checkAdminPassword(data.password)) {
+      throw new Error("UNAUTHORIZED");
+    }
+    await ensureSurveySchema();
+    const sql = getSql();
+    const rows = (await sql`
+      select * from survey_responses where event_slug = ${EVENT_SLUG} order by created_at desc
+    `) as any[];
+
+    return rows.map((r) => ({
+      id: String(r.id),
+      createdAt: r.created_at,
+      fullName: r.full_name,
+      phone: r.phone,
+      email: r.email,
+      ageRange: r.age_range,
+      companion: r.companion,
+      overallRating: r.overall_rating,
+      ratingActuacion: r.rating_actuacion,
+      ratingDireccion: r.rating_direccion,
+      ratingMusica: r.rating_musica,
+      ratingCoreografia: r.rating_coreografia,
+      ratingVestuario: r.rating_vestuario,
+      ratingIluminacion: r.rating_iluminacion,
+      likedMost: r.liked_most ?? [],
+      favoriteMoment: r.favorite_moment,
+      discoveryChannel: r.discovery_channel,
+      venueRating: r.venue_rating,
+      scheduleOk: r.schedule_ok,
+      schedulePreference: r.schedule_preference,
+      npsScore: r.nps_score,
+      improvementComment: r.improvement_comment,
+    }));
   });

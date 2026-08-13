@@ -25,6 +25,9 @@ export function ensureSurveySchema() {
         id bigint generated always as identity primary key,
         created_at timestamptz not null default now(),
         event_slug text not null default 'sing-ven-y-canta',
+        full_name text,
+        phone text,
+        email text,
         age_range text,
         companion text,
         overall_rating text,
@@ -43,7 +46,13 @@ export function ensureSurveySchema() {
         nps_score smallint,
         improvement_comment text
       )
-    `.then(() => undefined);
+    `
+      // ALTER ... ADD COLUMN IF NOT EXISTS mantiene compatible una tabla ya
+      // creada antes de agregar los campos de contacto (CRM).
+      .then(() => sql`alter table survey_responses add column if not exists full_name text`)
+      .then(() => sql`alter table survey_responses add column if not exists phone text`)
+      .then(() => sql`alter table survey_responses add column if not exists email text`)
+      .then(() => undefined);
   }
   return _ensured;
 }

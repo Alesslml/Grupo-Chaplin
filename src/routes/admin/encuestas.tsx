@@ -1,7 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Lock, RefreshCw, Users, TrendingUp, Smile, Clock } from "lucide-react";
-import { getSurveyStats, EVENT_LABEL, type SurveyStats } from "@/lib/survey";
+import {
+  Lock,
+  RefreshCw,
+  Users,
+  TrendingUp,
+  Smile,
+  Clock,
+  ChevronDown,
+  Search,
+  TrendingDown,
+  Minus,
+} from "lucide-react";
+import {
+  getSurveyStats,
+  getSurveyResponses,
+  EVENT_LABEL,
+  type SurveyStats,
+  type SurveyResponseRow,
+} from "@/lib/survey";
 import { ThemeToggle, useSurveyTheme } from "@/components/chaplin/ThemeToggle";
 
 export const Route = createFileRoute("/admin/encuestas")({
@@ -15,56 +32,6 @@ export const Route = createFileRoute("/admin/encuestas")({
 });
 
 const STORAGE_KEY = "chaplin_survey_admin_pw";
-
-/* ─── Barra de ranking ────────────────────────────────────────────────────── */
-function RankedBar({ label, value, max }: { label: string; value: number; max: number }) {
-  const pct = max > 0 ? (value / max) * 100 : 0;
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="font-body text-[var(--t-fg-80)] text-[13px]">{label}</span>
-        <span className="font-body text-[var(--t-fg-50)] text-[12px] tabular-nums">{value}</span>
-      </div>
-      <div className="h-5 bg-[var(--t-track)] w-full">
-        <div className="h-full bg-rojo transition-all duration-700" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
-
-/* ─── Barra de calificación (0-5) ─────────────────────────────────────────── */
-function RatingBar({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="font-body text-[var(--t-fg-80)] text-[13px]">{label}</span>
-        <span className="font-display text-rojo text-lg leading-none">{value.toFixed(1)}</span>
-      </div>
-      <div className="h-5 bg-[var(--t-track)] w-full">
-        <div className="h-full bg-rojo transition-all duration-700" style={{ width: `${(value / 5) * 100}%` }} />
-      </div>
-    </div>
-  );
-}
-
-/* ─── Tile de estadística ─────────────────────────────────────────────────── */
-function StatTile({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8">
-      <Icon className="text-rojo mb-4" size={24} strokeWidth={1.5} />
-      <p className="font-display text-[var(--t-fg)] text-4xl md:text-5xl leading-none mb-2">{value}</p>
-      <p className="font-body text-[var(--t-fg-50)] text-[11px] uppercase tracking-[0.25em]">{label}</p>
-    </div>
-  );
-}
 
 const overallLabels: Record<string, string> = {
   muy_buena: "Muy buena",
@@ -103,20 +70,214 @@ const companionLabels: Record<string, string> = {
   otro: "Otro",
 };
 
+/* ─── Encabezado de sección con explicación ───────────────────────────────── */
+function SectionHeader({ title, hint }: { title: string; hint: string }) {
+  return (
+    <div className="mb-6">
+      <h2 className="font-display text-[var(--t-fg)] text-2xl mb-2">{title}</h2>
+      <p className="font-body text-[var(--t-fg-50)] text-[13px] leading-relaxed max-w-xl">{hint}</p>
+    </div>
+  );
+}
+
+/* ─── Estado (bueno/neutral/atención) ─────────────────────────────────────── */
+type Status = "good" | "neutral" | "attention";
+function StatusBadge({ status, label }: { status: Status; label: string }) {
+  const Icon = status === "good" ? TrendingUp : status === "attention" ? TrendingDown : Minus;
+  const color = status === "attention" ? "text-rojo" : "text-[var(--t-fg-60)]";
+  return (
+    <span className={`inline-flex items-center gap-1.5 font-body text-[11px] uppercase tracking-[0.15em] ${color}`}>
+      <Icon size={12} strokeWidth={2.5} /> {label}
+    </span>
+  );
+}
+
+/* ─── Barra de ranking (conteo + %) ────────────────────────────────────────── */
+function RankedBar({ label, value, max }: { label: string; value: number; max: number }) {
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="font-body text-[var(--t-fg-80)] text-[13px]">{label}</span>
+        <span className="font-body text-[var(--t-fg-50)] text-[12px] tabular-nums">
+          {value} <span className="text-[var(--t-fg-40)]">({pct}%)</span>
+        </span>
+      </div>
+      <div className="h-5 bg-[var(--t-track)] w-full">
+        <div className="h-full bg-rojo transition-all duration-700" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Barra de calificación (0-5) ─────────────────────────────────────────── */
+function RatingBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="font-body text-[var(--t-fg-80)] text-[13px]">{label}</span>
+        <span className="font-display text-rojo text-lg leading-none">{value.toFixed(1)}</span>
+      </div>
+      <div className="h-5 bg-[var(--t-track)] w-full">
+        <div className="h-full bg-rojo transition-all duration-700" style={{ width: `${(value / 5) * 100}%` }} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Tile de estadística con explicación y estado ────────────────────────── */
+function StatTile({
+  icon: Icon,
+  label,
+  hint,
+  value,
+  status,
+  statusLabel,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
+  label: string;
+  hint: string;
+  value: string;
+  status?: Status;
+  statusLabel?: string;
+}) {
+  return (
+    <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8">
+      <div className="flex items-start justify-between mb-4">
+        <Icon className="text-rojo" size={24} strokeWidth={1.5} />
+        {status && statusLabel && <StatusBadge status={status} label={statusLabel} />}
+      </div>
+      <p className="font-display text-[var(--t-fg)] text-4xl md:text-5xl leading-none mb-2">{value}</p>
+      <p className="font-body text-[var(--t-fg-70)] text-[11px] uppercase tracking-[0.2em] mb-2">{label}</p>
+      <p className="font-body text-[var(--t-fg-40)] text-[12px] leading-relaxed">{hint}</p>
+    </div>
+  );
+}
+
+function statusFor(pct: number): Status {
+  if (pct >= 80) return "good";
+  if (pct >= 50) return "neutral";
+  return "attention";
+}
+function npsStatus(score: number): { status: Status; label: string } {
+  if (score >= 50) return { status: "good", label: "Excelente" };
+  if (score >= 0) return { status: "neutral", label: "Aceptable" };
+  return { status: "attention", label: "Necesita atención" };
+}
+
+/* ─── Fila de detalle (CRM) ───────────────────────────────────────────────── */
+function DetailRow({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div>
+      <p className="font-body text-[var(--t-fg-40)] text-[10px] uppercase tracking-[0.2em] mb-0.5">{label}</p>
+      <p className="font-body text-[var(--t-fg-80)] text-sm">{value || "—"}</p>
+    </div>
+  );
+}
+
+/* ─── Card de respuesta individual (CRM) ──────────────────────────────────── */
+function ResponseCard({ r }: { r: SurveyResponseRow }) {
+  const [open, setOpen] = useState(false);
+  const date = new Date(r.createdAt).toLocaleString("es-PE", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return (
+    <div className="bg-[var(--t-card)] border border-[var(--t-border)]">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-4 p-5 text-left"
+      >
+        <div className="min-w-0">
+          <p className="font-display text-[var(--t-fg)] text-lg leading-tight truncate">
+            {r.fullName || "Sin nombre"}
+          </p>
+          <p className="font-body text-[var(--t-fg-50)] text-[12px] truncate">
+            {[r.phone, r.email].filter(Boolean).join(" · ") || "Sin datos de contacto"} · {date}
+          </p>
+        </div>
+        <div className="flex items-center gap-4 shrink-0">
+          {r.overallRating && (
+            <span className="hidden sm:inline font-body text-[11px] uppercase tracking-[0.15em] text-[var(--t-fg-60)]">
+              {overallLabels[r.overallRating]}
+            </span>
+          )}
+          {r.npsScore !== null && (
+            <span className="font-display text-rojo text-xl leading-none" title="Puntaje NPS">
+              {r.npsScore}
+            </span>
+          )}
+          <ChevronDown
+            size={16}
+            className={`text-[var(--t-fg-50)] transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+          />
+        </div>
+      </button>
+
+      {open && (
+        <div className="px-5 pb-6 border-t border-[var(--t-border)] pt-5 grid sm:grid-cols-3 gap-x-6 gap-y-4">
+          <DetailRow label="Nombre completo" value={r.fullName} />
+          <DetailRow label="Celular" value={r.phone} />
+          <DetailRow label="Correo" value={r.email} />
+          <DetailRow label="Edad" value={r.ageRange} />
+          <DetailRow label="Vino con" value={r.companion ? companionLabels[r.companion] : null} />
+          <DetailRow label="Calificación general" value={r.overallRating ? overallLabels[r.overallRating] : null} />
+          <DetailRow label="Actuación" value={r.ratingActuacion != null ? `${r.ratingActuacion}/5` : null} />
+          <DetailRow label="Dirección" value={r.ratingDireccion != null ? `${r.ratingDireccion}/5` : null} />
+          <DetailRow label="Música en vivo" value={r.ratingMusica != null ? `${r.ratingMusica}/5` : null} />
+          <DetailRow label="Coreografías" value={r.ratingCoreografia != null ? `${r.ratingCoreografia}/5` : null} />
+          <DetailRow label="Vestuario" value={r.ratingVestuario != null ? `${r.ratingVestuario}/5` : null} />
+          <DetailRow label="Iluminación" value={r.ratingIluminacion != null ? `${r.ratingIluminacion}/5` : null} />
+          <DetailRow
+            label="Le gustó"
+            value={r.likedMost.length ? r.likedMost.map((l) => likedLabels[l] ?? l).join(", ") : null}
+          />
+          <DetailRow label="Cómo se enteró" value={r.discoveryChannel ? discoveryLabels[r.discoveryChannel] : null} />
+          <DetailRow label="Lugar" value={r.venueRating ? venueLabels[r.venueRating] : null} />
+          <DetailRow label="Horario adecuado" value={r.scheduleOk === null ? null : r.scheduleOk ? "Sí" : "No"} />
+          {r.schedulePreference && <DetailRow label="Horario preferido" value={r.schedulePreference} />}
+          <DetailRow label="NPS" value={r.npsScore != null ? `${r.npsScore}/10` : null} />
+          {r.favoriteMoment && (
+            <div className="sm:col-span-3">
+              <DetailRow label="Escena o canción favorita" value={r.favoriteMoment} />
+            </div>
+          )}
+          {r.improvementComment && (
+            <div className="sm:col-span-3">
+              <DetailRow label="Comentario / sugerencia" value={r.improvementComment} />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Página ──────────────────────────────────────────────────────────────── */
 function AdminEncuestasPage() {
   const [theme, toggleTheme] = useSurveyTheme();
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState<string | null>(null);
   const [stats, setStats] = useState<SurveyStats | null>(null);
+  const [responses, setResponses] = useState<SurveyResponseRow[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [gateError, setGateError] = useState("");
+  const [search, setSearch] = useState("");
 
   const load = async (pw: string) => {
     setLoading(true);
     setGateError("");
     try {
-      const data = await getSurveyStats({ data: { password: pw } });
-      setStats(data);
+      const [statsData, responsesData] = await Promise.all([
+        getSurveyStats({ data: { password: pw } }),
+        getSurveyResponses({ data: { password: pw } }),
+      ]);
+      setStats(statsData);
+      setResponses(responsesData);
       setAuthed(pw);
       localStorage.setItem(STORAGE_KEY, pw);
     } catch {
@@ -176,6 +337,17 @@ function AdminEncuestasPage() {
     );
   }
 
+  const satisfactionPct =
+    stats && stats.total > 0
+      ? Math.round(((stats.overallCounts.muy_buena + stats.overallCounts.buena) / stats.total) * 100)
+      : 0;
+
+  const filteredResponses = (responses ?? []).filter((r) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return [r.fullName, r.phone, r.email].some((v) => v?.toLowerCase().includes(q));
+  });
+
   return (
     <div data-survey-theme={theme} className="min-h-screen bg-[var(--t-bg)] grain">
       <header className="border-b border-[var(--t-border)] px-6 lg:px-12 py-8">
@@ -209,22 +381,52 @@ function AdminEncuestasPage() {
         <main className="max-w-[1200px] mx-auto px-6 lg:px-12 py-12 space-y-16">
           {/* Hero stats */}
           <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatTile icon={Users} label="Respuestas totales" value={String(stats.total)} />
+            <StatTile
+              icon={Users}
+              label="Respuestas totales"
+              hint="Cuántas personas completaron la encuesta hasta ahora."
+              value={String(stats.total)}
+            />
             <StatTile
               icon={TrendingUp}
-              label="NPS (recomendación)"
+              label="NPS · Recomendación"
+              hint="De -100 a 100. Mide qué tan probable es que el público te recomiende."
               value={stats.total > 0 ? String(stats.nps.score) : "—"}
+              status={stats.total > 0 ? npsStatus(stats.nps.score).status : undefined}
+              statusLabel={stats.total > 0 ? npsStatus(stats.nps.score).label : undefined}
             />
             <StatTile
               icon={Smile}
-              label="Satisfacción (muy buena + buena)"
-              value={
+              label="Satisfacción"
+              hint="% que calificó la obra como 'Muy buena' o 'Buena'."
+              value={stats.total > 0 ? `${satisfactionPct}%` : "—"}
+              status={stats.total > 0 ? statusFor(satisfactionPct) : undefined}
+              statusLabel={
                 stats.total > 0
-                  ? `${Math.round(((stats.overallCounts.muy_buena + stats.overallCounts.buena) / stats.total) * 100)}%`
-                  : "—"
+                  ? statusFor(satisfactionPct) === "good"
+                    ? "Excelente"
+                    : statusFor(satisfactionPct) === "neutral"
+                      ? "Aceptable"
+                      : "Necesita atención"
+                  : undefined
               }
             />
-            <StatTile icon={Clock} label="Horario adecuado" value={stats.total > 0 ? `${stats.scheduleOkPct}%` : "—"} />
+            <StatTile
+              icon={Clock}
+              label="Horario adecuado"
+              hint="% que dijo que el horario de la función le pareció bien."
+              value={stats.total > 0 ? `${stats.scheduleOkPct}%` : "—"}
+              status={stats.total > 0 ? statusFor(stats.scheduleOkPct) : undefined}
+              statusLabel={
+                stats.total > 0
+                  ? statusFor(stats.scheduleOkPct) === "good"
+                    ? "Excelente"
+                    : statusFor(stats.scheduleOkPct) === "neutral"
+                      ? "Aceptable"
+                      : "Necesita atención"
+                  : undefined
+              }
+            />
           </section>
 
           {stats.total === 0 ? (
@@ -235,7 +437,10 @@ function AdminEncuestasPage() {
             <>
               {/* Calificación por categoría */}
               <section>
-                <h2 className="font-display text-[var(--t-fg)] text-2xl mb-6">Calificación por categoría (1–5)</h2>
+                <SectionHeader
+                  title="Calificación por categoría"
+                  hint="Promedio de 1 a 5 en cada aspecto de la producción. Te ayuda a identificar qué está funcionando muy bien y qué necesita más atención de cara a la próxima función."
+                />
                 <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8 space-y-5">
                   <RatingBar label="Actuación" value={stats.categoryAverages.actuacion} />
                   <RatingBar label="Dirección" value={stats.categoryAverages.direccion} />
@@ -246,10 +451,61 @@ function AdminEncuestasPage() {
                 </div>
               </section>
 
+              {/* NPS detallado */}
+              <section>
+                <SectionHeader
+                  title="Promotores, pasivos y detractores"
+                  hint="Promotores (9–10) son fans que te recomendarán activamente. Pasivos (7–8) están conformes pero no entusiasmados. Detractores (0–6) tuvieron una mala experiencia y pueden hablar mal de la obra. NPS = % Promotores − % Detractores."
+                />
+                <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8">
+                  <div className="h-8 w-full flex bg-[var(--t-track)] overflow-hidden mb-6">
+                    {stats.nps.detractors > 0 && (
+                      <div
+                        className="h-full bg-[var(--t-fg-25)]"
+                        style={{ width: `${(stats.nps.detractors / stats.total) * 100}%` }}
+                      />
+                    )}
+                    {stats.nps.passives > 0 && (
+                      <div
+                        className="h-full bg-[var(--t-fg-50)]"
+                        style={{ width: `${(stats.nps.passives / stats.total) * 100}%` }}
+                      />
+                    )}
+                    {stats.nps.promoters > 0 && (
+                      <div
+                        className="h-full bg-rojo"
+                        style={{ width: `${(stats.nps.promoters / stats.total) * 100}%` }}
+                      />
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="font-display text-[var(--t-fg-40)] text-3xl mb-1">{stats.nps.detractors}</p>
+                      <p className="font-body text-[var(--t-fg-50)] text-[10px] uppercase tracking-[0.2em]">
+                        Detractores
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-display text-[var(--t-fg-70)] text-3xl mb-1">{stats.nps.passives}</p>
+                      <p className="font-body text-[var(--t-fg-50)] text-[10px] uppercase tracking-[0.2em]">Pasivos</p>
+                    </div>
+                    <div>
+                      <p className="font-display text-rojo text-3xl mb-1">{stats.nps.promoters}</p>
+                      <p className="font-body text-[var(--t-fg-50)] text-[10px] uppercase tracking-[0.2em]">
+                        Promotores
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
               <div className="grid lg:grid-cols-2 gap-8">
                 {/* Calificación general */}
                 <section>
-                  <h2 className="font-display text-[var(--t-fg)] text-2xl mb-6">Calificación general</h2>
+                  <SectionHeader
+                    title="Calificación general"
+                    hint="Cómo calificó el público la obra en conjunto, en una sola pregunta."
+                  />
                   <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8 space-y-5">
                     {(["muy_buena", "buena", "regular", "mala"] as const).map((k) => (
                       <RankedBar key={k} label={overallLabels[k]} value={stats.overallCounts[k]} max={stats.total} />
@@ -257,28 +513,12 @@ function AdminEncuestasPage() {
                   </div>
                 </section>
 
-                {/* NPS breakdown */}
-                <section>
-                  <h2 className="font-display text-[var(--t-fg)] text-2xl mb-6">Promotores / Pasivos / Detractores</h2>
-                  <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8 grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <p className="font-display text-rojo text-4xl mb-2">{stats.nps.promoters}</p>
-                      <p className="font-body text-[var(--t-fg-50)] text-[10px] uppercase tracking-[0.2em]">Promotores (9–10)</p>
-                    </div>
-                    <div>
-                      <p className="font-display text-[var(--t-fg-70)] text-4xl mb-2">{stats.nps.passives}</p>
-                      <p className="font-body text-[var(--t-fg-50)] text-[10px] uppercase tracking-[0.2em]">Pasivos (7–8)</p>
-                    </div>
-                    <div>
-                      <p className="font-display text-[var(--t-fg-40)] text-4xl mb-2">{stats.nps.detractors}</p>
-                      <p className="font-body text-[var(--t-fg-50)] text-[10px] uppercase tracking-[0.2em]">Detractores (0–6)</p>
-                    </div>
-                  </div>
-                </section>
-
                 {/* Qué les gustó */}
                 <section>
-                  <h2 className="font-display text-[var(--t-fg)] text-2xl mb-6">Qué les gustó más</h2>
+                  <SectionHeader
+                    title="Qué les gustó más"
+                    hint="Los aspectos que más mencionó el público al elegir qué disfrutó de la función."
+                  />
                   <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8 space-y-5">
                     {Object.entries(stats.likedMostCounts)
                       .sort((a, b) => b[1] - a[1])
@@ -290,7 +530,10 @@ function AdminEncuestasPage() {
 
                 {/* Cómo se enteraron */}
                 <section>
-                  <h2 className="font-display text-[var(--t-fg)] text-2xl mb-6">Cómo se enteraron del evento</h2>
+                  <SectionHeader
+                    title="Cómo se enteraron del evento"
+                    hint="Qué canal trajo más público. Útil para saber dónde invertir en difusión la próxima vez."
+                  />
                   <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8 space-y-5">
                     {Object.entries(stats.discoveryCounts)
                       .sort((a, b) => b[1] - a[1])
@@ -303,9 +546,10 @@ function AdminEncuestasPage() {
 
                 {/* Lugar */}
                 <section>
-                  <h2 className="font-display text-[var(--t-fg)] text-2xl mb-6">
-                    Lugar: Auditorio del Colegio de Ingenieros de Ica
-                  </h2>
+                  <SectionHeader
+                    title="Lugar de la función"
+                    hint="Qué tan bien recibido fue el Auditorio del Colegio de Ingenieros de Ica como espacio."
+                  />
                   <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8 space-y-5">
                     {(["excelente", "bueno", "regular", "malo"] as const)
                       .filter((k) => stats.venueCounts[k] > 0)
@@ -317,7 +561,10 @@ function AdminEncuestasPage() {
 
                 {/* Compañía */}
                 <section>
-                  <h2 className="font-display text-[var(--t-fg)] text-2xl mb-6">¿Con quién vinieron?</h2>
+                  <SectionHeader
+                    title="¿Con quién vinieron?"
+                    hint="El tipo de acompañante más común entre tu público. Útil para pensar promociones (ej. familiares, parejas)."
+                  />
                   <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8 space-y-5">
                     {Object.entries(stats.companionCounts)
                       .sort((a, b) => b[1] - a[1])
@@ -332,7 +579,10 @@ function AdminEncuestasPage() {
               {/* Comentarios */}
               {stats.recentComments.length > 0 && (
                 <section>
-                  <h2 className="font-display text-[var(--t-fg)] text-2xl mb-6">Comentarios y sugerencias</h2>
+                  <SectionHeader
+                    title="Comentarios y sugerencias"
+                    hint="Lo que el público escribió textualmente cuando le preguntamos qué se puede mejorar."
+                  />
                   <div className="grid md:grid-cols-2 gap-4">
                     {stats.recentComments.map((c, i) => (
                       <div key={i} className="bg-[var(--t-card)] border-l-2 border-rojo p-5">
@@ -346,16 +596,53 @@ function AdminEncuestasPage() {
               {/* Momentos favoritos */}
               {stats.favoriteMoments.length > 0 && (
                 <section>
-                  <h2 className="font-display text-[var(--t-fg)] text-2xl mb-6">Escenas y canciones más mencionadas</h2>
+                  <SectionHeader
+                    title="Escenas y canciones más mencionadas"
+                    hint="Los momentos de la obra que más emocionaron al público, en sus propias palabras."
+                  />
                   <div className="flex flex-wrap gap-2">
                     {stats.favoriteMoments.map((m, i) => (
-                      <span key={i} className="font-body text-[12px] text-[var(--t-fg-70)] border border-[var(--t-border)] px-4 py-2">
+                      <span
+                        key={i}
+                        className="font-body text-[12px] text-[var(--t-fg-70)] border border-[var(--t-border)] px-4 py-2"
+                      >
                         {m}
                       </span>
                     ))}
                   </div>
                 </section>
               )}
+
+              {/* CRM: respuestas individuales */}
+              <section id="respuestas">
+                <SectionHeader
+                  title="Respuestas individuales"
+                  hint="Cada persona que llenó la encuesta, con sus datos de contacto. Haz clic en cualquiera para ver todas sus respuestas — útil para dar seguimiento, invitar a próximas funciones o resolver una queja puntual."
+                />
+                <div className="relative mb-6">
+                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--t-fg-40)]" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Buscar por nombre, celular o correo..."
+                    className="w-full bg-[var(--t-input-bg)] border-2 border-[var(--t-fg-25)] focus:border-rojo outline-none pl-11 pr-4 py-3 font-body text-[var(--t-fg)] text-sm placeholder:text-[var(--t-fg-40)] transition-colors duration-300"
+                  />
+                </div>
+                <p className="font-body text-[var(--t-fg-40)] text-[11px] uppercase tracking-[0.2em] mb-4">
+                  Mostrando {filteredResponses.length} de {responses?.length ?? 0}
+                </p>
+                <div className="space-y-3">
+                  {filteredResponses.map((r) => (
+                    <ResponseCard key={r.id} r={r} />
+                  ))}
+                  {filteredResponses.length === 0 && (
+                    <p className="font-body text-[var(--t-fg-50)] text-sm text-center py-10">
+                      No se encontraron respuestas para "{search}".
+                    </p>
+                  )}
+                </div>
+              </section>
             </>
           )}
         </main>
