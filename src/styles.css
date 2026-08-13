@@ -249,12 +249,15 @@
   --t-track: #e6e6e6;
   --t-border: #e0e0e0;
   --t-fg: var(--negro);
-  --t-fg-80: rgba(0, 0, 0, 0.8);
-  --t-fg-70: rgba(0, 0, 0, 0.7);
-  --t-fg-60: rgba(0, 0, 0, 0.6);
-  --t-fg-50: rgba(0, 0, 0, 0.5);
-  --t-fg-40: rgba(0, 0, 0, 0.4);
-  --t-fg-25: rgba(0, 0, 0, 0.2);
+  /* Texto negro sobre blanco necesita más opacidad que su equivalente
+     blanco-sobre-negro para verse igual de legible — de ahí que estos
+     valores sean más altos que los del tema oscuro para el mismo nivel. */
+  --t-fg-80: rgba(0, 0, 0, 0.92);
+  --t-fg-70: rgba(0, 0, 0, 0.85);
+  --t-fg-60: rgba(0, 0, 0, 0.78);
+  --t-fg-50: rgba(0, 0, 0, 0.68);
+  --t-fg-40: rgba(0, 0, 0, 0.58);
+  --t-fg-25: rgba(0, 0, 0, 0.4);
   --t-input-bg: rgba(255, 255, 255, 0.9);
 }
 

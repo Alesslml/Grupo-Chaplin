@@ -5,7 +5,7 @@ const STORAGE_KEY = "chaplin_survey_theme";
 export type SurveyTheme = "dark" | "light";
 
 export function useSurveyTheme(): [SurveyTheme, () => void] {
-  const [theme, setTheme] = useState<SurveyTheme>("dark");
+  const [theme, setTheme] = useState<SurveyTheme>("light");
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
