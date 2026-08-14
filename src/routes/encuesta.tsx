@@ -11,6 +11,7 @@ import {
   type OverallRating,
   type VenueRating,
 } from "@/lib/survey";
+import singFlyer from "@/assets/sing-flyer-oficial.png";
 
 export const Route = createFileRoute("/encuesta")({
   head: () => ({
@@ -238,6 +239,7 @@ function MarqueeBulbs({ count = 13 }: { count?: number }) {
 
 /* ─── Página ──────────────────────────────────────────────────────────────── */
 function EncuestaPage() {
+  const [started, setStarted] = useState(false);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(initialState);
   const [submitting, setSubmitting] = useState(false);
@@ -331,6 +333,29 @@ function EncuestaPage() {
       setSubmitting(false);
     }
   };
+
+  if (!started) {
+    return (
+      <div
+        data-survey-theme="soft"
+        data-sing-theme="soft"
+        className="min-h-screen bg-[var(--t-bg)] grain flex flex-col items-center justify-center px-6 py-12 text-center"
+      >
+        <img
+          src={singFlyer}
+          alt="SING, ¡Ven y canta! — Chaplin Grupo Cultural"
+          className="w-full max-w-sm shadow-black border border-[var(--t-border)]"
+        />
+        <p className="font-body text-[var(--t-fg-70)] text-sm leading-relaxed mt-8 mb-2 max-w-sm">
+          Cuéntanos qué te pareció la función y entra al sorteo de entradas para nuestras
+          próximas presentaciones.
+        </p>
+        <button type="button" onClick={() => setStarted(true)} className="btn-gold mt-4 flex items-center gap-2">
+          <Ticket size={16} /> Participa por entradas
+        </button>
+      </div>
+    );
+  }
 
   if (done) {
     return (
