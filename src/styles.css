@@ -261,6 +261,29 @@
   --t-input-bg: rgba(255, 255, 255, 0.9);
 }
 
+/* Paleta "marquesina" referente al póster de SING — solo /encuesta.
+   Se activa con data-sing-theme, que va junto a data-survey-theme en el
+   mismo elemento; al declararse después en la hoja de estilos, gana la
+   pulseada del cascade sobre --t-bg sin tocar el resto del sitio. */
+[data-sing-theme="dark"] {
+  --t-bg: #0a0f24;
+  --gold: #ffc233;
+  --gold-deep: #f2a900;
+}
+[data-sing-theme="light"] {
+  --t-bg: #fff8e7;
+  --gold: #e8a400;
+  --gold-deep: #c98600;
+}
+
+@keyframes marqueeTwinkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.marquee-bulb {
+  animation: marqueeTwinkle 1.6s ease-in-out infinite;
+}
+
 /* Link con subrayado animado */
 .link-underline {
   position: relative;

@@ -6,6 +6,7 @@ import {
   EVENT_LABEL,
   type Companion,
   type DiscoveryChannel,
+  type FavoriteCharacter,
   type LikedItem,
   type OverallRating,
   type VenueRating,
@@ -38,7 +39,8 @@ interface FormState {
   ratingIluminacion: number;
   likedMost: LikedItem[];
   favoriteMoment: string;
-  discoveryChannel: DiscoveryChannel | "";
+  favoriteCharacter: FavoriteCharacter | "";
+  discoveryChannels: DiscoveryChannel[];
   venueRating: VenueRating | "";
   scheduleOk: boolean | null;
   schedulePreference: string;
@@ -63,7 +65,8 @@ const initialState: FormState = {
   ratingIluminacion: 0,
   likedMost: [],
   favoriteMoment: "",
-  discoveryChannel: "",
+  favoriteCharacter: "",
+  discoveryChannels: [],
   venueRating: "",
   scheduleOk: null,
   schedulePreference: "",
@@ -106,6 +109,16 @@ const likedOptions: { value: LikedItem; label: string }[] = [
   { value: "vestuario", label: "Vestuario" },
   { value: "escenografia", label: "Escenografía" },
   { value: "historia", label: "Historia" },
+];
+
+const characterOptions: { value: FavoriteCharacter; label: string }[] = [
+  { value: "buster_moon", label: "Buster Moon (Koala)" },
+  { value: "rosita", label: "Rosita (Cerda)" },
+  { value: "ash", label: "Ash (Puercoespín)" },
+  { value: "johnny", label: "Johnny (Gorila)" },
+  { value: "meena", label: "Meena (Elefanta)" },
+  { value: "mike", label: "Mike (Ratón)" },
+  { value: "gunter", label: "Gunter (Cerdo)" },
 ];
 
 const discoveryOptions: { value: DiscoveryChannel; label: string }[] = [
@@ -209,6 +222,21 @@ function NpsScale({ value, onChange }: { value: number | null; onChange: (v: num
 const inputClass =
   "w-full bg-[var(--t-input-bg)] border-2 border-[var(--t-fg-25)] focus:border-rojo outline-none px-4 py-3 font-body text-[var(--t-fg)] text-base placeholder:text-[var(--t-fg-40)] transition-colors duration-300";
 
+/* ─── Fila de luces de marquesina (referencia al póster de SING) ─────────── */
+function MarqueeBulbs({ count = 13 }: { count?: number }) {
+  return (
+    <div className="flex justify-center gap-2.5 my-6" aria-hidden="true">
+      {Array.from({ length: count }, (_, i) => (
+        <span
+          key={i}
+          className="marquee-bulb w-2 h-2 rounded-full"
+          style={{ background: "var(--gold)", animationDelay: `${(i % 5) * 0.18}s` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 /* ─── Página ──────────────────────────────────────────────────────────────── */
 function EncuestaPage() {
   const [theme, toggleTheme] = useSurveyTheme();
@@ -225,6 +253,15 @@ function EncuestaPage() {
     setForm((f) => ({
       ...f,
       likedMost: f.likedMost.includes(v) ? f.likedMost.filter((i) => i !== v) : [...f.likedMost, v],
+    }));
+  };
+
+  const toggleDiscovery = (v: DiscoveryChannel) => {
+    setForm((f) => ({
+      ...f,
+      discoveryChannels: f.discoveryChannels.includes(v)
+        ? f.discoveryChannels.filter((i) => i !== v)
+        : [...f.discoveryChannels, v],
     }));
   };
 
@@ -247,7 +284,7 @@ function EncuestaPage() {
       case 3:
         return form.likedMost.length > 0;
       case 4:
-        return form.discoveryChannel !== "" && form.venueRating !== "" && form.scheduleOk !== null;
+        return form.discoveryChannels.length > 0 && form.venueRating !== "" && form.scheduleOk !== null;
       case 5:
         return form.npsScore !== null;
       case 6:
@@ -278,7 +315,8 @@ function EncuestaPage() {
           ratingIluminacion: form.ratingIluminacion,
           likedMost: form.likedMost,
           favoriteMoment: form.favoriteMoment,
-          discoveryChannel: form.discoveryChannel as DiscoveryChannel,
+          favoriteCharacter: form.favoriteCharacter,
+          discoveryChannels: form.discoveryChannels,
           venueRating: form.venueRating as VenueRating,
           scheduleOk: form.scheduleOk as boolean,
           schedulePreference: form.schedulePreference,
@@ -300,6 +338,7 @@ function EncuestaPage() {
     return (
       <div
         data-survey-theme={theme}
+        data-sing-theme={theme}
         className="min-h-screen bg-[var(--t-bg)] grain flex items-center justify-center px-6 py-20 relative"
       >
         <div className="absolute top-6 right-6">
@@ -309,6 +348,7 @@ function EncuestaPage() {
           <div className="w-20 h-20 mx-auto mb-8 border-2 border-rojo flex items-center justify-center">
             <Check className="text-rojo" size={36} strokeWidth={2} />
           </div>
+          <MarqueeBulbs count={9} />
           <h1 className="font-display text-[var(--t-fg)] text-4xl md:text-5xl mb-6">¡GRACIAS!</h1>
           <p className="font-body text-[var(--t-fg-70)] leading-relaxed mb-8">
             Tu opinión ya quedó registrada. Nos ayuda muchísimo a mejorar cada función.
@@ -329,9 +369,13 @@ function EncuestaPage() {
   }
 
   return (
-    <div data-survey-theme={theme} className="min-h-screen bg-[var(--t-bg)] grain flex flex-col">
+    <div
+      data-survey-theme={theme}
+      data-sing-theme={theme}
+      className="min-h-screen bg-[var(--t-bg)] grain flex flex-col"
+    >
       {/* Header */}
-      <header className="px-6 pt-10 pb-6 text-center relative">
+      <header className="px-6 pt-10 pb-2 text-center relative">
         <div className="absolute top-6 right-6">
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </div>
@@ -344,7 +388,13 @@ function EncuestaPage() {
         <p className="font-body uppercase tracking-[0.4em] text-rojo text-[11px] mb-3">
           Encuesta de satisfacción
         </p>
-        <h1 className="font-display text-[var(--t-fg)] text-3xl md:text-4xl leading-none">{EVENT_LABEL}</h1>
+        <h1
+          className="font-display text-3xl md:text-4xl leading-none"
+          style={{ color: "var(--gold)", textShadow: "0 0 18px var(--gold-deep)" }}
+        >
+          {EVENT_LABEL}
+        </h1>
+        <MarqueeBulbs />
       </header>
 
       {/* Progress bar */}
@@ -486,16 +536,34 @@ function EncuestaPage() {
                   className={inputClass}
                 />
               </div>
+              <div>
+                <FieldLabel>¿Quién fue tu personaje favorito?</FieldLabel>
+                <div className="flex flex-wrap gap-2">
+                  {characterOptions.map((o) => (
+                    <Chip
+                      key={o.value}
+                      active={form.favoriteCharacter === o.value}
+                      onClick={() => set("favoriteCharacter", o.value)}
+                    >
+                      {o.label}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
             </>
           )}
 
           {step === 4 && (
             <>
               <div>
-                <FieldLabel required>¿Cómo te enteraste del evento?</FieldLabel>
+                <FieldLabel required>¿Cómo te enteraste del evento? (elige una o más)</FieldLabel>
                 <div className="flex flex-wrap gap-2">
                   {discoveryOptions.map((o) => (
-                    <Chip key={o.value} active={form.discoveryChannel === o.value} onClick={() => set("discoveryChannel", o.value)}>
+                    <Chip
+                      key={o.value}
+                      active={form.discoveryChannels.includes(o.value)}
+                      onClick={() => toggleDiscovery(o.value)}
+                    >
                       {o.label}
                     </Chip>
                   ))}

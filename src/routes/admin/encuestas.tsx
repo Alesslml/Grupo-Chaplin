@@ -71,6 +71,15 @@ const companionLabels: Record<string, string> = {
   solo: "Solo/a",
   otro: "Otro",
 };
+const characterLabels: Record<string, string> = {
+  buster_moon: "Buster Moon (Koala)",
+  rosita: "Rosita (Cerda)",
+  ash: "Ash (Puercoespín)",
+  johnny: "Johnny (Gorila)",
+  meena: "Meena (Elefanta)",
+  mike: "Mike (Ratón)",
+  gunter: "Gunter (Cerdo)",
+};
 
 /* ─── Encabezado de sección con explicación ───────────────────────────────── */
 function SectionHeader({ title, hint }: { title: string; hint: string }) {
@@ -241,7 +250,14 @@ function ResponseCard({ r }: { r: SurveyResponseRow }) {
             label="Le gustó"
             value={r.likedMost.length ? r.likedMost.map((l) => likedLabels[l] ?? l).join(", ") : null}
           />
-          <DetailRow label="Cómo se enteró" value={r.discoveryChannel ? discoveryLabels[r.discoveryChannel] : null} />
+          <DetailRow
+            label="Personaje favorito"
+            value={r.favoriteCharacter ? characterLabels[r.favoriteCharacter] ?? r.favoriteCharacter : null}
+          />
+          <DetailRow
+            label="Cómo se enteró"
+            value={r.discoveryChannels.length ? r.discoveryChannels.map((c) => discoveryLabels[c] ?? c).join(", ") : null}
+          />
           <DetailRow label="Lugar" value={r.venueRating ? venueLabels[r.venueRating] : null} />
           <DetailRow label="Horario adecuado" value={r.scheduleOk === null ? null : r.scheduleOk ? "Sí" : "No"} />
           {r.schedulePreference && <DetailRow label="Horario preferido" value={r.schedulePreference} />}
@@ -573,11 +589,27 @@ function AdminEncuestasPage() {
                   </div>
                 </section>
 
+                {/* Personaje favorito */}
+                <section>
+                  <SectionHeader
+                    title="Personaje favorito"
+                    hint="Con cuál personaje de SING se quedó el público. Útil para saber a quién destacar en la difusión de la próxima temporada."
+                  />
+                  <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8 space-y-5">
+                    {Object.entries(stats.favoriteCharacterCounts)
+                      .sort((a, b) => b[1] - a[1])
+                      .filter(([, v]) => v > 0)
+                      .map(([k, v]) => (
+                        <RankedBar key={k} label={characterLabels[k] ?? k} value={v} max={stats.total} />
+                      ))}
+                  </div>
+                </section>
+
                 {/* Cómo se enteraron */}
                 <section>
                   <SectionHeader
                     title="Cómo se enteraron del evento"
-                    hint="Qué canal trajo más público. Útil para saber dónde invertir en difusión la próxima vez."
+                    hint="Qué canal trajo más público (pueden marcar varios). Útil para saber dónde invertir en difusión la próxima vez."
                   />
                   <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8 space-y-5">
                     {Object.entries(stats.discoveryCounts)

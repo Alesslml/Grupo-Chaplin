@@ -46,16 +46,21 @@ export function ensureSurveySchema() {
         nps_score smallint,
         improvement_comment text,
         return_likelihood smallint,
-        wants_newsletter boolean
+        wants_newsletter boolean,
+        discovery_channels text[],
+        favorite_character text
       )
     `
       // ALTER ... ADD COLUMN IF NOT EXISTS mantiene compatible una tabla ya
-      // creada antes de agregar campos nuevos (contacto, próximas funciones).
+      // creada antes de agregar campos nuevos (contacto, próximas funciones,
+      // canales múltiples, personaje favorito).
       .then(() => sql`alter table survey_responses add column if not exists full_name text`)
       .then(() => sql`alter table survey_responses add column if not exists phone text`)
       .then(() => sql`alter table survey_responses add column if not exists email text`)
       .then(() => sql`alter table survey_responses add column if not exists return_likelihood smallint`)
       .then(() => sql`alter table survey_responses add column if not exists wants_newsletter boolean`)
+      .then(() => sql`alter table survey_responses add column if not exists discovery_channels text[]`)
+      .then(() => sql`alter table survey_responses add column if not exists favorite_character text`)
       .then(() => undefined);
   }
   return _ensured;
