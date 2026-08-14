@@ -360,7 +360,7 @@ function EncuestaPage() {
           <img
             src="/logo-chaplin.png"
             alt="Chaplin Grupo Cultural"
-            className="h-10 w-auto mx-auto mb-3"
+            className="h-20 w-auto mx-auto mb-4"
             style={{ filter: "invert(1) hue-rotate(180deg)" }}
           />
           <p className="font-body uppercase tracking-[0.35em] text-[var(--t-fg-50)] text-[11px]">
