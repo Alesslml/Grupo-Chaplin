@@ -42,14 +42,6 @@ const overallLabels: Record<string, string> = {
   regular: "Regular",
   mala: "Mala",
 };
-const likedLabels: Record<string, string> = {
-  actuacion: "Actuación",
-  musica: "Música",
-  baile: "Baile",
-  vestuario: "Vestuario",
-  escenografia: "Escenografía",
-  historia: "Historia",
-};
 const discoveryLabels: Record<string, string> = {
   facebook: "Facebook",
   instagram: "Instagram",
@@ -110,17 +102,19 @@ function exportResponsesToCsv(rows: SurveyResponseRow[]) {
     "Calificación general",
     "Actuación",
     "Dirección",
-    "Música en vivo",
+    "Canciones",
     "Coreografías",
     "Vestuario",
     "Iluminación",
-    "Le gustó",
+    "Sonido",
     "Personaje favorito",
+    "Por qué le gustó el personaje",
     "Cómo se enteró",
     "Lugar",
     "Horario adecuado",
     "Horario preferido",
     "NPS",
+    "Cómo se siente después",
     "Probabilidad de volver",
     "Quiere novedades",
     "Escena/canción favorita",
@@ -150,13 +144,15 @@ function exportResponsesToCsv(rows: SurveyResponseRow[]) {
       r.ratingCoreografia,
       r.ratingVestuario,
       r.ratingIluminacion,
-      r.likedMost.map((l) => likedLabels[l] ?? l).join("; "),
+      r.ratingSonido,
       favoriteCharacterLabel(r) ?? "",
+      r.favoriteCharacterReason,
       r.discoveryChannels.map((c) => discoveryLabels[c] ?? c).join("; "),
       r.venueRating ? venueLabels[r.venueRating] : "",
       r.scheduleOk === null ? "" : r.scheduleOk ? "Sí" : "No",
       r.schedulePreference,
       r.npsScore,
+      r.feelingAfterShow,
       r.returnLikelihood,
       r.wantsNewsletter === null ? "" : r.wantsNewsletter ? "Sí" : "No",
       r.favoriteMoment,
@@ -341,15 +337,13 @@ function ResponseCard({ r }: { r: SurveyResponseRow }) {
           <DetailRow label="Calificación general" value={r.overallRating ? overallLabels[r.overallRating] : null} />
           <DetailRow label="Actuación" value={r.ratingActuacion != null ? `${r.ratingActuacion}/5` : null} />
           <DetailRow label="Dirección" value={r.ratingDireccion != null ? `${r.ratingDireccion}/5` : null} />
-          <DetailRow label="Música en vivo" value={r.ratingMusica != null ? `${r.ratingMusica}/5` : null} />
+          <DetailRow label="Canciones" value={r.ratingMusica != null ? `${r.ratingMusica}/5` : null} />
           <DetailRow label="Coreografías" value={r.ratingCoreografia != null ? `${r.ratingCoreografia}/5` : null} />
           <DetailRow label="Vestuario" value={r.ratingVestuario != null ? `${r.ratingVestuario}/5` : null} />
           <DetailRow label="Iluminación" value={r.ratingIluminacion != null ? `${r.ratingIluminacion}/5` : null} />
-          <DetailRow
-            label="Le gustó"
-            value={r.likedMost.length ? r.likedMost.map((l) => likedLabels[l] ?? l).join(", ") : null}
-          />
+          <DetailRow label="Sonido" value={r.ratingSonido != null ? `${r.ratingSonido}/5` : null} />
           <DetailRow label="Personaje favorito" value={favoriteCharacterLabel(r)} />
+          <DetailRow label="Por qué le gustó" value={r.favoriteCharacterReason} />
           <DetailRow
             label="Cómo se enteró"
             value={r.discoveryChannels.length ? r.discoveryChannels.map((c) => discoveryLabels[c] ?? c).join(", ") : null}
@@ -358,6 +352,7 @@ function ResponseCard({ r }: { r: SurveyResponseRow }) {
           <DetailRow label="Horario adecuado" value={r.scheduleOk === null ? null : r.scheduleOk ? "Sí" : "No"} />
           {r.schedulePreference && <DetailRow label="Horario preferido" value={r.schedulePreference} />}
           <DetailRow label="NPS" value={r.npsScore != null ? `${r.npsScore}/10` : null} />
+          <DetailRow label="Cómo se siente después" value={r.feelingAfterShow} />
           <DetailRow
             label="Probabilidad de volver"
             value={r.returnLikelihood != null ? `${r.returnLikelihood}/10` : null}
@@ -567,12 +562,13 @@ function AdminEncuestasPage() {
                   hint="Promedio de 1 a 5 en cada aspecto de la producción. Te ayuda a identificar qué está funcionando muy bien y qué necesita más atención de cara a la próxima función."
                 />
                 <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8 space-y-5">
-                  <RatingBar label="Actuación" value={stats.categoryAverages.actuacion} />
-                  <RatingBar label="Dirección" value={stats.categoryAverages.direccion} />
-                  <RatingBar label="Música en vivo" value={stats.categoryAverages.musica} />
+                  <RatingBar label="Actuación (personajes)" value={stats.categoryAverages.actuacion} />
+                  <RatingBar label="Dirección (puesta en escena)" value={stats.categoryAverages.direccion} />
+                  <RatingBar label="Canciones" value={stats.categoryAverages.musica} />
                   <RatingBar label="Coreografías" value={stats.categoryAverages.coreografia} />
                   <RatingBar label="Vestuario y maquillaje" value={stats.categoryAverages.vestuario} />
-                  <RatingBar label="Iluminación y sonido" value={stats.categoryAverages.iluminacion} />
+                  <RatingBar label="Iluminación" value={stats.categoryAverages.iluminacion} />
+                  <RatingBar label="Sonido" value={stats.categoryAverages.sonido} />
                 </div>
               </section>
 
@@ -667,21 +663,6 @@ function AdminEncuestasPage() {
                     {(["muy_buena", "buena", "regular", "mala"] as const).map((k) => (
                       <RankedBar key={k} label={overallLabels[k]} value={stats.overallCounts[k]} max={stats.total} />
                     ))}
-                  </div>
-                </section>
-
-                {/* Qué les gustó */}
-                <section>
-                  <SectionHeader
-                    title="Qué les gustó más"
-                    hint="Los aspectos que más mencionó el público al elegir qué disfrutó de la función."
-                  />
-                  <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 lg:p-8 space-y-5">
-                    {Object.entries(stats.likedMostCounts)
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([k, v]) => (
-                        <RankedBar key={k} label={likedLabels[k] ?? k} value={v} max={stats.total} />
-                      ))}
                   </div>
                 </section>
 

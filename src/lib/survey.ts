@@ -6,13 +6,6 @@ export const EVENT_LABEL = "SING, Ven y Canta";
 
 export type OverallRating = "muy_buena" | "buena" | "regular" | "mala";
 export type Companion = "familia" | "amigos" | "pareja" | "solo" | "otro";
-export type LikedItem =
-  | "actuacion"
-  | "musica"
-  | "baile"
-  | "vestuario"
-  | "escenografia"
-  | "historia";
 export type DiscoveryChannel =
   | "facebook"
   | "instagram"
@@ -46,16 +39,18 @@ export interface SurveyPayload {
   ratingCoreografia: number;
   ratingVestuario: number;
   ratingIluminacion: number;
-  likedMost: LikedItem[];
+  ratingSonido: number;
   favoriteMoment: string;
   favoriteCharacter: FavoriteCharacter | "";
   favoriteCharacterOther: string;
+  favoriteCharacterReason: string;
   discoveryChannels: DiscoveryChannel[];
   venueRating: VenueRating;
   scheduleOk: boolean;
   schedulePreference: string;
   npsScore: number;
   improvementComment: string;
+  feelingAfterShow: string;
   returnLikelihood: number;
   wantsNewsletter: boolean;
 }
@@ -69,20 +64,21 @@ export const submitSurvey = createServerFn({ method: "POST" })
       insert into survey_responses (
         event_slug, full_name, phone, email, function_time, age_range, companion, overall_rating,
         rating_actuacion, rating_direccion, rating_musica,
-        rating_coreografia, rating_vestuario, rating_iluminacion,
-        liked_most, favorite_moment, favorite_character, favorite_character_other,
+        rating_coreografia, rating_vestuario, rating_iluminacion, rating_sonido,
+        favorite_moment, favorite_character, favorite_character_other, favorite_character_reason,
         discovery_channels, venue_rating,
-        schedule_ok, schedule_preference, nps_score, improvement_comment,
+        schedule_ok, schedule_preference, nps_score, improvement_comment, feeling_after_show,
         return_likelihood, wants_newsletter
       ) values (
         ${EVENT_SLUG}, ${data.fullName}, ${data.phone}, ${data.email || null}, ${data.functionTime || null},
         ${data.ageRange || null}, ${data.companion}, ${data.overallRating},
         ${data.ratingActuacion}, ${data.ratingDireccion}, ${data.ratingMusica},
-        ${data.ratingCoreografia}, ${data.ratingVestuario}, ${data.ratingIluminacion},
-        ${data.likedMost}, ${data.favoriteMoment || null}, ${data.favoriteCharacter || null},
-        ${data.favoriteCharacterOther || null},
+        ${data.ratingCoreografia}, ${data.ratingVestuario}, ${data.ratingIluminacion}, ${data.ratingSonido},
+        ${data.favoriteMoment || null}, ${data.favoriteCharacter || null},
+        ${data.favoriteCharacterOther || null}, ${data.favoriteCharacterReason || null},
         ${data.discoveryChannels}, ${data.venueRating},
         ${data.scheduleOk}, ${data.schedulePreference || null}, ${data.npsScore}, ${data.improvementComment || null},
+        ${data.feelingAfterShow || null},
         ${data.returnLikelihood}, ${data.wantsNewsletter}
       )
     `;
@@ -110,9 +106,9 @@ export interface SurveyStats {
     coreografia: number;
     vestuario: number;
     iluminacion: number;
+    sonido: number;
   };
   nps: { score: number; promoters: number; passives: number; detractors: number };
-  likedMostCounts: Record<LikedItem, number>;
   discoveryCounts: Record<DiscoveryChannel, number>;
   favoriteCharacterCounts: Record<FavoriteCharacter, number>;
   venueCounts: Record<VenueRating, number>;
@@ -128,9 +124,6 @@ export interface SurveyStats {
 }
 
 const emptyOverall: Record<OverallRating, number> = { muy_buena: 0, buena: 0, regular: 0, mala: 0 };
-const emptyLiked: Record<LikedItem, number> = {
-  actuacion: 0, musica: 0, baile: 0, vestuario: 0, escenografia: 0, historia: 0,
-};
 const emptyDiscovery: Record<DiscoveryChannel, number> = {
   facebook: 0, instagram: 0, tiktok: 0, afiche: 0, amigos: 0, auspiciadores: 0, otro: 0,
 };
@@ -162,13 +155,12 @@ export const getSurveyStats = createServerFn({ method: "POST" })
 
     const total = rows.length;
     const overallCounts = { ...emptyOverall };
-    const likedMostCounts = { ...emptyLiked };
     const discoveryCounts = { ...emptyDiscovery };
     const favoriteCharacterCounts = { ...emptyFavoriteCharacter };
     const venueCounts = { ...emptyVenue };
     const companionCounts = { ...emptyCompanion };
 
-    let sumActuacion = 0, sumDireccion = 0, sumMusica = 0, sumCoreografia = 0, sumVestuario = 0, sumIluminacion = 0;
+    let sumActuacion = 0, sumDireccion = 0, sumMusica = 0, sumCoreografia = 0, sumVestuario = 0, sumIluminacion = 0, sumSonido = 0;
     let promoters = 0, passives = 0, detractors = 0;
     let scheduleOkCount = 0;
     let sumReturnLikelihood = 0;
@@ -195,6 +187,7 @@ export const getSurveyStats = createServerFn({ method: "POST" })
       sumCoreografia += r.rating_coreografia ?? 0;
       sumVestuario += r.rating_vestuario ?? 0;
       sumIluminacion += r.rating_iluminacion ?? 0;
+      sumSonido += r.rating_sonido ?? 0;
 
       const nps = r.nps_score ?? 0;
       if (nps >= 9) promoters++;
@@ -210,10 +203,6 @@ export const getSurveyStats = createServerFn({ method: "POST" })
       if (r.wants_newsletter !== null && r.wants_newsletter !== undefined) {
         newsletterAnsweredCount++;
         if (r.wants_newsletter) newsletterOptInCount++;
-      }
-
-      for (const item of r.liked_most ?? []) {
-        if (item in likedMostCounts) likedMostCounts[item as LikedItem]++;
       }
 
       if (r.improvement_comment) {
@@ -235,9 +224,9 @@ export const getSurveyStats = createServerFn({ method: "POST" })
         coreografia: avg(sumCoreografia),
         vestuario: avg(sumVestuario),
         iluminacion: avg(sumIluminacion),
+        sonido: avg(sumSonido),
       },
       nps: { score: npsScore, promoters, passives, detractors },
-      likedMostCounts,
       discoveryCounts,
       favoriteCharacterCounts,
       venueCounts,
@@ -269,16 +258,18 @@ export interface SurveyResponseRow {
   ratingCoreografia: number | null;
   ratingVestuario: number | null;
   ratingIluminacion: number | null;
-  likedMost: LikedItem[];
+  ratingSonido: number | null;
   favoriteMoment: string | null;
   favoriteCharacter: FavoriteCharacter | null;
   favoriteCharacterOther: string | null;
+  favoriteCharacterReason: string | null;
   discoveryChannels: DiscoveryChannel[];
   venueRating: VenueRating | null;
   scheduleOk: boolean | null;
   schedulePreference: string | null;
   npsScore: number | null;
   improvementComment: string | null;
+  feelingAfterShow: string | null;
   returnLikelihood: number | null;
   wantsNewsletter: boolean | null;
 }
@@ -313,16 +304,18 @@ export const getSurveyResponses = createServerFn({ method: "POST" })
       ratingCoreografia: r.rating_coreografia,
       ratingVestuario: r.rating_vestuario,
       ratingIluminacion: r.rating_iluminacion,
-      likedMost: r.liked_most ?? [],
+      ratingSonido: r.rating_sonido,
       favoriteMoment: r.favorite_moment,
       favoriteCharacter: r.favorite_character,
       favoriteCharacterOther: r.favorite_character_other,
+      favoriteCharacterReason: r.favorite_character_reason,
       discoveryChannels: discoveryChannelsOf(r) as DiscoveryChannel[],
       venueRating: r.venue_rating,
       scheduleOk: r.schedule_ok,
       schedulePreference: r.schedule_preference,
       npsScore: r.nps_score,
       improvementComment: r.improvement_comment,
+      feelingAfterShow: r.feeling_after_show,
       returnLikelihood: r.return_likelihood,
       wantsNewsletter: r.wants_newsletter,
     }));

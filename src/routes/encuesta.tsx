@@ -7,7 +7,6 @@ import {
   type Companion,
   type DiscoveryChannel,
   type FavoriteCharacter,
-  type LikedItem,
   type OverallRating,
   type VenueRating,
 } from "@/lib/survey";
@@ -39,16 +38,18 @@ interface FormState {
   ratingCoreografia: number;
   ratingVestuario: number;
   ratingIluminacion: number;
-  likedMost: LikedItem[];
+  ratingSonido: number;
   favoriteMoment: string;
   favoriteCharacter: FavoriteCharacter | "";
   favoriteCharacterOther: string;
+  favoriteCharacterReason: string;
   discoveryChannels: DiscoveryChannel[];
   venueRating: VenueRating | "";
   scheduleOk: boolean | null;
   schedulePreference: string;
   npsScore: number | null;
   improvementComment: string;
+  feelingAfterShow: string;
   returnLikelihood: number | null;
   wantsNewsletter: boolean | null;
 }
@@ -67,16 +68,18 @@ const initialState: FormState = {
   ratingCoreografia: 0,
   ratingVestuario: 0,
   ratingIluminacion: 0,
-  likedMost: [],
+  ratingSonido: 0,
   favoriteMoment: "",
   favoriteCharacter: "",
   favoriteCharacterOther: "",
+  favoriteCharacterReason: "",
   discoveryChannels: [],
   venueRating: "",
   scheduleOk: null,
   schedulePreference: "",
   npsScore: null,
   improvementComment: "",
+  feelingAfterShow: "",
   returnLikelihood: null,
   wantsNewsletter: null,
 };
@@ -101,21 +104,13 @@ const overallOptions: { value: OverallRating; label: string }[] = [
 ];
 
 const categoryRatings: { key: keyof FormState; label: string }[] = [
-  { key: "ratingActuacion", label: "Actuación" },
-  { key: "ratingDireccion", label: "Dirección" },
-  { key: "ratingMusica", label: "Música en vivo" },
+  { key: "ratingActuacion", label: "Actuación (personajes)" },
+  { key: "ratingDireccion", label: "Dirección (puesta en escena)" },
+  { key: "ratingMusica", label: "Canciones" },
   { key: "ratingCoreografia", label: "Coreografías" },
   { key: "ratingVestuario", label: "Vestuario y maquillaje" },
-  { key: "ratingIluminacion", label: "Iluminación y sonido" },
-];
-
-const likedOptions: { value: LikedItem; label: string }[] = [
-  { value: "actuacion", label: "Actuación" },
-  { value: "musica", label: "Música" },
-  { value: "baile", label: "Baile" },
-  { value: "vestuario", label: "Vestuario" },
-  { value: "escenografia", label: "Escenografía" },
-  { value: "historia", label: "Historia" },
+  { key: "ratingIluminacion", label: "Iluminación" },
+  { key: "ratingSonido", label: "Sonido" },
 ];
 
 const characterOptions: { value: FavoriteCharacter; label: string }[] = [
@@ -176,7 +171,7 @@ function Chip({
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
     <p className="font-body text-[11px] uppercase tracking-[0.3em] text-[var(--t-fg-80)] mb-4">
-      {children} {required && <span className="text-rojo">*</span>}
+      {children} {required && <span className="text-rojo font-bold">*</span>}
     </p>
   );
 }
@@ -242,13 +237,6 @@ function EncuestaPage() {
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  const toggleLiked = (v: LikedItem) => {
-    setForm((f) => ({
-      ...f,
-      likedMost: f.likedMost.includes(v) ? f.likedMost.filter((i) => i !== v) : [...f.likedMost, v],
-    }));
-  };
-
   const toggleDiscovery = (v: DiscoveryChannel) => {
     setForm((f) => ({
       ...f,
@@ -272,10 +260,9 @@ function EncuestaPage() {
           form.ratingMusica > 0 &&
           form.ratingCoreografia > 0 &&
           form.ratingVestuario > 0 &&
-          form.ratingIluminacion > 0
+          form.ratingIluminacion > 0 &&
+          form.ratingSonido > 0
         );
-      case 3:
-        return form.likedMost.length > 0;
       case 4:
         return form.discoveryChannels.length > 0 && form.venueRating !== "" && form.scheduleOk !== null;
       case 5:
@@ -307,16 +294,18 @@ function EncuestaPage() {
           ratingCoreografia: form.ratingCoreografia,
           ratingVestuario: form.ratingVestuario,
           ratingIluminacion: form.ratingIluminacion,
-          likedMost: form.likedMost,
+          ratingSonido: form.ratingSonido,
           favoriteMoment: form.favoriteMoment,
           favoriteCharacter: form.favoriteCharacter,
           favoriteCharacterOther: form.favoriteCharacterOther.trim(),
+          favoriteCharacterReason: form.favoriteCharacterReason.trim(),
           discoveryChannels: form.discoveryChannels,
           venueRating: form.venueRating as VenueRating,
           scheduleOk: form.scheduleOk as boolean,
           schedulePreference: form.schedulePreference,
           npsScore: form.npsScore,
           improvementComment: form.improvementComment,
+          feelingAfterShow: form.feelingAfterShow.trim(),
           returnLikelihood: form.returnLikelihood,
           wantsNewsletter: form.wantsNewsletter,
         },
@@ -365,7 +354,7 @@ function EncuestaPage() {
           <p className="font-body text-[var(--t-fg-70)] leading-relaxed mb-8">
             Tu opinión ya quedó registrada. Nos ayuda muchísimo a mejorar cada función.
           </p>
-          <p className="font-body italic text-rojo text-sm mb-6">
+          <p className="font-body italic text-rojo font-semibold text-sm mb-6">
             — Chaplin Grupo Cultural
           </p>
           <img
@@ -524,7 +513,7 @@ function EncuestaPage() {
                 </div>
               </div>
               <div>
-                <FieldLabel required>Califica cada aspecto del 1 al 5</FieldLabel>
+                <FieldLabel required>Califica cada aspecto del 1 al 5 (1 es malo, 5 es perfecto)</FieldLabel>
                 <div className="space-y-5">
                   {categoryRatings.map((c) => (
                     <div key={String(c.key)} className="flex items-center justify-between gap-4 flex-wrap">
@@ -542,16 +531,6 @@ function EncuestaPage() {
 
           {step === 3 && (
             <>
-              <div>
-                <FieldLabel required>¿Qué fue lo que más te gustó? (elige una o más)</FieldLabel>
-                <div className="flex flex-wrap gap-2">
-                  {likedOptions.map((o) => (
-                    <Chip key={o.value} active={form.likedMost.includes(o.value)} onClick={() => toggleLiked(o.value)}>
-                      {o.label}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
               <div>
                 <FieldLabel>¿Qué escena o canción te emocionó más?</FieldLabel>
                 <input
@@ -584,6 +563,16 @@ function EncuestaPage() {
                     className={`${inputClass} mt-4`}
                   />
                 )}
+              </div>
+              <div>
+                <FieldLabel>¿Por qué te gustó ese personaje?</FieldLabel>
+                <input
+                  type="text"
+                  value={form.favoriteCharacterReason}
+                  onChange={(e) => set("favoriteCharacterReason", e.target.value)}
+                  placeholder="Opcional"
+                  className={inputClass}
+                />
               </div>
             </>
           )}
@@ -646,6 +635,16 @@ function EncuestaPage() {
                 </div>
               </div>
               <div>
+                <FieldLabel>¿Cómo te sientes después de ver la puesta en escena?</FieldLabel>
+                <input
+                  type="text"
+                  value={form.feelingAfterShow}
+                  onChange={(e) => set("feelingAfterShow", e.target.value)}
+                  placeholder="Opcional"
+                  className={inputClass}
+                />
+              </div>
+              <div>
                 <FieldLabel>¿Qué podemos mejorar para la próxima?</FieldLabel>
                 <textarea
                   rows={4}
@@ -661,7 +660,7 @@ function EncuestaPage() {
           {step === 6 && (
             <>
               <div>
-                <p className="font-body uppercase tracking-[0.4em] text-rojo text-[11px] mb-3">
+                <p className="font-body uppercase tracking-[0.4em] text-rojo font-semibold text-[11px] mb-3">
                   Antes de despedirnos
                 </p>
                 <h2 className="font-display text-[var(--t-fg)] text-3xl leading-[0.95] mb-4">
@@ -691,7 +690,7 @@ function EncuestaPage() {
                 </div>
               </div>
               {error && (
-                <p className="font-body text-rojo text-sm">
+                <p className="font-body text-rojo font-semibold text-sm">
                   Hubo un problema al enviar tu respuesta. Inténtalo de nuevo.
                 </p>
               )}
