@@ -12,6 +12,7 @@ import {
   type VenueRating,
 } from "@/lib/survey";
 import singFlyer from "@/assets/sing-flyer-oficial.png";
+import singTitleLogo from "@/assets/sing-title-logo.png";
 
 export const Route = createFileRoute("/encuesta")({
   head: () => ({
@@ -156,8 +157,8 @@ function Chip({
       onClick={onClick}
       className={`font-body text-[13px] uppercase tracking-[0.15em] px-5 py-3 border transition-all duration-300 ${
         active
-          ? "bg-[var(--gold)] border-[var(--gold)] text-negro font-bold"
-          : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-70)] hover:border-[var(--gold)] hover:text-[var(--gold)]"
+          ? "bg-rojo border-rojo text-negro font-bold"
+          : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-70)] hover:border-rojo hover:text-rojo"
       }`}
     >
       {children}
@@ -185,8 +186,8 @@ function RatingScale({ value, onChange }: { value: number; onChange: (v: number)
           aria-label={`${n} de 5`}
           className={`w-11 h-11 border font-display text-lg transition-all duration-300 ${
             n <= value
-              ? "bg-[var(--gold)] border-[var(--gold)] text-negro"
-              : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-50)] hover:border-[var(--gold)]"
+              ? "bg-rojo border-rojo text-negro"
+              : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-50)] hover:border-rojo"
           }`}
         >
           {n}
@@ -208,8 +209,8 @@ function NpsScale({ value, onChange }: { value: number | null; onChange: (v: num
           aria-label={`${n} de 10`}
           className={`w-10 h-10 border font-display text-base transition-all duration-300 ${
             value === n
-              ? "bg-[var(--gold)] border-[var(--gold)] text-negro"
-              : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-50)] hover:border-[var(--gold)]"
+              ? "bg-rojo border-rojo text-negro"
+              : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-50)] hover:border-rojo"
           }`}
         >
           {n}
@@ -220,22 +221,7 @@ function NpsScale({ value, onChange }: { value: number | null; onChange: (v: num
 }
 
 const inputClass =
-  "w-full bg-[var(--t-input-bg)] border-2 border-[var(--t-fg-25)] focus:border-[var(--gold)] outline-none px-4 py-3 font-body text-[var(--t-fg)] text-base placeholder:text-[var(--t-fg-40)] transition-colors duration-300";
-
-/* ─── Fila de luces de marquesina (referencia al póster de SING) ─────────── */
-function MarqueeBulbs({ count = 13 }: { count?: number }) {
-  return (
-    <div className="flex justify-center gap-2.5 my-6" aria-hidden="true">
-      {Array.from({ length: count }, (_, i) => (
-        <span
-          key={i}
-          className="marquee-bulb w-2 h-2 rounded-full"
-          style={{ background: "var(--gold)", animationDelay: `${(i % 5) * 0.18}s` }}
-        />
-      ))}
-    </div>
-  );
-}
+  "w-full bg-[var(--t-input-bg)] border-2 border-[var(--t-fg-25)] focus:border-rojo outline-none px-4 py-3 font-body text-[var(--t-fg)] text-base placeholder:text-[var(--t-fg-40)] transition-colors duration-300";
 
 /* ─── Página ──────────────────────────────────────────────────────────────── */
 function EncuestaPage() {
@@ -337,8 +323,7 @@ function EncuestaPage() {
   if (!started) {
     return (
       <div
-        data-survey-theme="soft"
-        data-sing-theme="soft"
+        data-survey-theme="dark"
         className="min-h-screen bg-[var(--t-bg)] grain flex flex-col items-center justify-center px-6 py-12 text-center"
       >
         <img
@@ -350,7 +335,7 @@ function EncuestaPage() {
           Cuéntanos qué te pareció la función y entra al sorteo de entradas para nuestras
           próximas presentaciones.
         </p>
-        <button type="button" onClick={() => setStarted(true)} className="btn-gold mt-4 flex items-center gap-2">
+        <button type="button" onClick={() => setStarted(true)} className="btn-rojo mt-4 flex items-center gap-2">
           <Ticket size={16} /> Participa por entradas
         </button>
       </div>
@@ -360,29 +345,25 @@ function EncuestaPage() {
   if (done) {
     return (
       <div
-        data-survey-theme="soft"
-        data-sing-theme="soft"
+        data-survey-theme="dark"
         className="min-h-screen bg-[var(--t-bg)] grain flex items-center justify-center px-6 py-20 relative"
       >
         <div className="max-w-md text-center">
-          <div
-            className="w-20 h-20 mx-auto mb-8 border-2 flex items-center justify-center"
-            style={{ borderColor: "var(--gold)" }}
-          >
-            <Check style={{ color: "var(--gold)" }} size={36} strokeWidth={2} />
+          <div className="w-20 h-20 mx-auto mb-8 border-2 border-rojo flex items-center justify-center">
+            <Check className="text-rojo" size={36} strokeWidth={2} />
           </div>
-          <MarqueeBulbs count={9} />
           <h1 className="font-display text-[var(--t-fg)] text-4xl md:text-5xl mb-6">¡GRACIAS!</h1>
           <p className="font-body text-[var(--t-fg-70)] leading-relaxed mb-8">
             Tu opinión ya quedó registrada. Nos ayuda muchísimo a mejorar cada función.
           </p>
-          <p className="font-body italic text-sm mb-6" style={{ color: "var(--gold)" }}>
+          <p className="font-body italic text-rojo text-sm mb-6">
             — Chaplin Grupo Cultural
           </p>
           <img
             src="/logo-chaplin.png"
             alt="Chaplin Grupo Cultural"
             className="h-10 w-auto mx-auto mb-3"
+            style={{ filter: "invert(1) hue-rotate(180deg)" }}
           />
           <p className="font-body uppercase tracking-[0.35em] text-[var(--t-fg-50)] text-[11px]">
             Pasión por el teatro
@@ -394,8 +375,7 @@ function EncuestaPage() {
 
   return (
     <div
-      data-survey-theme="soft"
-      data-sing-theme="soft"
+      data-survey-theme="dark"
       className="min-h-screen bg-[var(--t-bg)] grain flex flex-col"
     >
       {/* Header */}
@@ -404,9 +384,8 @@ function EncuestaPage() {
           aria-hidden="true"
           className="absolute left-1/2 top-6 -translate-x-1/2 w-80 h-80 rounded-full pointer-events-none"
           style={{
-            background: "radial-gradient(circle, var(--gold) 0%, transparent 68%)",
-            opacity: 0.16,
-            filter: "blur(10px)",
+            background:
+              "radial-gradient(ellipse at center, rgba(255,240,210,0.35) 0%, rgba(255,220,170,0.18) 40%, transparent 70%)",
           }}
         />
         <div className="relative z-10">
@@ -414,26 +393,16 @@ function EncuestaPage() {
             src="/logo-chaplin.png"
             alt="Chaplin Grupo Cultural"
             className="h-12 w-auto mx-auto mb-6"
+            style={{ filter: "invert(1) hue-rotate(180deg)" }}
           />
-          <p className="font-body uppercase tracking-[0.4em] text-[var(--gold)] text-[11px] mb-3">
+          <p className="font-body uppercase tracking-[0.4em] text-rojo text-[11px] mb-3">
             Encuesta de satisfacción
           </p>
-          <h1
-            className="font-display text-6xl md:text-7xl leading-[0.85] tracking-wide"
-            style={{
-              color: "var(--gold)",
-              textShadow: "1px 1px 0 var(--gold-deep), 2px 3px 6px rgba(0,0,0,0.35)",
-            }}
-          >
-            SING
-          </h1>
-          <p
-            className="font-body italic text-lg md:text-xl mt-1"
-            style={{ color: "var(--gold)" }}
-          >
-            ¡Ven y canta!
-          </p>
-          <MarqueeBulbs />
+          <img
+            src={singTitleLogo}
+            alt="SING, ¡Ven y canta!"
+            className="w-full max-w-sm mx-auto"
+          />
         </div>
       </header>
 
@@ -441,7 +410,7 @@ function EncuestaPage() {
       <div className="px-6 mb-8 max-w-xl mx-auto w-full">
         <div className="h-[3px] bg-[var(--t-track)] w-full">
           <div
-            className="h-full bg-[var(--gold)] transition-all duration-500"
+            className="h-full bg-rojo transition-all duration-500"
             style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
           />
         </div>
@@ -456,12 +425,12 @@ function EncuestaPage() {
           {step === 0 && (
             <>
               <div className="bg-rojo px-6 py-6 -mt-6 -mx-6 md:-mt-10 md:-mx-10 mb-8 flex items-start gap-4">
-                <Ticket className="text-negro shrink-0 mt-1" size={28} strokeWidth={2} />
+                <Ticket className="text-blanco shrink-0 mt-1" size={28} strokeWidth={2} />
                 <div>
-                  <p className="font-display text-negro text-2xl leading-[0.95] mb-2">
+                  <p className="font-display text-blanco text-2xl leading-[0.95] mb-2">
                     ¡TU OPINIÓN TIENE PREMIO!
                   </p>
-                  <p className="font-body text-negro/80 text-[13px] leading-relaxed">
+                  <p className="font-body text-blanco/80 text-[13px] leading-relaxed">
                     Al completar esta encuesta entras automáticamente al sorteo de entradas para
                     nuestras próximas funciones. Solo asegúrate de dejarnos bien tu contacto.
                   </p>
@@ -712,7 +681,7 @@ function EncuestaPage() {
             type="button"
             onClick={() => setStep((s) => Math.max(0, s - 1))}
             disabled={step === 0}
-            className="flex items-center gap-1 font-body text-[12px] uppercase tracking-[0.2em] text-[var(--t-fg-60)] hover:text-[var(--gold)] transition-colors disabled:opacity-0 disabled:pointer-events-none"
+            className="flex items-center gap-1 font-body text-[12px] uppercase tracking-[0.2em] text-[var(--t-fg-60)] hover:text-rojo transition-colors disabled:opacity-0 disabled:pointer-events-none"
           >
             <ChevronLeft size={16} /> Atrás
           </button>
@@ -722,7 +691,7 @@ function EncuestaPage() {
               type="button"
               onClick={() => canAdvance() && setStep((s) => Math.min(TOTAL_STEPS - 1, s + 1))}
               disabled={!canAdvance()}
-              className="btn-gold disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1"
+              className="btn-rojo disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1"
             >
               Siguiente <ChevronRight size={16} />
             </button>
@@ -736,7 +705,7 @@ function EncuestaPage() {
                 form.wantsNewsletter === null ||
                 submitting
               }
-              className="btn-gold disabled:opacity-30 disabled:pointer-events-none"
+              className="btn-rojo disabled:opacity-30 disabled:pointer-events-none"
             >
               {submitting ? "Enviando..." : "Enviar encuesta"}
             </button>
