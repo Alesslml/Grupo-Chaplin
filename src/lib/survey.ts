@@ -44,6 +44,8 @@ export interface SurveyPayload {
   schedulePreference: string;
   npsScore: number;
   improvementComment: string;
+  returnLikelihood: number;
+  wantsNewsletter: boolean;
 }
 
 export const submitSurvey = createServerFn({ method: "POST" })
@@ -57,14 +59,16 @@ export const submitSurvey = createServerFn({ method: "POST" })
         rating_actuacion, rating_direccion, rating_musica,
         rating_coreografia, rating_vestuario, rating_iluminacion,
         liked_most, favorite_moment, discovery_channel, venue_rating,
-        schedule_ok, schedule_preference, nps_score, improvement_comment
+        schedule_ok, schedule_preference, nps_score, improvement_comment,
+        return_likelihood, wants_newsletter
       ) values (
         ${EVENT_SLUG}, ${data.fullName}, ${data.phone}, ${data.email || null},
         ${data.ageRange || null}, ${data.companion}, ${data.overallRating},
         ${data.ratingActuacion}, ${data.ratingDireccion}, ${data.ratingMusica},
         ${data.ratingCoreografia}, ${data.ratingVestuario}, ${data.ratingIluminacion},
         ${data.likedMost}, ${data.favoriteMoment || null}, ${data.discoveryChannel}, ${data.venueRating},
-        ${data.scheduleOk}, ${data.schedulePreference || null}, ${data.npsScore}, ${data.improvementComment || null}
+        ${data.scheduleOk}, ${data.schedulePreference || null}, ${data.npsScore}, ${data.improvementComment || null},
+        ${data.returnLikelihood}, ${data.wantsNewsletter}
       )
     `;
     return { ok: true as const };
@@ -100,6 +104,9 @@ export interface SurveyStats {
   scheduleOkPct: number;
   recentComments: { comment: string; createdAt: string }[];
   favoriteMoments: string[];
+  avgReturnLikelihood: number;
+  newsletterOptInPct: number;
+  newsletterOptInCount: number;
 }
 
 const emptyOverall: Record<OverallRating, number> = { muy_buena: 0, buena: 0, regular: 0, mala: 0 };
@@ -133,6 +140,9 @@ export const getSurveyStats = createServerFn({ method: "POST" })
     let sumActuacion = 0, sumDireccion = 0, sumMusica = 0, sumCoreografia = 0, sumVestuario = 0, sumIluminacion = 0;
     let promoters = 0, passives = 0, detractors = 0;
     let scheduleOkCount = 0;
+    let sumReturnLikelihood = 0;
+    let returnLikelihoodCount = 0;
+    let newsletterOptInCount = 0;
     const recentComments: { comment: string; createdAt: string }[] = [];
     const favoriteMoments: string[] = [];
 
@@ -155,6 +165,12 @@ export const getSurveyStats = createServerFn({ method: "POST" })
       else detractors++;
 
       if (r.schedule_ok) scheduleOkCount++;
+
+      if (r.return_likelihood !== null && r.return_likelihood !== undefined) {
+        sumReturnLikelihood += r.return_likelihood;
+        returnLikelihoodCount++;
+      }
+      if (r.wants_newsletter) newsletterOptInCount++;
 
       for (const item of r.liked_most ?? []) {
         if (item in likedMostCounts) likedMostCounts[item as LikedItem]++;
@@ -188,6 +204,9 @@ export const getSurveyStats = createServerFn({ method: "POST" })
       scheduleOkPct: total > 0 ? Math.round((scheduleOkCount / total) * 100) : 0,
       recentComments: recentComments.slice(0, 30),
       favoriteMoments: favoriteMoments.slice(0, 30),
+      avgReturnLikelihood: returnLikelihoodCount > 0 ? Math.round((sumReturnLikelihood / returnLikelihoodCount) * 10) / 10 : 0,
+      newsletterOptInPct: total > 0 ? Math.round((newsletterOptInCount / total) * 100) : 0,
+      newsletterOptInCount,
     };
   });
 
@@ -214,6 +233,8 @@ export interface SurveyResponseRow {
   schedulePreference: string | null;
   npsScore: number | null;
   improvementComment: string | null;
+  returnLikelihood: number | null;
+  wantsNewsletter: boolean | null;
 }
 
 // Lista completa (CRM): cada fila es una persona que llenó la encuesta,
@@ -253,5 +274,7 @@ export const getSurveyResponses = createServerFn({ method: "POST" })
       schedulePreference: r.schedule_preference,
       npsScore: r.nps_score,
       improvementComment: r.improvement_comment,
+      returnLikelihood: r.return_likelihood,
+      wantsNewsletter: r.wants_newsletter,
     }));
   });

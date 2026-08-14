@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Ticket } from "lucide-react";
 import {
   submitSurvey,
   EVENT_LABEL,
@@ -44,6 +44,8 @@ interface FormState {
   schedulePreference: string;
   npsScore: number | null;
   improvementComment: string;
+  returnLikelihood: number | null;
+  wantsNewsletter: boolean | null;
 }
 
 const initialState: FormState = {
@@ -67,6 +69,8 @@ const initialState: FormState = {
   schedulePreference: "",
   npsScore: null,
   improvementComment: "",
+  returnLikelihood: null,
+  wantsNewsletter: null,
 };
 
 const ageRanges = ["Menos de 12", "12–17", "18–25", "26–35", "36–50", "51+"];
@@ -121,7 +125,7 @@ const venueOptions: { value: VenueRating; label: string }[] = [
   { value: "malo", label: "Malo" },
 ];
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 /* ─── Chips reutilizables ─────────────────────────────────────────────────── */
 function Chip({
@@ -244,13 +248,17 @@ function EncuestaPage() {
         return form.likedMost.length > 0;
       case 4:
         return form.discoveryChannel !== "" && form.venueRating !== "" && form.scheduleOk !== null;
+      case 5:
+        return form.npsScore !== null;
+      case 6:
+        return form.returnLikelihood !== null && form.wantsNewsletter !== null;
       default:
         return true;
     }
   };
 
   const handleSubmit = async () => {
-    if (form.npsScore === null) return;
+    if (form.npsScore === null || form.returnLikelihood === null || form.wantsNewsletter === null) return;
     setSubmitting(true);
     setError(false);
     try {
@@ -276,6 +284,8 @@ function EncuestaPage() {
           schedulePreference: form.schedulePreference,
           npsScore: form.npsScore,
           improvementComment: form.improvementComment,
+          returnLikelihood: form.returnLikelihood,
+          wantsNewsletter: form.wantsNewsletter,
         },
       });
       setDone(true);
@@ -355,6 +365,18 @@ function EncuestaPage() {
         <div className="bg-[var(--t-card)] border border-[var(--t-border)] p-6 md:p-10 space-y-10">
           {step === 0 && (
             <>
+              <div className="bg-rojo px-6 py-6 -mt-6 -mx-6 md:-mt-10 md:-mx-10 mb-8 flex items-start gap-4">
+                <Ticket className="text-negro shrink-0 mt-1" size={28} strokeWidth={2} />
+                <div>
+                  <p className="font-display text-negro text-2xl leading-[0.95] mb-2">
+                    ¡TU OPINIÓN TIENE PREMIO!
+                  </p>
+                  <p className="font-body text-negro/80 text-[13px] leading-relaxed">
+                    Al completar esta encuesta entras automáticamente al sorteo de entradas para
+                    nuestras próximas funciones. Solo asegúrate de dejarnos bien tu contacto.
+                  </p>
+                </div>
+              </div>
               <div>
                 <p className="font-body text-[var(--t-fg-70)] text-sm leading-relaxed mb-8">
                   Chaplin Grupo Cultural agradece de antemano el llenado de la siguiente encuesta
@@ -530,6 +552,41 @@ function EncuestaPage() {
                   className={`${inputClass} resize-none`}
                 />
               </div>
+            </>
+          )}
+
+          {step === 6 && (
+            <>
+              <div>
+                <p className="font-body uppercase tracking-[0.4em] text-rojo text-[11px] mb-3">
+                  Antes de despedirnos
+                </p>
+                <h2 className="font-display text-[var(--t-fg)] text-3xl leading-[0.95] mb-4">
+                  SE VIENE MÁS TEATRO
+                </h2>
+                <p className="font-body text-[var(--t-fg-70)] text-sm leading-relaxed mb-8">
+                  En octubre llega <span className="text-rojo font-semibold">Jesucristo Rockstar</span>, con
+                  banda en vivo, y cerramos el año en diciembre con{" "}
+                  <span className="text-rojo font-semibold">SHREK, El inicio de la aventura</span>.
+                </p>
+              </div>
+              <div>
+                <FieldLabel required>¿Qué tan probable es que te volvamos a ver en alguna de estas funciones?</FieldLabel>
+                <NpsScale value={form.returnLikelihood} onChange={(v) => set("returnLikelihood", v)} />
+                <div className="flex justify-between mt-2 font-body text-[var(--t-fg-40)] text-[10px] uppercase tracking-[0.2em]">
+                  <span>Nada probable</span>
+                  <span>Muy probable</span>
+                </div>
+              </div>
+              <div>
+                <FieldLabel required>
+                  ¿Quisieras recibir nuestras novedades (fechas, promociones y sorteos)?
+                </FieldLabel>
+                <div className="flex flex-wrap gap-2">
+                  <Chip active={form.wantsNewsletter === true} onClick={() => set("wantsNewsletter", true)}>Sí</Chip>
+                  <Chip active={form.wantsNewsletter === false} onClick={() => set("wantsNewsletter", false)}>No</Chip>
+                </div>
+              </div>
               {error && (
                 <p className="font-body text-rojo text-sm">
                   Hubo un problema al enviar tu respuesta. Inténtalo de nuevo.
@@ -565,7 +622,12 @@ function EncuestaPage() {
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={form.npsScore === null || submitting}
+              disabled={
+                form.npsScore === null ||
+                form.returnLikelihood === null ||
+                form.wantsNewsletter === null ||
+                submitting
+              }
               className="btn-rojo disabled:opacity-30 disabled:pointer-events-none"
             >
               {submitting ? "Enviando..." : "Enviar encuesta"}

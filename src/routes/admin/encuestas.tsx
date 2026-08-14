@@ -11,6 +11,8 @@ import {
   Search,
   TrendingDown,
   Minus,
+  Repeat2,
+  Mail,
 } from "lucide-react";
 import {
   getSurveyStats,
@@ -201,6 +203,9 @@ function ResponseCard({ r }: { r: SurveyResponseRow }) {
           </p>
         </div>
         <div className="flex items-center gap-4 shrink-0">
+          {r.wantsNewsletter && (
+            <Mail size={14} className="text-rojo" aria-label="Quiere recibir novedades" />
+          )}
           {r.overallRating && (
             <span className="hidden sm:inline font-body text-[11px] uppercase tracking-[0.15em] text-[var(--t-fg-60)]">
               {overallLabels[r.overallRating]}
@@ -241,6 +246,14 @@ function ResponseCard({ r }: { r: SurveyResponseRow }) {
           <DetailRow label="Horario adecuado" value={r.scheduleOk === null ? null : r.scheduleOk ? "Sí" : "No"} />
           {r.schedulePreference && <DetailRow label="Horario preferido" value={r.schedulePreference} />}
           <DetailRow label="NPS" value={r.npsScore != null ? `${r.npsScore}/10` : null} />
+          <DetailRow
+            label="Probabilidad de volver"
+            value={r.returnLikelihood != null ? `${r.returnLikelihood}/10` : null}
+          />
+          <DetailRow
+            label="Quiere novedades"
+            value={r.wantsNewsletter === null ? null : r.wantsNewsletter ? "Sí" : "No"}
+          />
           {r.favoriteMoment && (
             <div className="sm:col-span-3">
               <DetailRow label="Escena o canción favorita" value={r.favoriteMoment} />
@@ -496,6 +509,38 @@ function AdminEncuestasPage() {
                       </p>
                     </div>
                   </div>
+                </div>
+              </section>
+
+              {/* Próximas funciones */}
+              <section>
+                <SectionHeader
+                  title="Próximas funciones"
+                  hint="Qué tan dispuesto está tu público a volver, y cuántos quieren que les avises de futuras funciones. Esta es tu base para armar una lista de contacto e invitar directamente a Jesucristo Rockstar y SHREK."
+                />
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <StatTile
+                    icon={Repeat2}
+                    label="Probabilidad de volver"
+                    hint="Promedio de 0 a 10 de qué tan probable es que el público asista a una próxima función."
+                    value={stats.total > 0 ? `${stats.avgReturnLikelihood}/10` : "—"}
+                    status={stats.total > 0 ? statusFor((stats.avgReturnLikelihood / 10) * 100) : undefined}
+                    statusLabel={
+                      stats.total > 0
+                        ? statusFor((stats.avgReturnLikelihood / 10) * 100) === "good"
+                          ? "Excelente"
+                          : statusFor((stats.avgReturnLikelihood / 10) * 100) === "neutral"
+                            ? "Aceptable"
+                            : "Necesita atención"
+                        : undefined
+                    }
+                  />
+                  <StatTile
+                    icon={Mail}
+                    label="Quieren recibir novedades"
+                    hint={`% que aceptó que le avisemos de futuras funciones${stats.total > 0 ? ` (${stats.newsletterOptInCount} personas)` : ""}.`}
+                    value={stats.total > 0 ? `${stats.newsletterOptInPct}%` : "—"}
+                  />
                 </div>
               </section>
 
