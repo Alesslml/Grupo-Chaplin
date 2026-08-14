@@ -116,8 +116,10 @@ export interface SurveyStats {
   recentComments: { comment: string; createdAt: string }[];
   favoriteMoments: string[];
   avgReturnLikelihood: number;
+  returnLikelihoodCount: number;
   newsletterOptInPct: number;
   newsletterOptInCount: number;
+  newsletterAnsweredCount: number;
 }
 
 const emptyOverall: Record<OverallRating, number> = { muy_buena: 0, buena: 0, regular: 0, mala: 0 };
@@ -167,6 +169,7 @@ export const getSurveyStats = createServerFn({ method: "POST" })
     let sumReturnLikelihood = 0;
     let returnLikelihoodCount = 0;
     let newsletterOptInCount = 0;
+    let newsletterAnsweredCount = 0;
     const recentComments: { comment: string; createdAt: string }[] = [];
     const favoriteMoments: string[] = [];
 
@@ -199,7 +202,10 @@ export const getSurveyStats = createServerFn({ method: "POST" })
         sumReturnLikelihood += r.return_likelihood;
         returnLikelihoodCount++;
       }
-      if (r.wants_newsletter) newsletterOptInCount++;
+      if (r.wants_newsletter !== null && r.wants_newsletter !== undefined) {
+        newsletterAnsweredCount++;
+        if (r.wants_newsletter) newsletterOptInCount++;
+      }
 
       for (const item of r.liked_most ?? []) {
         if (item in likedMostCounts) likedMostCounts[item as LikedItem]++;
@@ -235,8 +241,10 @@ export const getSurveyStats = createServerFn({ method: "POST" })
       recentComments: recentComments.slice(0, 30),
       favoriteMoments: favoriteMoments.slice(0, 30),
       avgReturnLikelihood: returnLikelihoodCount > 0 ? Math.round((sumReturnLikelihood / returnLikelihoodCount) * 10) / 10 : 0,
-      newsletterOptInPct: total > 0 ? Math.round((newsletterOptInCount / total) * 100) : 0,
+      returnLikelihoodCount,
+      newsletterOptInPct: newsletterAnsweredCount > 0 ? Math.round((newsletterOptInCount / newsletterAnsweredCount) * 100) : 0,
       newsletterOptInCount,
+      newsletterAnsweredCount,
     };
   });
 

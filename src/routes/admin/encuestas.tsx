@@ -538,11 +538,11 @@ function AdminEncuestasPage() {
                   <StatTile
                     icon={Repeat2}
                     label="Probabilidad de volver"
-                    hint="Promedio de 0 a 10 de qué tan probable es que el público asista a una próxima función."
-                    value={stats.total > 0 ? `${stats.avgReturnLikelihood}/10` : "—"}
-                    status={stats.total > 0 ? statusFor((stats.avgReturnLikelihood / 10) * 100) : undefined}
+                    hint={`Promedio de 0 a 10 de qué tan probable es que el público asista a una próxima función${stats.returnLikelihoodCount > 0 ? ` (${stats.returnLikelihoodCount} de ${stats.total} respondieron esta pregunta).` : ". Nadie ha respondido esta pregunta todavía — se agregó después de las primeras respuestas."}`}
+                    value={stats.returnLikelihoodCount > 0 ? `${stats.avgReturnLikelihood}/10` : "—"}
+                    status={stats.returnLikelihoodCount > 0 ? statusFor((stats.avgReturnLikelihood / 10) * 100) : undefined}
                     statusLabel={
-                      stats.total > 0
+                      stats.returnLikelihoodCount > 0
                         ? statusFor((stats.avgReturnLikelihood / 10) * 100) === "good"
                           ? "Excelente"
                           : statusFor((stats.avgReturnLikelihood / 10) * 100) === "neutral"
@@ -554,8 +554,8 @@ function AdminEncuestasPage() {
                   <StatTile
                     icon={Mail}
                     label="Quieren recibir novedades"
-                    hint={`% que aceptó que le avisemos de futuras funciones${stats.total > 0 ? ` (${stats.newsletterOptInCount} personas)` : ""}.`}
-                    value={stats.total > 0 ? `${stats.newsletterOptInPct}%` : "—"}
+                    hint={`% que aceptó que le avisemos de futuras funciones${stats.newsletterAnsweredCount > 0 ? ` (${stats.newsletterOptInCount} de ${stats.newsletterAnsweredCount} personas).` : ". Nadie ha respondido esta pregunta todavía — se agregó después de las primeras respuestas."}`}
+                    value={stats.newsletterAnsweredCount > 0 ? `${stats.newsletterOptInPct}%` : "—"}
                   />
                 </div>
               </section>
