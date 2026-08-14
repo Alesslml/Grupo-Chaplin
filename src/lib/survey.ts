@@ -29,12 +29,14 @@ export type FavoriteCharacter =
   | "johnny"
   | "meena"
   | "mike"
-  | "gunter";
+  | "gunter"
+  | "otro";
 
 export interface SurveyPayload {
   fullName: string;
   phone: string;
   email: string;
+  functionTime: string;
   ageRange: string;
   companion: Companion;
   overallRating: OverallRating;
@@ -47,6 +49,7 @@ export interface SurveyPayload {
   likedMost: LikedItem[];
   favoriteMoment: string;
   favoriteCharacter: FavoriteCharacter | "";
+  favoriteCharacterOther: string;
   discoveryChannels: DiscoveryChannel[];
   venueRating: VenueRating;
   scheduleOk: boolean;
@@ -64,18 +67,20 @@ export const submitSurvey = createServerFn({ method: "POST" })
     const sql = getSql();
     await sql`
       insert into survey_responses (
-        event_slug, full_name, phone, email, age_range, companion, overall_rating,
+        event_slug, full_name, phone, email, function_time, age_range, companion, overall_rating,
         rating_actuacion, rating_direccion, rating_musica,
         rating_coreografia, rating_vestuario, rating_iluminacion,
-        liked_most, favorite_moment, favorite_character, discovery_channels, venue_rating,
+        liked_most, favorite_moment, favorite_character, favorite_character_other,
+        discovery_channels, venue_rating,
         schedule_ok, schedule_preference, nps_score, improvement_comment,
         return_likelihood, wants_newsletter
       ) values (
-        ${EVENT_SLUG}, ${data.fullName}, ${data.phone}, ${data.email || null},
+        ${EVENT_SLUG}, ${data.fullName}, ${data.phone}, ${data.email || null}, ${data.functionTime || null},
         ${data.ageRange || null}, ${data.companion}, ${data.overallRating},
         ${data.ratingActuacion}, ${data.ratingDireccion}, ${data.ratingMusica},
         ${data.ratingCoreografia}, ${data.ratingVestuario}, ${data.ratingIluminacion},
         ${data.likedMost}, ${data.favoriteMoment || null}, ${data.favoriteCharacter || null},
+        ${data.favoriteCharacterOther || null},
         ${data.discoveryChannels}, ${data.venueRating},
         ${data.scheduleOk}, ${data.schedulePreference || null}, ${data.npsScore}, ${data.improvementComment || null},
         ${data.returnLikelihood}, ${data.wantsNewsletter}
@@ -132,7 +137,7 @@ const emptyDiscovery: Record<DiscoveryChannel, number> = {
 const emptyVenue: Record<VenueRating, number> = { excelente: 0, bueno: 0, regular: 0, malo: 0 };
 const emptyCompanion: Record<Companion, number> = { familia: 0, amigos: 0, pareja: 0, solo: 0, otro: 0 };
 const emptyFavoriteCharacter: Record<FavoriteCharacter, number> = {
-  buster_moon: 0, rosita: 0, ash: 0, johnny: 0, meena: 0, mike: 0, gunter: 0,
+  buster_moon: 0, rosita: 0, ash: 0, johnny: 0, meena: 0, mike: 0, gunter: 0, otro: 0,
 };
 
 // Compatibilidad: las respuestas viejas guardaron un solo canal en
@@ -254,6 +259,7 @@ export interface SurveyResponseRow {
   fullName: string | null;
   phone: string | null;
   email: string | null;
+  functionTime: string | null;
   ageRange: string | null;
   companion: Companion | null;
   overallRating: OverallRating | null;
@@ -266,6 +272,7 @@ export interface SurveyResponseRow {
   likedMost: LikedItem[];
   favoriteMoment: string | null;
   favoriteCharacter: FavoriteCharacter | null;
+  favoriteCharacterOther: string | null;
   discoveryChannels: DiscoveryChannel[];
   venueRating: VenueRating | null;
   scheduleOk: boolean | null;
@@ -296,6 +303,7 @@ export const getSurveyResponses = createServerFn({ method: "POST" })
       fullName: r.full_name,
       phone: r.phone,
       email: r.email,
+      functionTime: r.function_time,
       ageRange: r.age_range,
       companion: r.companion,
       overallRating: r.overall_rating,
@@ -308,6 +316,7 @@ export const getSurveyResponses = createServerFn({ method: "POST" })
       likedMost: r.liked_most ?? [],
       favoriteMoment: r.favorite_moment,
       favoriteCharacter: r.favorite_character,
+      favoriteCharacterOther: r.favorite_character_other,
       discoveryChannels: discoveryChannelsOf(r) as DiscoveryChannel[],
       venueRating: r.venue_rating,
       scheduleOk: r.schedule_ok,

@@ -29,6 +29,7 @@ interface FormState {
   fullName: string;
   phone: string;
   email: string;
+  functionTime: string;
   ageRange: string;
   companion: Companion | "";
   overallRating: OverallRating | "";
@@ -41,6 +42,7 @@ interface FormState {
   likedMost: LikedItem[];
   favoriteMoment: string;
   favoriteCharacter: FavoriteCharacter | "";
+  favoriteCharacterOther: string;
   discoveryChannels: DiscoveryChannel[];
   venueRating: VenueRating | "";
   scheduleOk: boolean | null;
@@ -55,6 +57,7 @@ const initialState: FormState = {
   fullName: "",
   phone: "",
   email: "",
+  functionTime: "",
   ageRange: "",
   companion: "",
   overallRating: "",
@@ -67,6 +70,7 @@ const initialState: FormState = {
   likedMost: [],
   favoriteMoment: "",
   favoriteCharacter: "",
+  favoriteCharacterOther: "",
   discoveryChannels: [],
   venueRating: "",
   scheduleOk: null,
@@ -76,6 +80,8 @@ const initialState: FormState = {
   returnLikelihood: null,
   wantsNewsletter: null,
 };
+
+const functionTimes = ["4:00 pm", "6:30 pm"];
 
 const ageRanges = ["Menos de 12", "12–17", "18–25", "26–35", "36–50", "51+"];
 
@@ -120,6 +126,7 @@ const characterOptions: { value: FavoriteCharacter; label: string }[] = [
   { value: "meena", label: "Meena (Elefanta)" },
   { value: "mike", label: "Mike (Ratón)" },
   { value: "gunter", label: "Gunter (Cerdo)" },
+  { value: "otro", label: "Otro" },
 ];
 
 const discoveryOptions: { value: DiscoveryChannel; label: string }[] = [
@@ -254,7 +261,7 @@ function EncuestaPage() {
   const canAdvance = () => {
     switch (step) {
       case 0:
-        return form.fullName.trim() !== "" && form.phone.trim() !== "";
+        return form.fullName.trim() !== "" && form.phone.trim() !== "" && form.functionTime !== "";
       case 1:
         return form.companion !== "";
       case 2:
@@ -290,6 +297,7 @@ function EncuestaPage() {
           fullName: form.fullName.trim(),
           phone: form.phone.trim(),
           email: form.email.trim(),
+          functionTime: form.functionTime,
           ageRange: form.ageRange,
           companion: form.companion as Companion,
           overallRating: form.overallRating as OverallRating,
@@ -302,6 +310,7 @@ function EncuestaPage() {
           likedMost: form.likedMost,
           favoriteMoment: form.favoriteMoment,
           favoriteCharacter: form.favoriteCharacter,
+          favoriteCharacterOther: form.favoriteCharacterOther.trim(),
           discoveryChannels: form.discoveryChannels,
           venueRating: form.venueRating as VenueRating,
           scheduleOk: form.scheduleOk as boolean,
@@ -395,7 +404,7 @@ function EncuestaPage() {
             className="h-12 w-auto mx-auto mb-6"
             style={{ filter: "invert(1) hue-rotate(180deg)" }}
           />
-          <p className="font-body uppercase tracking-[0.4em] text-rojo text-[11px] mb-3">
+          <p className="font-body uppercase tracking-[0.4em] text-blanco text-[11px] mb-3">
             Encuesta de satisfacción
           </p>
           <img
@@ -441,7 +450,7 @@ function EncuestaPage() {
                   Chaplin Grupo Cultural agradece de antemano el llenado de la siguiente encuesta
                   de satisfacción.
                 </p>
-                <FieldLabel required>Nombre completo</FieldLabel>
+                <FieldLabel required>Nombres y apellidos</FieldLabel>
                 <input
                   type="text"
                   value={form.fullName}
@@ -449,7 +458,7 @@ function EncuestaPage() {
                   placeholder="Tu nombre y apellido"
                   className={`${inputClass} mb-6`}
                 />
-                <FieldLabel required>Celular</FieldLabel>
+                <FieldLabel required>Celular (WhatsApp)</FieldLabel>
                 <input
                   type="tel"
                   value={form.phone}
@@ -457,6 +466,14 @@ function EncuestaPage() {
                   placeholder="+51 000 000 000"
                   className={`${inputClass} mb-6`}
                 />
+                <FieldLabel required>¿A qué función asististe?</FieldLabel>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {functionTimes.map((t) => (
+                    <Chip key={t} active={form.functionTime === t} onClick={() => set("functionTime", t)}>
+                      {t}
+                    </Chip>
+                  ))}
+                </div>
                 <FieldLabel>Correo electrónico</FieldLabel>
                 <input
                   type="email"
@@ -558,6 +575,15 @@ function EncuestaPage() {
                     </Chip>
                   ))}
                 </div>
+                {form.favoriteCharacter === "otro" && (
+                  <input
+                    type="text"
+                    value={form.favoriteCharacterOther}
+                    onChange={(e) => set("favoriteCharacterOther", e.target.value)}
+                    placeholder="¿Cuál?"
+                    className={`${inputClass} mt-4`}
+                  />
+                )}
               </div>
             </>
           )}

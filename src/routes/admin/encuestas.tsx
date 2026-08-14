@@ -80,7 +80,17 @@ const characterLabels: Record<string, string> = {
   meena: "Meena (Elefanta)",
   mike: "Mike (Ratón)",
   gunter: "Gunter (Cerdo)",
+  otro: "Otro",
 };
+
+function favoriteCharacterLabel(r: {
+  favoriteCharacter: string | null;
+  favoriteCharacterOther: string | null;
+}): string | null {
+  if (!r.favoriteCharacter) return null;
+  if (r.favoriteCharacter === "otro") return r.favoriteCharacterOther || "Otro";
+  return characterLabels[r.favoriteCharacter] ?? r.favoriteCharacter;
+}
 
 /* ─── Exportar respuestas a CSV (se abre directo en Excel) ───────────────── */
 function toCsvCell(v: string | number | null | undefined): string {
@@ -94,6 +104,7 @@ function exportResponsesToCsv(rows: SurveyResponseRow[]) {
     "Nombre completo",
     "Celular",
     "Correo",
+    "Función",
     "Edad",
     "Acompañante",
     "Calificación general",
@@ -129,6 +140,7 @@ function exportResponsesToCsv(rows: SurveyResponseRow[]) {
       r.fullName,
       r.phone,
       r.email,
+      r.functionTime,
       r.ageRange,
       r.companion ? companionLabels[r.companion] : "",
       r.overallRating ? overallLabels[r.overallRating] : "",
@@ -139,7 +151,7 @@ function exportResponsesToCsv(rows: SurveyResponseRow[]) {
       r.ratingVestuario,
       r.ratingIluminacion,
       r.likedMost.map((l) => likedLabels[l] ?? l).join("; "),
-      r.favoriteCharacter ? (characterLabels[r.favoriteCharacter] ?? r.favoriteCharacter) : "",
+      favoriteCharacterLabel(r) ?? "",
       r.discoveryChannels.map((c) => discoveryLabels[c] ?? c).join("; "),
       r.venueRating ? venueLabels[r.venueRating] : "",
       r.scheduleOk === null ? "" : r.scheduleOk ? "Sí" : "No",
@@ -323,6 +335,7 @@ function ResponseCard({ r }: { r: SurveyResponseRow }) {
           <DetailRow label="Nombre completo" value={r.fullName} />
           <DetailRow label="Celular" value={r.phone} />
           <DetailRow label="Correo" value={r.email} />
+          <DetailRow label="Función" value={r.functionTime} />
           <DetailRow label="Edad" value={r.ageRange} />
           <DetailRow label="Vino con" value={r.companion ? companionLabels[r.companion] : null} />
           <DetailRow label="Calificación general" value={r.overallRating ? overallLabels[r.overallRating] : null} />
@@ -336,10 +349,7 @@ function ResponseCard({ r }: { r: SurveyResponseRow }) {
             label="Le gustó"
             value={r.likedMost.length ? r.likedMost.map((l) => likedLabels[l] ?? l).join(", ") : null}
           />
-          <DetailRow
-            label="Personaje favorito"
-            value={r.favoriteCharacter ? characterLabels[r.favoriteCharacter] ?? r.favoriteCharacter : null}
-          />
+          <DetailRow label="Personaje favorito" value={favoriteCharacterLabel(r)} />
           <DetailRow
             label="Cómo se enteró"
             value={r.discoveryChannels.length ? r.discoveryChannels.map((c) => discoveryLabels[c] ?? c).join(", ") : null}

@@ -61,6 +61,8 @@ export function ensureSurveySchema() {
       .then(() => sql`alter table survey_responses add column if not exists wants_newsletter boolean`)
       .then(() => sql`alter table survey_responses add column if not exists discovery_channels text[]`)
       .then(() => sql`alter table survey_responses add column if not exists favorite_character text`)
+      .then(() => sql`alter table survey_responses add column if not exists favorite_character_other text`)
+      .then(() => sql`alter table survey_responses add column if not exists function_time text`)
       .then(() => undefined);
   }
   return _ensured;
