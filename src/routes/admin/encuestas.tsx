@@ -13,6 +13,7 @@ import {
   Minus,
   Repeat2,
   Mail,
+  Download,
 } from "lucide-react";
 import {
   getSurveyStats,
@@ -80,6 +81,91 @@ const characterLabels: Record<string, string> = {
   mike: "Mike (Ratón)",
   gunter: "Gunter (Cerdo)",
 };
+
+/* ─── Exportar respuestas a CSV (se abre directo en Excel) ───────────────── */
+function toCsvCell(v: string | number | null | undefined): string {
+  const s = v === null || v === undefined ? "" : String(v);
+  return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function exportResponsesToCsv(rows: SurveyResponseRow[]) {
+  const headers = [
+    "Fecha",
+    "Nombre completo",
+    "Celular",
+    "Correo",
+    "Edad",
+    "Acompañante",
+    "Calificación general",
+    "Actuación",
+    "Dirección",
+    "Música en vivo",
+    "Coreografías",
+    "Vestuario",
+    "Iluminación",
+    "Le gustó",
+    "Personaje favorito",
+    "Cómo se enteró",
+    "Lugar",
+    "Horario adecuado",
+    "Horario preferido",
+    "NPS",
+    "Probabilidad de volver",
+    "Quiere novedades",
+    "Escena/canción favorita",
+    "Comentario",
+  ];
+
+  const lines = rows.map((r) => {
+    const date = new Date(r.createdAt).toLocaleString("es-PE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return [
+      date,
+      r.fullName,
+      r.phone,
+      r.email,
+      r.ageRange,
+      r.companion ? companionLabels[r.companion] : "",
+      r.overallRating ? overallLabels[r.overallRating] : "",
+      r.ratingActuacion,
+      r.ratingDireccion,
+      r.ratingMusica,
+      r.ratingCoreografia,
+      r.ratingVestuario,
+      r.ratingIluminacion,
+      r.likedMost.map((l) => likedLabels[l] ?? l).join("; "),
+      r.favoriteCharacter ? (characterLabels[r.favoriteCharacter] ?? r.favoriteCharacter) : "",
+      r.discoveryChannels.map((c) => discoveryLabels[c] ?? c).join("; "),
+      r.venueRating ? venueLabels[r.venueRating] : "",
+      r.scheduleOk === null ? "" : r.scheduleOk ? "Sí" : "No",
+      r.schedulePreference,
+      r.npsScore,
+      r.returnLikelihood,
+      r.wantsNewsletter === null ? "" : r.wantsNewsletter ? "Sí" : "No",
+      r.favoriteMoment,
+      r.improvementComment,
+    ]
+      .map(toCsvCell)
+      .join(",");
+  });
+
+  const csv = [headers.map(toCsvCell).join(","), ...lines].join("\r\n");
+  // BOM al inicio para que Excel detecte UTF-8 y no rompa acentos/ñ.
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `sing-encuesta-respuestas-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 /* ─── Encabezado de sección con explicación ───────────────────────────────── */
 function SectionHeader({ title, hint }: { title: string; hint: string }) {
@@ -696,18 +782,29 @@ function AdminEncuestasPage() {
                   title="Respuestas individuales"
                   hint="Cada persona que llenó la encuesta, con sus datos de contacto. Haz clic en cualquiera para ver todas sus respuestas — útil para dar seguimiento, invitar a próximas funciones o resolver una queja puntual."
                 />
-                <div className="relative mb-6">
-                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--t-fg-40)]" />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Buscar por nombre, celular o correo..."
-                    className="w-full bg-[var(--t-input-bg)] border-2 border-[var(--t-fg-25)] focus:border-rojo outline-none pl-11 pr-4 py-3 font-body text-[var(--t-fg)] text-sm placeholder:text-[var(--t-fg-40)] transition-colors duration-300"
-                  />
+                <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                  <div className="relative flex-1">
+                    <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--t-fg-40)]" />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Buscar por nombre, celular o correo..."
+                      className="w-full bg-[var(--t-input-bg)] border-2 border-[var(--t-fg-25)] focus:border-rojo outline-none pl-11 pr-4 py-3 font-body text-[var(--t-fg)] text-sm placeholder:text-[var(--t-fg-40)] transition-colors duration-300"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => exportResponsesToCsv(filteredResponses)}
+                    disabled={filteredResponses.length === 0}
+                    className="btn-rojo flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <Download size={16} /> Exportar a Excel
+                  </button>
                 </div>
                 <p className="font-body text-[var(--t-fg-40)] text-[11px] uppercase tracking-[0.2em] mb-4">
                   Mostrando {filteredResponses.length} de {responses?.length ?? 0}
+                  {search.trim() && " · el excel exporta lo que ves aquí filtrado"}
                 </p>
                 <div className="space-y-3">
                   {filteredResponses.map((r) => (
