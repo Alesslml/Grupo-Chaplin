@@ -14,10 +14,12 @@ import {
   Repeat2,
   Mail,
   Download,
+  Trash2,
 } from "lucide-react";
 import {
   getSurveyStats,
   getSurveyResponses,
+  deleteSurveyResponse,
   EVENT_LABEL,
   type SurveyStats,
   type SurveyResponseRow,
@@ -281,14 +283,28 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
 }
 
 /* ─── Card de respuesta individual (CRM) ──────────────────────────────────── */
-function ResponseCard({ r }: { r: SurveyResponseRow }) {
+function ResponseCard({ r, onDelete }: { r: SurveyResponseRow; onDelete: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(false);
   const date = new Date(r.createdAt).toLocaleString("es-PE", {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    setDeleteError(false);
+    try {
+      await onDelete();
+    } catch {
+      setDeleteError(true);
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="bg-[var(--t-card)] border border-[var(--t-border)]">
@@ -371,6 +387,45 @@ function ResponseCard({ r }: { r: SurveyResponseRow }) {
               <DetailRow label="Comentario / sugerencia" value={r.improvementComment} />
             </div>
           )}
+
+          <div className="sm:col-span-3 pt-4 border-t border-[var(--t-border)]">
+            {!confirming ? (
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                className="flex items-center gap-2 font-body text-[11px] uppercase tracking-[0.2em] text-rojo font-semibold hover:opacity-70 transition-opacity"
+              >
+                <Trash2 size={14} /> Eliminar esta respuesta
+              </button>
+            ) : (
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="font-body text-[12px] text-[var(--t-fg-70)]">
+                  ¿Eliminar la respuesta de {r.fullName || "esta persona"}? No se puede deshacer.
+                </span>
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={handleConfirmDelete}
+                  className="font-body text-[11px] uppercase tracking-[0.15em] text-blanco bg-rojo px-3 py-1.5 disabled:opacity-50"
+                >
+                  {deleting ? "Eliminando..." : "Sí, eliminar"}
+                </button>
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => setConfirming(false)}
+                  className="font-body text-[11px] uppercase tracking-[0.15em] text-[var(--t-fg-60)] hover:text-[var(--t-fg)] disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
+            {deleteError && (
+              <p className="font-body text-rojo font-semibold text-[12px] mt-2">
+                No se pudo eliminar. Inténtalo de nuevo.
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -406,6 +461,12 @@ function AdminEncuestasPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!authed) return;
+    await deleteSurveyResponse({ data: { password: authed, id } });
+    await load(authed);
   };
 
   useEffect(() => {
@@ -799,7 +860,7 @@ function AdminEncuestasPage() {
                 </p>
                 <div className="space-y-3">
                   {filteredResponses.map((r) => (
-                    <ResponseCard key={r.id} r={r} />
+                    <ResponseCard key={r.id} r={r} onDelete={() => handleDelete(r.id)} />
                   ))}
                   {filteredResponses.length === 0 && (
                     <p className="font-body text-[var(--t-fg-50)] text-sm text-center py-10">

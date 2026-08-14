@@ -96,6 +96,19 @@ export const verifyAdminPassword = createServerFn({ method: "POST" })
     return { ok: checkAdminPassword(data.password) };
   });
 
+// Borra una respuesta puntual del CRM (ej. pedido de un respondiente de
+// que se elimine su información). Requiere la contraseña de admin.
+export const deleteSurveyResponse = createServerFn({ method: "POST" })
+  .inputValidator((data: { password: string; id: string }) => data)
+  .handler(async ({ data }) => {
+    if (!checkAdminPassword(data.password)) {
+      throw new Error("UNAUTHORIZED");
+    }
+    const sql = getSql();
+    await sql`delete from survey_responses where id = ${data.id}`;
+    return { ok: true as const };
+  });
+
 export interface SurveyStats {
   total: number;
   overallCounts: Record<OverallRating, number>;
