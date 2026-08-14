@@ -11,7 +11,6 @@ import {
   type OverallRating,
   type VenueRating,
 } from "@/lib/survey";
-import { ThemeToggle, useSurveyTheme } from "@/components/chaplin/ThemeToggle";
 
 export const Route = createFileRoute("/encuesta")({
   head: () => ({
@@ -239,7 +238,6 @@ function MarqueeBulbs({ count = 13 }: { count?: number }) {
 
 /* ─── Página ──────────────────────────────────────────────────────────────── */
 function EncuestaPage() {
-  const [theme, toggleTheme] = useSurveyTheme();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(initialState);
   const [submitting, setSubmitting] = useState(false);
@@ -337,13 +335,10 @@ function EncuestaPage() {
   if (done) {
     return (
       <div
-        data-survey-theme={theme}
-        data-sing-theme={theme}
+        data-survey-theme="soft"
+        data-sing-theme="soft"
         className="min-h-screen bg-[var(--t-bg)] grain flex items-center justify-center px-6 py-20 relative"
       >
-        <div className="absolute top-6 right-6">
-          <ThemeToggle theme={theme} onToggle={toggleTheme} />
-        </div>
         <div className="max-w-md text-center">
           <div
             className="w-20 h-20 mx-auto mb-8 border-2 flex items-center justify-center"
@@ -363,7 +358,6 @@ function EncuestaPage() {
             src="/logo-chaplin.png"
             alt="Chaplin Grupo Cultural"
             className="h-10 w-auto mx-auto mb-3"
-            style={theme === "dark" ? { filter: "invert(1) hue-rotate(180deg)" } : undefined}
           />
           <p className="font-body uppercase tracking-[0.35em] text-[var(--t-fg-50)] text-[11px]">
             Pasión por el teatro
@@ -375,8 +369,8 @@ function EncuestaPage() {
 
   return (
     <div
-      data-survey-theme={theme}
-      data-sing-theme={theme}
+      data-survey-theme="soft"
+      data-sing-theme="soft"
       className="min-h-screen bg-[var(--t-bg)] grain flex flex-col"
     >
       {/* Header */}
@@ -386,19 +380,15 @@ function EncuestaPage() {
           className="absolute left-1/2 top-6 -translate-x-1/2 w-80 h-80 rounded-full pointer-events-none"
           style={{
             background: "radial-gradient(circle, var(--gold) 0%, transparent 68%)",
-            opacity: theme === "dark" ? 0.14 : 0.16,
+            opacity: 0.16,
             filter: "blur(10px)",
           }}
         />
-        <div className="absolute top-6 right-6 z-10">
-          <ThemeToggle theme={theme} onToggle={toggleTheme} />
-        </div>
         <div className="relative z-10">
           <img
             src="/logo-chaplin.png"
             alt="Chaplin Grupo Cultural"
             className="h-12 w-auto mx-auto mb-6"
-            style={theme === "dark" ? { filter: "invert(1) hue-rotate(180deg)" } : undefined}
           />
           <p className="font-body uppercase tracking-[0.4em] text-[var(--gold)] text-[11px] mb-3">
             Encuesta de satisfacción
@@ -414,7 +404,7 @@ function EncuestaPage() {
           </h1>
           <p
             className="font-body italic text-lg md:text-xl mt-1"
-            style={{ color: theme === "dark" ? "var(--t-fg)" : "var(--gold)" }}
+            style={{ color: "var(--gold)" }}
           >
             ¡Ven y canta!
           </p>

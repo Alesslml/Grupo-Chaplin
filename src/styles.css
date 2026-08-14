@@ -278,6 +278,28 @@
   --gold-light: #e0aa5f;
 }
 
+/* Tema único y fijo de /encuesta (sin switch claro/oscuro): gris pastel
+   suave en vez de negro/blanco puros, pedido explícito del dueño. */
+[data-survey-theme="soft"] {
+  --t-bg: #efeae1;
+  --t-card: #f8f5ef;
+  --t-track: #ddd5c6;
+  --t-border: #d8cfbd;
+  --t-fg: #2e2a22;
+  --t-fg-80: rgba(46, 42, 34, 0.85);
+  --t-fg-70: rgba(46, 42, 34, 0.75);
+  --t-fg-60: rgba(46, 42, 34, 0.65);
+  --t-fg-50: rgba(46, 42, 34, 0.55);
+  --t-fg-40: rgba(46, 42, 34, 0.45);
+  --t-fg-25: rgba(46, 42, 34, 0.28);
+  --t-input-bg: rgba(255, 255, 255, 0.75);
+}
+[data-sing-theme="soft"] {
+  --gold: #b97430;
+  --gold-deep: #8a5a24;
+  --gold-light: #e0aa5f;
+}
+
 @keyframes marqueeTwinkle {
   0%, 100% { opacity: 0.35; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1.15); }
