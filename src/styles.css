@@ -284,6 +284,29 @@
   animation: marqueeTwinkle 1.6s ease-in-out infinite;
 }
 
+/* Botón dorado — mismo box-model que .btn-rojo, para /encuesta */
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 14px 36px;
+  background: var(--gold);
+  color: #1a1200;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.btn-gold:hover {
+  background: var(--gold-deep);
+  transform: translateY(-2px);
+}
+
 /* Link con subrayado animado */
 .link-underline {
   position: relative;

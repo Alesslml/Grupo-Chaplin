@@ -156,8 +156,8 @@ function Chip({
       onClick={onClick}
       className={`font-body text-[13px] uppercase tracking-[0.15em] px-5 py-3 border transition-all duration-300 ${
         active
-          ? "bg-rojo border-rojo text-negro font-bold"
-          : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-70)] hover:border-rojo hover:text-rojo"
+          ? "bg-[var(--gold)] border-[var(--gold)] text-negro font-bold"
+          : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-70)] hover:border-[var(--gold)] hover:text-[var(--gold)]"
       }`}
     >
       {children}
@@ -185,8 +185,8 @@ function RatingScale({ value, onChange }: { value: number; onChange: (v: number)
           aria-label={`${n} de 5`}
           className={`w-11 h-11 border font-display text-lg transition-all duration-300 ${
             n <= value
-              ? "bg-rojo border-rojo text-negro"
-              : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-50)] hover:border-rojo/60"
+              ? "bg-[var(--gold)] border-[var(--gold)] text-negro"
+              : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-50)] hover:border-[var(--gold)]"
           }`}
         >
           {n}
@@ -208,8 +208,8 @@ function NpsScale({ value, onChange }: { value: number | null; onChange: (v: num
           aria-label={`${n} de 10`}
           className={`w-10 h-10 border font-display text-base transition-all duration-300 ${
             value === n
-              ? "bg-rojo border-rojo text-negro"
-              : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-50)] hover:border-rojo/60"
+              ? "bg-[var(--gold)] border-[var(--gold)] text-negro"
+              : "bg-transparent border-[var(--t-border)] text-[var(--t-fg-50)] hover:border-[var(--gold)]"
           }`}
         >
           {n}
@@ -220,7 +220,7 @@ function NpsScale({ value, onChange }: { value: number | null; onChange: (v: num
 }
 
 const inputClass =
-  "w-full bg-[var(--t-input-bg)] border-2 border-[var(--t-fg-25)] focus:border-rojo outline-none px-4 py-3 font-body text-[var(--t-fg)] text-base placeholder:text-[var(--t-fg-40)] transition-colors duration-300";
+  "w-full bg-[var(--t-input-bg)] border-2 border-[var(--t-fg-25)] focus:border-[var(--gold)] outline-none px-4 py-3 font-body text-[var(--t-fg)] text-base placeholder:text-[var(--t-fg-40)] transition-colors duration-300";
 
 /* ─── Fila de luces de marquesina (referencia al póster de SING) ─────────── */
 function MarqueeBulbs({ count = 13 }: { count?: number }) {
@@ -345,15 +345,20 @@ function EncuestaPage() {
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </div>
         <div className="max-w-md text-center">
-          <div className="w-20 h-20 mx-auto mb-8 border-2 border-rojo flex items-center justify-center">
-            <Check className="text-rojo" size={36} strokeWidth={2} />
+          <div
+            className="w-20 h-20 mx-auto mb-8 border-2 flex items-center justify-center"
+            style={{ borderColor: "var(--gold)" }}
+          >
+            <Check style={{ color: "var(--gold)" }} size={36} strokeWidth={2} />
           </div>
           <MarqueeBulbs count={9} />
           <h1 className="font-display text-[var(--t-fg)] text-4xl md:text-5xl mb-6">¡GRACIAS!</h1>
           <p className="font-body text-[var(--t-fg-70)] leading-relaxed mb-8">
             Tu opinión ya quedó registrada. Nos ayuda muchísimo a mejorar cada función.
           </p>
-          <p className="font-body italic text-rojo text-sm mb-6">— Chaplin Grupo Cultural</p>
+          <p className="font-body italic text-sm mb-6" style={{ color: "var(--gold)" }}>
+            — Chaplin Grupo Cultural
+          </p>
           <img
             src="/logo-chaplin.png"
             alt="Chaplin Grupo Cultural"
@@ -375,33 +380,50 @@ function EncuestaPage() {
       className="min-h-screen bg-[var(--t-bg)] grain flex flex-col"
     >
       {/* Header */}
-      <header className="px-6 pt-10 pb-2 text-center relative">
-        <div className="absolute top-6 right-6">
+      <header className="px-6 pt-10 pb-2 text-center relative overflow-hidden">
+        <div
+          aria-hidden="true"
+          className="absolute left-1/2 top-6 -translate-x-1/2 w-80 h-80 rounded-full pointer-events-none"
+          style={{
+            background: "radial-gradient(circle, var(--gold) 0%, transparent 68%)",
+            opacity: theme === "dark" ? 0.3 : 0.35,
+            filter: "blur(6px)",
+          }}
+        />
+        <div className="absolute top-6 right-6 z-10">
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </div>
-        <img
-          src="/logo-chaplin.png"
-          alt="Chaplin Grupo Cultural"
-          className="h-12 w-auto mx-auto mb-6"
-          style={theme === "dark" ? { filter: "invert(1) hue-rotate(180deg)" } : undefined}
-        />
-        <p className="font-body uppercase tracking-[0.4em] text-rojo text-[11px] mb-3">
-          Encuesta de satisfacción
-        </p>
-        <h1
-          className="font-display text-3xl md:text-4xl leading-none"
-          style={{ color: "var(--gold)", textShadow: "0 0 18px var(--gold-deep)" }}
-        >
-          {EVENT_LABEL}
-        </h1>
-        <MarqueeBulbs />
+        <div className="relative z-10">
+          <img
+            src="/logo-chaplin.png"
+            alt="Chaplin Grupo Cultural"
+            className="h-12 w-auto mx-auto mb-6"
+            style={theme === "dark" ? { filter: "invert(1) hue-rotate(180deg)" } : undefined}
+          />
+          <p className="font-body uppercase tracking-[0.4em] text-[var(--gold)] text-[11px] mb-3">
+            Encuesta de satisfacción
+          </p>
+          <h1
+            className="font-display text-6xl md:text-7xl leading-[0.85] tracking-wide"
+            style={{ color: "var(--gold)", textShadow: "0 0 10px var(--gold-deep), 0 0 30px var(--gold-deep)" }}
+          >
+            SING
+          </h1>
+          <p
+            className="font-body italic text-lg md:text-xl mt-1"
+            style={{ color: "var(--gold)" }}
+          >
+            ¡Ven y canta!
+          </p>
+          <MarqueeBulbs />
+        </div>
       </header>
 
       {/* Progress bar */}
       <div className="px-6 mb-8 max-w-xl mx-auto w-full">
         <div className="h-[3px] bg-[var(--t-track)] w-full">
           <div
-            className="h-full bg-rojo transition-all duration-500"
+            className="h-full bg-[var(--gold)] transition-all duration-500"
             style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
           />
         </div>
@@ -672,7 +694,7 @@ function EncuestaPage() {
             type="button"
             onClick={() => setStep((s) => Math.max(0, s - 1))}
             disabled={step === 0}
-            className="flex items-center gap-1 font-body text-[12px] uppercase tracking-[0.2em] text-[var(--t-fg-60)] hover:text-rojo transition-colors disabled:opacity-0 disabled:pointer-events-none"
+            className="flex items-center gap-1 font-body text-[12px] uppercase tracking-[0.2em] text-[var(--t-fg-60)] hover:text-[var(--gold)] transition-colors disabled:opacity-0 disabled:pointer-events-none"
           >
             <ChevronLeft size={16} /> Atrás
           </button>
@@ -682,7 +704,7 @@ function EncuestaPage() {
               type="button"
               onClick={() => canAdvance() && setStep((s) => Math.min(TOTAL_STEPS - 1, s + 1))}
               disabled={!canAdvance()}
-              className="btn-rojo disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1"
+              className="btn-gold disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1"
             >
               Siguiente <ChevronRight size={16} />
             </button>
@@ -696,7 +718,7 @@ function EncuestaPage() {
                 form.wantsNewsletter === null ||
                 submitting
               }
-              className="btn-rojo disabled:opacity-30 disabled:pointer-events-none"
+              className="btn-gold disabled:opacity-30 disabled:pointer-events-none"
             >
               {submitting ? "Enviando..." : "Enviar encuesta"}
             </button>
