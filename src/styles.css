@@ -267,13 +267,15 @@
    pulseada del cascade sobre --t-bg sin tocar el resto del sitio. */
 [data-sing-theme="dark"] {
   --t-bg: #0a0f24;
-  --gold: #ffc233;
-  --gold-deep: #f2a900;
+  --gold: #cd8a3e;
+  --gold-deep: #8a5a24;
+  --gold-light: #f0cf94;
 }
 [data-sing-theme="light"] {
   --t-bg: #fff8e7;
-  --gold: #e8a400;
-  --gold-deep: #c98600;
+  --gold: #b97430;
+  --gold-deep: #8a5a24;
+  --gold-light: #e0aa5f;
 }
 
 @keyframes marqueeTwinkle {

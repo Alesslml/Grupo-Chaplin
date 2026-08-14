@@ -386,8 +386,8 @@ function EncuestaPage() {
           className="absolute left-1/2 top-6 -translate-x-1/2 w-80 h-80 rounded-full pointer-events-none"
           style={{
             background: "radial-gradient(circle, var(--gold) 0%, transparent 68%)",
-            opacity: theme === "dark" ? 0.3 : 0.35,
-            filter: "blur(6px)",
+            opacity: theme === "dark" ? 0.14 : 0.16,
+            filter: "blur(10px)",
           }}
         />
         <div className="absolute top-6 right-6 z-10">
@@ -405,13 +405,16 @@ function EncuestaPage() {
           </p>
           <h1
             className="font-display text-6xl md:text-7xl leading-[0.85] tracking-wide"
-            style={{ color: "var(--gold)", textShadow: "0 0 10px var(--gold-deep), 0 0 30px var(--gold-deep)" }}
+            style={{
+              color: "var(--gold)",
+              textShadow: "1px 1px 0 var(--gold-deep), 2px 3px 6px rgba(0,0,0,0.35)",
+            }}
           >
             SING
           </h1>
           <p
             className="font-body italic text-lg md:text-xl mt-1"
-            style={{ color: "var(--gold)" }}
+            style={{ color: theme === "dark" ? "var(--t-fg)" : "var(--gold)" }}
           >
             ¡Ven y canta!
           </p>
