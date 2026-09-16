@@ -262,7 +262,114 @@ function EntradasPage() {
             <span className="font-body text-xs uppercase tracking-[0.15em]">{activeTier.detalle}</span>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+          {/* Precios por zona (ancho completo y 100% responsive) */}
+          <div className="mb-20">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+              <div>
+                <h2 className="font-display text-blanco text-3xl md:text-4xl">Precios por zona</h2>
+                <p className="font-body text-blanco/60 text-sm mt-1">
+                  Consulta todas las etapas de preventa y tarifas oficiales. Toca una zona para seleccionarla.
+                </p>
+              </div>
+              <div className="text-xs font-body text-blanco/40 uppercase tracking-[0.15em] shrink-0">
+                * Precios en Soles (PEN)
+              </div>
+            </div>
+
+            <div className="border border-gris-textura bg-negro relative overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[680px]">
+                  <thead>
+                    <tr className="border-b border-gris-textura bg-blanco/[0.02]">
+                      <th className="font-body text-[11px] uppercase tracking-[0.18em] text-blanco/60 px-5 md:px-6 py-4 sticky left-0 bg-negro z-20 border-r border-gris-textura/50 w-[24%] min-w-[170px]">
+                        Zona
+                      </th>
+                      {tiers.map((t) => {
+                        const isActive = t.key === activeTier.key;
+                        return (
+                          <th
+                            key={t.key}
+                            className={`font-body px-5 py-4 transition-colors w-[19%] min-w-[145px] relative ${
+                              isActive ? "bg-rojo/10 text-rojo" : "text-blanco/70"
+                            }`}
+                          >
+                            {isActive && (
+                              <div className="inline-flex items-center gap-1.5 bg-rojo text-negro text-[9px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 mb-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-negro animate-pulse" />
+                                Vigente hoy
+                              </div>
+                            )}
+                            <div className={`text-xs uppercase tracking-[0.15em] font-bold ${isActive ? "text-rojo" : "text-blanco"}`}>
+                              {t.label}
+                            </div>
+                            <span className="block font-normal normal-case tracking-normal text-[11px] text-blanco/50 mt-1 leading-snug">
+                              {t.detalle}
+                            </span>
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {zonasVenta.map((z) => {
+                      const isSelected = zonaKey === z.key;
+                      return (
+                        <tr
+                          key={z.key}
+                          onClick={() => setZonaKey(z.key)}
+                          className={`group border-b border-gris-textura last:border-0 cursor-pointer transition-colors ${
+                            isSelected ? "bg-rojo/15" : "hover:bg-blanco/[0.04]"
+                          }`}
+                        >
+                          <td
+                            className={`px-5 md:px-6 py-4 sticky left-0 z-10 border-r border-gris-textura/50 transition-colors ${
+                              isSelected ? "bg-zinc-950" : "bg-negro group-hover:bg-zinc-950"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="w-3.5 h-3.5 shrink-0" style={{ backgroundColor: z.color }} />
+                              <div>
+                                <span className={`font-body font-semibold text-sm ${isSelected ? "text-rojo" : "text-blanco"}`}>
+                                  {z.label}
+                                </span>
+                                <span className="block font-body text-[11px] text-blanco/40">
+                                  {z.seats} asientos
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          {tiers.map((t) => {
+                            const isActive = t.key === activeTier.key;
+                            return (
+                              <td
+                                key={t.key}
+                                className={`font-body px-5 py-4 ${
+                                  isActive
+                                    ? "bg-rojo/10 text-rojo font-bold"
+                                    : "text-blanco/80"
+                                }`}
+                              >
+                                <span className="text-sm font-normal text-blanco/40 mr-0.5">S/</span>
+                                <span className="text-base md:text-lg font-bold">{z.prices[t.key]}</span>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Indicador para móviles */}
+              <div className="md:hidden border-t border-gris-textura px-4 py-2.5 bg-blanco/[0.02] flex items-center justify-between text-[11px] text-blanco/40 font-body">
+                <span>← Desliza para comparar etapas →</span>
+                <span>Toca una fila para seleccionar</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
             {/* Mapa de zonas */}
             <div className="min-w-0">
               <h2 className="font-display text-blanco text-3xl mb-8">Mapa de zonas</h2>
@@ -279,52 +386,8 @@ function EntradasPage() {
               </div>
             </div>
 
-            {/* Tabla de precios + formulario */}
+            {/* Formulario */}
             <div className="min-w-0">
-              <h2 className="font-display text-blanco text-3xl mb-8">Precios por zona</h2>
-              <div className="border border-gris-textura mb-12 overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-gris-textura">
-                      <th className="font-body text-[11px] uppercase tracking-[0.15em] text-blanco/60 px-4 py-3">Zona</th>
-                      {tiers.map((t) => (
-                        <th
-                          key={t.key}
-                          className={`font-body text-[11px] uppercase tracking-[0.15em] px-4 py-3 ${
-                            t.key === activeTier.key ? "text-rojo" : "text-blanco/60"
-                          }`}
-                        >
-                          {t.label}
-                          <span className="block font-normal normal-case tracking-normal text-[10px] text-blanco/40 mt-1">
-                            {t.detalle}
-                          </span>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {zonasVenta.map((z) => (
-                      <tr key={z.key} className="border-b border-gris-textura last:border-0">
-                        <td className="font-body text-blanco text-sm px-4 py-3 flex items-center gap-2">
-                          <span className="w-3 h-3 inline-block" style={{ backgroundColor: z.color }} />
-                          {z.label}
-                        </td>
-                        {tiers.map((t) => (
-                          <td
-                            key={t.key}
-                            className={`font-body text-sm px-4 py-3 ${
-                              t.key === activeTier.key ? "text-rojo font-bold" : "text-blanco/70"
-                            }`}
-                          >
-                            S/{z.prices[t.key]}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
               <h2 className="font-display text-blanco text-3xl mb-6">Arma tu reserva</h2>
               <div className="space-y-8">
                 <div>
