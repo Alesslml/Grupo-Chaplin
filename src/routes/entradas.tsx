@@ -62,7 +62,7 @@ const zonasVenta: Zone[] = [
     label: "Zona Superstar",
     color: "#fe0000",
     seats: 64,
-    prices: { twoXone: 80, threeXtwo: 160, twentyPct: 64, regular: 64 },
+    prices: { twoXone: 80, threeXtwo: 160, twentyPct: 64, regular: 80 },
     sellable: true,
   },
   {
@@ -70,7 +70,7 @@ const zonasVenta: Zone[] = [
     label: "Zona Getsemaní",
     color: "#f2d675",
     seats: 46,
-    prices: { twoXone: 60, threeXtwo: 120, twentyPct: 48, regular: 48 },
+    prices: { twoXone: 60, threeXtwo: 120, twentyPct: 48, regular: 60 },
     sellable: true,
   },
   {
@@ -78,7 +78,7 @@ const zonasVenta: Zone[] = [
     label: "Zona Hosanna",
     color: "#7dd3e8",
     seats: 66,
-    prices: { twoXone: 40, threeXtwo: 80, twentyPct: 32, regular: 32 },
+    prices: { twoXone: 40, threeXtwo: 80, twentyPct: 32, regular: 40 },
     sellable: true,
   },
   {
@@ -86,7 +86,7 @@ const zonasVenta: Zone[] = [
     label: "Zona Pueblo (2do piso)",
     color: "#2b3a8f",
     seats: 80,
-    prices: { twoXone: 20, threeXtwo: 40, twentyPct: 16, regular: 16 },
+    prices: { twoXone: 20, threeXtwo: 40, twentyPct: 16, regular: 20 },
     sellable: true,
   },
 ];
