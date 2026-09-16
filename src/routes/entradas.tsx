@@ -1,7 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { PageLayout } from "@/components/chaplin/PageLayout";
-import { PageHero } from "@/components/chaplin/PageHero";
 import { MessageCircle, Minus, Plus, Calendar, Clock, MapPin, Users } from "lucide-react";
 import flyerOficial from "@/assets/jesucristo-rockstar-flyer.jpg";
 import mapaZonas from "@/assets/jesucristo-rockstar-mapa.jpeg";
@@ -184,18 +182,35 @@ function EntradasPage() {
       : "";
 
   return (
-    <PageLayout>
-      <PageHero
-        eyebrow="Temporada 2026 · Preventa"
-        title={
-          <>
+    <div className="bg-negro text-blanco overflow-x-hidden">
+      <header className="border-b border-gris-textura">
+        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 py-5 flex items-center">
+          <Link to="/" className="flex items-center group" aria-label="Chaplin Grupo Cultural">
+            <img
+              src="/logo-chaplin.png"
+              alt="Chaplin Grupo Cultural"
+              className="h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              style={{ filter: "invert(1) hue-rotate(180deg)" }}
+            />
+          </Link>
+        </div>
+      </header>
+
+      <section className="relative pt-16 pb-16 lg:pt-20 lg:pb-20 overflow-hidden bg-negro grain">
+        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 relative z-10">
+          <p className="font-body uppercase tracking-[0.4em] text-rojo text-xs mb-6">Temporada 2026 · Preventa</p>
+          <h1 className="font-display text-blanco text-[56px] md:text-[80px] lg:text-[108px] leading-[0.9] mb-6">
             JESUCRISTO
             <br />
             <span className="text-rojo">ROCKSTAR</span>
-          </>
-        }
-        subtitle="Domingo 18 de octubre · Funciones 4:00 pm y 7:00 pm · Auditorio del Colegio de Ingenieros de Ica · Dirección general: Harold López"
-      />
+          </h1>
+          <p className="font-body text-blanco/60 text-base md:text-lg max-w-2xl leading-[1.8]">
+            Domingo 18 de octubre · Funciones 4:00 pm y 7:00 pm · Auditorio del Colegio de Ingenieros de Ica · Dirección general: Harold López
+          </p>
+          <div className="linea-roja mt-8" style={{ transformOrigin: "left center" }} />
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-rojo/20" />
+      </section>
 
       <section className="bg-negro grain relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_20%,rgba(254,0,0,0.16),transparent_60%)] pointer-events-none" />
@@ -468,7 +483,15 @@ function EntradasPage() {
           </div>
         </div>
       </section>
-    </PageLayout>
+
+      <footer className="border-t border-gris-textura py-8">
+        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 text-center">
+          <p className="font-body text-blanco/40 text-xs uppercase tracking-[0.2em]">
+            Chaplin Grupo Cultural · Ica, Perú
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }
 
