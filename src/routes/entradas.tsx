@@ -366,11 +366,15 @@ function EntradasPage() {
                   </div>
                 </div>
 
-                <div>
-                  <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-3">
+                <div className={esPaquete ? "bg-yellow-400/10 border border-yellow-400 px-4 py-4" : ""}>
+                  <p
+                    className={`font-body text-[11px] uppercase tracking-[0.2em] mb-3 ${
+                      esPaquete ? "text-yellow-400 font-bold" : "text-blanco/60"
+                    }`}
+                  >
                     {esPaquete ? `Promociones ${activeTier.label}` : "Cantidad de entradas"}
                   </p>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 flex-wrap">
                     <button
                       type="button"
                       onClick={() => setCantidad((c) => Math.max(1, c - 1))}
@@ -389,7 +393,7 @@ function EntradasPage() {
                       <Plus size={16} />
                     </button>
                     {esPaquete && (
-                      <span className="font-body text-blanco/60 text-sm">
+                      <span className="font-body font-bold text-negro text-sm bg-yellow-400 px-3 py-1.5">
                         = {entradasTotales} entrada{entradasTotales === 1 ? "" : "s"}
                       </span>
                     )}
