@@ -368,33 +368,44 @@ function EntradasPage() {
               <table className="w-full text-center border-collapse table-fixed">
                 <thead>
                   <tr className="border-b border-gris-textura bg-blanco/[0.02]">
-                    <th className="font-body text-[10px] uppercase tracking-wider text-blanco/50 py-3 pl-2.5 pr-1 text-left w-[30%]">
+                    <th className="font-body text-[10px] uppercase tracking-wider text-blanco/50 py-3 pl-2.5 pr-1 text-left w-[28%]">
                       Zona
                     </th>
                     {tiers.map((t) => {
                       const isActive = t.key === activeTier.key;
-                      // Título corto para móvil
-                      const shortLabel =
-                        t.key === "2x1" ? "2x1" :
-                        t.key === "3x2" ? "3x2" :
-                        t.key === "20pct" ? "-20%" : "Reg.";
-                      const subtitle =
-                        t.key === "2x1" ? "Hoy" :
-                        t.key === "3x2" ? "Et. 2" :
-                        t.key === "20pct" ? "Et. 3" : "Final";
+                      const title1 =
+                        t.key === "twoXone" ? "PREVENTA" :
+                        t.key === "threeXtwo" ? "PREVENTA" :
+                        t.key === "twentyPct" ? "PREVENTA" : "PRECIO";
+                      const title2 =
+                        t.key === "twoXone" ? "2X1" :
+                        t.key === "threeXtwo" ? "3X2" :
+                        t.key === "twentyPct" ? "20% DTO." : "REGULAR";
+                      const dateText =
+                        t.key === "twoXone" ? "16-22 set." :
+                        t.key === "threeXtwo" ? "23 set.-2 oct." :
+                        t.key === "twentyPct" ? "3-11 oct." : "12-18 oct.";
 
                       return (
                         <th
                           key={t.key}
-                          className={`font-body py-2.5 px-0.5 transition-colors w-[17.5%] relative ${
+                          className={`font-body py-2.5 px-0.5 transition-colors w-[18%] relative ${
                             isActive ? "bg-rojo/15 text-rojo border-x border-rojo/30" : "text-blanco/70"
                           }`}
                         >
-                          <div className={`text-[11px] font-bold uppercase leading-none ${isActive ? "text-rojo" : "text-blanco"}`}>
-                            {shortLabel}
+                          {isActive && (
+                            <div className="inline-block bg-rojo text-negro text-[7px] font-bold uppercase tracking-wider px-1 py-0.2 rounded-xs mb-1">
+                              HOY
+                            </div>
+                          )}
+                          <div className={`text-[9px] font-bold uppercase leading-none ${isActive ? "text-rojo" : "text-blanco"}`}>
+                            {title1}
                           </div>
-                          <span className={`block font-body text-[8px] uppercase tracking-wider mt-1 ${isActive ? "text-rojo font-semibold" : "text-blanco/40"}`}>
-                            {subtitle}
+                          <div className={`text-[10px] font-extrabold uppercase leading-tight mt-0.5 ${isActive ? "text-rojo" : "text-blanco"}`}>
+                            {title2}
+                          </div>
+                          <span className={`block font-body text-[7px] tracking-tight mt-1 leading-none ${isActive ? "text-rojo font-semibold" : "text-blanco/40"}`}>
+                            {dateText}
                           </span>
                         </th>
                       );
@@ -413,17 +424,17 @@ function EntradasPage() {
                         }`}
                       >
                         <td className="py-3 pl-2.5 pr-1 text-left">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-start gap-1.5">
                             <span
-                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
                               style={{ backgroundColor: z.color }}
                             />
                             <div className="min-w-0">
-                              <span className={`font-body font-semibold text-xs block truncate ${isSelected ? "text-rojo" : "text-blanco"}`}>
+                              <span className={`font-body font-semibold text-[11px] block leading-tight ${isSelected ? "text-rojo" : "text-blanco"}`}>
                                 {z.label}
                               </span>
                               <span className="block font-body text-[9px] text-blanco/40 leading-none mt-0.5">
-                                {z.seats} as.
+                                {z.seats} asientos
                               </span>
                             </div>
                           </div>
@@ -454,11 +465,43 @@ function EntradasPage() {
                 </tbody>
               </table>
 
-              {/* Leyenda y tip de selección táctil en móvil */}
-              <div className="border-t border-gris-textura px-3 py-2 bg-blanco/[0.02] flex flex-col gap-1 text-[10px] text-blanco/50 font-body">
-                <div className="flex items-center justify-between">
-                  <span className="text-rojo font-semibold">● 2x1 (Hoy): 2 entradas x precio lista</span>
-                  <span className="text-blanco/40">Toca para seleccionar</span>
+              {/* Detalle completo de cada etapa y preventa para móvil */}
+              <div className="border-t border-gris-textura bg-blanco/[0.02] p-3 space-y-2 text-left font-body">
+                <div className="text-[10px] uppercase tracking-wider text-blanco/40 font-semibold mb-1 flex items-center justify-between">
+                  <span>Detalle de etapas y promociones:</span>
+                  <span className="text-blanco/40 normal-case text-[10px]">Toca una zona para seleccionar</span>
+                </div>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {tiers.map((t) => {
+                    const isActive = t.key === activeTier.key;
+                    return (
+                      <div
+                        key={t.key}
+                        className={`p-2.5 transition-colors border ${
+                          isActive
+                            ? "bg-rojo/10 border-rojo/40 text-blanco"
+                            : "bg-negro/50 border-gris-textura/50 text-blanco/70"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5">
+                            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-rojo animate-pulse" />}
+                            <span className={`font-bold uppercase tracking-wider text-[11px] ${isActive ? "text-rojo" : "text-blanco"}`}>
+                              {t.label}
+                            </span>
+                          </div>
+                          {isActive && (
+                            <span className="bg-rojo text-negro text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5">
+                              Vigente hoy
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-blanco/60 mt-1 leading-snug">
+                          {t.detalle}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
