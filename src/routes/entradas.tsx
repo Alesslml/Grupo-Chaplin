@@ -154,6 +154,7 @@ function EntradasPage() {
   const [cantidad, setCantidad] = useState(1);
   const [nombre, setNombre] = useState("");
   const [dni, setDni] = useState("");
+  const [vendedor, setVendedor] = useState("");
 
   const zona = zonasVenta.find((z) => z.key === zonaKey) ?? null;
   const precioPorUnidad = zona ? zona.prices[activeTier.key] : null;
@@ -176,7 +177,8 @@ function EntradasPage() {
             `${cantidadLinea}\n` +
             `ZONA: ${zona.label.toUpperCase()}\n` +
             `HORARIO DE FUNCIÓN: ${funcion}\n` +
-            `MONTO: S/${total} SOLES (${activeTier.label.toUpperCase()})\n\n` +
+            `MONTO: S/${total} SOLES (${activeTier.label.toUpperCase()})\n` +
+            `VENDEDOR: ${vendedor.trim() || "Venta directa (web)"}\n\n` +
             `Quedo atento/a para enviar mi comprobante de pago. ¡Gracias!`
         )
       : "";
@@ -394,6 +396,18 @@ function EntradasPage() {
                       value={dni}
                       onChange={(e) => setDni(e.target.value)}
                       placeholder="Tu DNI"
+                      className="w-full bg-transparent border border-gris-textura text-blanco font-body text-sm px-4 py-3 focus:outline-none focus:border-rojo transition-colors"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-3">
+                      Vendedor <span className="normal-case text-blanco/40">(si un integrante del equipo te está ayudando con la compra)</span>
+                    </p>
+                    <input
+                      type="text"
+                      value={vendedor}
+                      onChange={(e) => setVendedor(e.target.value)}
+                      placeholder="Opcional"
                       className="w-full bg-transparent border border-gris-textura text-blanco font-body text-sm px-4 py-3 focus:outline-none focus:border-rojo transition-colors"
                     />
                   </div>
