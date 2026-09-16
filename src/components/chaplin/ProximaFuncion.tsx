@@ -21,7 +21,7 @@ const temporada = [
   {
     title: "JESUCRISTO",
     subtitle: "Rockstar",
-    fecha: "Octubre",
+    fecha: "Domingo 18 de octubre · 4:00 pm y 7:00 pm",
     img: musical,
   },
   {
