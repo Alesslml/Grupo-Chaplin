@@ -101,13 +101,43 @@ interface Tier {
   detalle: string;
   from: string;
   to: string;
+  /** Cuántas entradas incluye cada precio listado (2 en 2x1, 3 en 3x2, 1 fuera de esas promos). */
+  entradasPorPrecio: number;
 }
 
 const tiers: Tier[] = [
-  { key: "twoXone", label: "Preventa 2x1", detalle: "Del 16 al 22 de setiembre", from: "2026-09-16", to: "2026-09-22" },
-  { key: "threeXtwo", label: "Preventa 3x2", detalle: "Del 23 de setiembre al 2 de octubre", from: "2026-09-23", to: "2026-10-02" },
-  { key: "twentyPct", label: "Preventa 20% dto.", detalle: "Del 3 al 11 de octubre", from: "2026-10-03", to: "2026-10-11" },
-  { key: "regular", label: "Precio regular", detalle: "Del 12 al 18 de octubre", from: "2026-10-12", to: "2026-10-18" },
+  {
+    key: "twoXone",
+    label: "Preventa 2x1",
+    detalle: "Del 16 al 22 de setiembre · Llevas 2 entradas por este precio",
+    from: "2026-09-16",
+    to: "2026-09-22",
+    entradasPorPrecio: 2,
+  },
+  {
+    key: "threeXtwo",
+    label: "Preventa 3x2",
+    detalle: "Del 23 de setiembre al 2 de octubre · Llevas 3 entradas por este precio",
+    from: "2026-09-23",
+    to: "2026-10-02",
+    entradasPorPrecio: 3,
+  },
+  {
+    key: "twentyPct",
+    label: "Preventa 20% dto.",
+    detalle: "Del 3 al 11 de octubre · Precio por entrada",
+    from: "2026-10-03",
+    to: "2026-10-11",
+    entradasPorPrecio: 1,
+  },
+  {
+    key: "regular",
+    label: "Precio regular",
+    detalle: "Del 12 al 18 de octubre · Precio por entrada",
+    from: "2026-10-12",
+    to: "2026-10-18",
+    entradasPorPrecio: 1,
+  },
 ];
 
 function getActiveTier(today: Date): Tier {
@@ -126,10 +156,16 @@ function EntradasPage() {
   const [dni, setDni] = useState("");
 
   const zona = zonasVenta.find((z) => z.key === zonaKey) ?? null;
-  const precioUnitario = zona ? zona.prices[activeTier.key] : null;
-  const total = precioUnitario != null ? precioUnitario * cantidad : null;
+  const precioPorUnidad = zona ? zona.prices[activeTier.key] : null;
+  const total = precioPorUnidad != null ? precioPorUnidad * cantidad : null;
+  const entradasTotales = cantidad * activeTier.entradasPorPrecio;
+  const esPaquete = activeTier.entradasPorPrecio > 1;
 
   const puedeReservar = Boolean(funcion && zona && nombre.trim() && dni.trim());
+
+  const cantidadLinea = esPaquete
+    ? `CANTIDAD: ${cantidad} promoción(es) ${activeTier.label} = ${entradasTotales} entradas`
+    : `CANTIDAD: ${cantidad} entrada(s)`;
 
   const mensaje =
     zona && total != null
@@ -137,7 +173,7 @@ function EntradasPage() {
           `Hola, quiero reservar entradas para JESUCRISTO ROCKSTAR (Dom 18 de octubre):\n\n` +
             `NOMBRE: ${nombre.trim()}\n` +
             `DNI: ${dni.trim()}\n` +
-            `CANTIDAD: ${cantidad}\n` +
+            `${cantidadLinea}\n` +
             `ZONA: ${zona.label.toUpperCase()}\n` +
             `HORARIO DE FUNCIÓN: ${funcion}\n` +
             `MONTO: S/${total} SOLES (${activeTier.label.toUpperCase()})\n\n` +
@@ -310,7 +346,9 @@ function EntradasPage() {
                 </div>
 
                 <div>
-                  <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-3">Cantidad</p>
+                  <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-3">
+                    {esPaquete ? `Promociones ${activeTier.label}` : "Cantidad de entradas"}
+                  </p>
                   <div className="flex items-center gap-4">
                     <button
                       type="button"
@@ -329,6 +367,11 @@ function EntradasPage() {
                     >
                       <Plus size={16} />
                     </button>
+                    {esPaquete && (
+                      <span className="font-body text-blanco/60 text-sm">
+                        = {entradasTotales} entrada{entradasTotales === 1 ? "" : "s"}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -357,7 +400,14 @@ function EntradasPage() {
                 </div>
 
                 <div className="border-t border-gris-textura pt-6 flex items-baseline justify-between">
-                  <span className="font-body text-blanco/60 text-sm uppercase tracking-[0.15em]">Total estimado</span>
+                  <div>
+                    <span className="font-body text-blanco/60 text-sm uppercase tracking-[0.15em] block">Total estimado</span>
+                    {zona && (
+                      <span className="font-body text-blanco/50 text-xs">
+                        {entradasTotales} entrada{entradasTotales === 1 ? "" : "s"} en total
+                      </span>
+                    )}
+                  </div>
                   <span className="font-display text-rojo text-4xl">{total != null ? `S/${total}` : "—"}</span>
                 </div>
 
