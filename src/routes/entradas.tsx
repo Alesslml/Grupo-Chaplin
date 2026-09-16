@@ -142,9 +142,9 @@ function EntradasPage() {
             <span className="font-body text-xs uppercase tracking-[0.15em]">{activeTier.detalle}</span>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             {/* Mapa de zonas */}
-            <div>
+            <div className="min-w-0">
               <h2 className="font-display text-blanco text-3xl mb-8">Mapa de zonas</h2>
               <img
                 src={mapaZonas}
@@ -160,7 +160,7 @@ function EntradasPage() {
             </div>
 
             {/* Tabla de precios + formulario */}
-            <div>
+            <div className="min-w-0">
               <h2 className="font-display text-blanco text-3xl mb-8">Precios por zona</h2>
               <div className="border border-gris-textura mb-12 overflow-x-auto">
                 <table className="w-full text-left border-collapse">
