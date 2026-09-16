@@ -276,7 +276,8 @@ function EntradasPage() {
               </div>
             </div>
 
-            <div className="border border-gris-textura bg-negro relative overflow-hidden">
+            {/* Tabla para Desktop (md y superior con columnas amplias y badges completos) */}
+            <div className="hidden md:block border border-gris-textura bg-negro relative overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[680px]">
                   <thead>
@@ -360,11 +361,105 @@ function EntradasPage() {
                   </tbody>
                 </table>
               </div>
+            </div>
 
-              {/* Indicador para móviles */}
-              <div className="md:hidden border-t border-gris-textura px-4 py-2.5 bg-blanco/[0.02] flex items-center justify-between text-[11px] text-blanco/40 font-body">
-                <span>← Desliza para comparar etapas →</span>
-                <span>Toca una fila para seleccionar</span>
+            {/* Vista adaptada para Celular / Móvil: 100% en una sola carga, sin deslizar horizontalmente */}
+            <div className="md:hidden border border-gris-textura bg-negro overflow-hidden">
+              <table className="w-full text-center border-collapse table-fixed">
+                <thead>
+                  <tr className="border-b border-gris-textura bg-blanco/[0.02]">
+                    <th className="font-body text-[10px] uppercase tracking-wider text-blanco/50 py-3 pl-2.5 pr-1 text-left w-[30%]">
+                      Zona
+                    </th>
+                    {tiers.map((t) => {
+                      const isActive = t.key === activeTier.key;
+                      // Título corto para móvil
+                      const shortLabel =
+                        t.key === "2x1" ? "2x1" :
+                        t.key === "3x2" ? "3x2" :
+                        t.key === "20pct" ? "-20%" : "Reg.";
+                      const subtitle =
+                        t.key === "2x1" ? "Hoy" :
+                        t.key === "3x2" ? "Et. 2" :
+                        t.key === "20pct" ? "Et. 3" : "Final";
+
+                      return (
+                        <th
+                          key={t.key}
+                          className={`font-body py-2.5 px-0.5 transition-colors w-[17.5%] relative ${
+                            isActive ? "bg-rojo/15 text-rojo border-x border-rojo/30" : "text-blanco/70"
+                          }`}
+                        >
+                          <div className={`text-[11px] font-bold uppercase leading-none ${isActive ? "text-rojo" : "text-blanco"}`}>
+                            {shortLabel}
+                          </div>
+                          <span className={`block font-body text-[8px] uppercase tracking-wider mt-1 ${isActive ? "text-rojo font-semibold" : "text-blanco/40"}`}>
+                            {subtitle}
+                          </span>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {zonasVenta.map((z) => {
+                    const isSelected = zonaKey === z.key;
+                    return (
+                      <tr
+                        key={z.key}
+                        onClick={() => setZonaKey(z.key)}
+                        className={`border-b border-gris-textura last:border-0 cursor-pointer transition-colors ${
+                          isSelected ? "bg-rojo/15" : "hover:bg-blanco/[0.04]"
+                        }`}
+                      >
+                        <td className="py-3 pl-2.5 pr-1 text-left">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: z.color }}
+                            />
+                            <div className="min-w-0">
+                              <span className={`font-body font-semibold text-xs block truncate ${isSelected ? "text-rojo" : "text-blanco"}`}>
+                                {z.label}
+                              </span>
+                              <span className="block font-body text-[9px] text-blanco/40 leading-none mt-0.5">
+                                {z.seats} as.
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        {tiers.map((t) => {
+                          const isActive = t.key === activeTier.key;
+                          return (
+                            <td
+                              key={t.key}
+                              className={`font-body py-3 px-0.5 ${
+                                isActive
+                                  ? "bg-rojo/10 text-rojo font-bold border-x border-rojo/20"
+                                  : "text-blanco/80"
+                              }`}
+                            >
+                              <div className="flex items-baseline justify-center">
+                                <span className="text-[9px] font-normal text-blanco/40 mr-0.5">S/</span>
+                                <span className={`font-bold ${isActive ? "text-sm text-rojo" : "text-xs text-blanco"}`}>
+                                  {z.prices[t.key]}
+                                </span>
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {/* Leyenda y tip de selección táctil en móvil */}
+              <div className="border-t border-gris-textura px-3 py-2 bg-blanco/[0.02] flex flex-col gap-1 text-[10px] text-blanco/50 font-body">
+                <div className="flex items-center justify-between">
+                  <span className="text-rojo font-semibold">● 2x1 (Hoy): 2 entradas x precio lista</span>
+                  <span className="text-blanco/40">Toca para seleccionar</span>
+                </div>
               </div>
             </div>
           </div>
