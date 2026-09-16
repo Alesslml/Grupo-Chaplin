@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "@tanstack/react-router";
-import sing from "@/assets/show-sing.jpg";
 import musical from "@/assets/show-musical.jpg";
 import drama from "@/assets/show-drama.jpg";
 import { Calendar } from "lucide-react";
@@ -12,12 +11,6 @@ if (typeof window !== "undefined") {
 }
 
 const temporada = [
-  {
-    title: "SING",
-    subtitle: "¡Ven y canta!",
-    fecha: "Sábado 15 de agosto",
-    img: sing,
-  },
   {
     title: "JESUCRISTO",
     subtitle: "Rockstar",
@@ -76,11 +69,11 @@ export function ProximaFuncion() {
         </span>
 
         <h2 className="px-fade font-display text-blanco text-[44px] sm:text-[60px] lg:text-[76px] leading-[0.95] mb-14 max-w-3xl">
-          TRES ESTRENOS<br />
+          PRÓXIMOS ESTRENOS<br />
           <span className="text-rojo">TE ESPERAN.</span>
         </h2>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 gap-6 max-w-3xl">
           {temporada.map((t) => (
             <div key={t.title} className="px-card group relative aspect-[3/4] overflow-hidden">
               <img
