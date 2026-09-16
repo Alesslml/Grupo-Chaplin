@@ -27,6 +27,7 @@ const sinopsis =
 
 const fichaTecnica = [
   { rol: "Dirección general", nombre: "Harold López" },
+  { rol: "Productor ejecutivo", nombre: "Jonathan López" },
   { rol: "Coreografía", nombre: "Thian Ramos" },
   { rol: "Productor musical", nombre: "Andre Bonifaz" },
   { rol: "Dirección vocal", nombre: "Dayana Navarrete" },
