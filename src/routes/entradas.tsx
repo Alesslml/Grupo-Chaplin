@@ -198,12 +198,16 @@ function EntradasPage() {
       />
 
       <section className="bg-negro grain relative overflow-hidden">
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 py-20">
-          <img
-            src={flyerOficial}
-            alt="Jesucristo Rockstar — Chaplin Grupo Cultural — Dom 18 de octubre, funciones 4:00 pm y 7:00 pm, Auditorio del Colegio de Ingenieros de Ica"
-            className="w-full max-w-md mx-auto shadow-black border border-gris-textura mb-16"
-          />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_20%,rgba(254,0,0,0.16),transparent_60%)] pointer-events-none" />
+        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 pt-20 pb-16 relative z-10">
+          <div className="relative max-w-xl mx-auto mb-16 group">
+            <div className="absolute -inset-4 bg-rojo/25 blur-3xl rounded-full pointer-events-none" />
+            <img
+              src={flyerOficial}
+              alt="Jesucristo Rockstar — Chaplin Grupo Cultural — Dom 18 de octubre, funciones 4:00 pm y 7:00 pm, Auditorio del Colegio de Ingenieros de Ica"
+              className="relative w-full border-2 border-rojo shadow-[0_30px_80px_-20px_rgba(254,0,0,0.45)] transition-transform duration-500 group-hover:scale-[1.02]"
+            />
+          </div>
 
           {/* Detalles del evento */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
@@ -418,7 +422,7 @@ function EntradasPage() {
                     <span className="font-body text-blanco/60 text-sm uppercase tracking-[0.15em] block">Total estimado</span>
                     {zona && (
                       <span className="font-body text-blanco/50 text-xs">
-                        {entradasTotales} entrada{entradasTotales === 1 ? "" : "s"} en total
+                        {entradasTotales} entrada{entradasTotales === 1 ? "" : "s"} en total · {activeTier.label}
                       </span>
                     )}
                   </div>
