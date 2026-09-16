@@ -186,7 +186,7 @@ function EntradasPage() {
     <div className="bg-negro text-blanco overflow-x-hidden">
       <header className="border-b border-gris-textura">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-12 py-5 flex items-center">
-          <Link to="/" className="flex items-center group" aria-label="Chaplin Grupo Cultural">
+          <Link to="/entradas" className="flex items-center group" aria-label="Chaplin Grupo Cultural">
             <img
               src="/logo-chaplin.png"
               alt="Chaplin Grupo Cultural"

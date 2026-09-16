@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  redirect,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -72,7 +73,27 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+// Activar este switch para redirigir todo el tráfico a la ticketera de entradas
+// mientras el resto de la web principal sigue en desarrollo.
+// Cambiar a `false` cuando el sitio general esté listo para su lanzamiento.
+const MODO_SOLO_ENTRADAS = true;
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: ({ location }) => {
+    if (MODO_SOLO_ENTRADAS) {
+      const pathname = location.pathname;
+      const isAllowed =
+        pathname === "/entradas" ||
+        pathname.startsWith("/entradas/") ||
+        pathname.startsWith("/admin");
+
+      if (!isAllowed) {
+        throw redirect({
+          to: "/entradas",
+        });
+      }
+    }
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
