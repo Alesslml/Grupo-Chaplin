@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PageLayout } from "@/components/chaplin/PageLayout";
 import { PageHero } from "@/components/chaplin/PageHero";
-import { MessageCircle, Minus, Plus } from "lucide-react";
+import { MessageCircle, Minus, Plus, Calendar, Clock, MapPin, Users } from "lucide-react";
 import flyerOficial from "@/assets/jesucristo-rockstar-flyer.jpg";
 import mapaZonas from "@/assets/jesucristo-rockstar-mapa.jpeg";
 
@@ -24,12 +24,37 @@ const WHATSAPP_NUMBER = "51956060826";
 
 const funciones = ["4:00 pm", "7:00 pm"];
 
+const sinopsis =
+  "Jesucristo Rockstar es una vibrante adaptación teatral que sumerge al público en los últimos siete días de la vida de Jesús de Nazaret, explorando su liderazgo y el profundo impacto en sus seguidores mediante una perspectiva profundamente humana y contemporánea. La obra resalta los dilemas internos y el conflicto de figuras clave como Judas ante la creciente marea de tensión política y religiosa, todo narrado con la fuerza, la rebeldía y la energía explosiva de una poderosa banda de rock en vivo, fusionando la solemnidad de la historia con la potencia sonora y la estética de un concierto inolvidable.";
+
+const fichaTecnica = [
+  { rol: "Dirección general", nombre: "Harold López" },
+  { rol: "Coreografía", nombre: "Thian Ramos" },
+  { rol: "Productor musical", nombre: "Andre Bonifaz" },
+  { rol: "Dirección vocal", nombre: "Dayana Navarrete" },
+  { rol: "Banda en vivo", nombre: "Black & White" },
+];
+
+const elenco = [
+  "Yerson Luján", "Jacqui Arce", "Karina Félix", "Daniela Lengua", "Carlos Espino",
+  "Cesar Alvarado", "Alex Meza", "Katia Carrascal", "Kleber Martínez", "Francia Reategui",
+  "Keselhy Martínez", "Victoria Di Antonis", "Antoinette Hernández", "Marth Fernández",
+  "Mahylyn Cáceres", "Angelina Rosas", "Sofía Gonzales", "Ingrid Vicuña",
+];
+
+const detallesEvento = [
+  { icon: MapPin, label: "Auditorio del Colegio de Ingenieros de Ica" },
+  { icon: Calendar, label: "Domingo 18 de octubre" },
+  { icon: Clock, label: "120 minutos, incluye intermedio" },
+  { icon: Users, label: "Público recomendado: mayores de 14 años" },
+];
+
 interface Zone {
   key: string;
   label: string;
   color: string;
   seats: number;
-  prices: { twoXone: number; threeXtwo: number; twentyPct: number };
+  prices: { twoXone: number; threeXtwo: number; twentyPct: number; regular: number };
   sellable: true;
 }
 
@@ -39,7 +64,7 @@ const zonasVenta: Zone[] = [
     label: "Zona Superstar",
     color: "#fe0000",
     seats: 64,
-    prices: { twoXone: 80, threeXtwo: 160, twentyPct: 64 },
+    prices: { twoXone: 80, threeXtwo: 160, twentyPct: 64, regular: 64 },
     sellable: true,
   },
   {
@@ -47,7 +72,7 @@ const zonasVenta: Zone[] = [
     label: "Zona Getsemaní",
     color: "#f2d675",
     seats: 46,
-    prices: { twoXone: 60, threeXtwo: 120, twentyPct: 48 },
+    prices: { twoXone: 60, threeXtwo: 120, twentyPct: 48, regular: 48 },
     sellable: true,
   },
   {
@@ -55,7 +80,7 @@ const zonasVenta: Zone[] = [
     label: "Zona Hosanna",
     color: "#7dd3e8",
     seats: 66,
-    prices: { twoXone: 40, threeXtwo: 80, twentyPct: 32 },
+    prices: { twoXone: 40, threeXtwo: 80, twentyPct: 32, regular: 32 },
     sellable: true,
   },
   {
@@ -63,12 +88,12 @@ const zonasVenta: Zone[] = [
     label: "Zona Pueblo (2do piso)",
     color: "#2b3a8f",
     seats: 80,
-    prices: { twoXone: 20, threeXtwo: 40, twentyPct: 16 },
+    prices: { twoXone: 20, threeXtwo: 40, twentyPct: 16, regular: 16 },
     sellable: true,
   },
 ];
 
-type TierKey = "twoXone" | "threeXtwo" | "twentyPct";
+type TierKey = "twoXone" | "threeXtwo" | "twentyPct" | "regular";
 
 interface Tier {
   key: TierKey;
@@ -82,35 +107,43 @@ const tiers: Tier[] = [
   { key: "twoXone", label: "Preventa 2x1", detalle: "Del 16 al 22 de setiembre", from: "2026-09-16", to: "2026-09-22" },
   { key: "threeXtwo", label: "Preventa 3x2", detalle: "Del 23 de setiembre al 2 de octubre", from: "2026-09-23", to: "2026-10-02" },
   { key: "twentyPct", label: "Preventa 20% dto.", detalle: "Del 3 al 11 de octubre", from: "2026-10-03", to: "2026-10-11" },
+  { key: "regular", label: "Precio regular", detalle: "Del 12 al 18 de octubre", from: "2026-10-12", to: "2026-10-18" },
 ];
 
-function getActiveTier(today: Date): { key: TierKey; label: string; detalle: string } {
+function getActiveTier(today: Date): Tier {
   const iso = today.toISOString().slice(0, 10);
   const found = tiers.find((t) => iso >= t.from && iso <= t.to);
   if (found) return found;
-  if (iso < tiers[0].from) return { key: "twoXone", label: "Preventa 2x1", detalle: "Del 16 al 22 de setiembre" };
-  return { key: "twentyPct", label: "Precio regular", detalle: "Desde el 12 de octubre" };
+  return iso < tiers[0].from ? tiers[0] : tiers[tiers.length - 1];
 }
 
 function EntradasPage() {
   const activeTier = useMemo(() => getActiveTier(new Date()), []);
-  const [funcion, setFuncion] = useState(funciones[0]);
-  const [zonaKey, setZonaKey] = useState(zonasVenta[0].key);
+  const [funcion, setFuncion] = useState<string | null>(null);
+  const [zonaKey, setZonaKey] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState(1);
+  const [nombre, setNombre] = useState("");
+  const [dni, setDni] = useState("");
 
-  const zona = zonasVenta.find((z) => z.key === zonaKey) ?? zonasVenta[0];
-  const precioUnitario = zona.prices[activeTier.key];
-  const total = precioUnitario * cantidad;
+  const zona = zonasVenta.find((z) => z.key === zonaKey) ?? null;
+  const precioUnitario = zona ? zona.prices[activeTier.key] : null;
+  const total = precioUnitario != null ? precioUnitario * cantidad : null;
 
-  const mensaje = encodeURIComponent(
-    `Hola Harold, quiero reservar entradas para JESUCRISTO ROCKSTAR (Dom 18 de octubre):\n\n` +
-      `• Función: ${funcion}\n` +
-      `• Zona: ${zona.label}\n` +
-      `• Cantidad: ${cantidad} entrada(s)\n` +
-      `• Precio aplicado: ${activeTier.label} (S/${precioUnitario} c/u)\n` +
-      `• Total estimado: S/${total}\n\n` +
-      `Quedo atento/a para confirmar disponibilidad y coordinar el pago. ¡Gracias!`
-  );
+  const puedeReservar = Boolean(funcion && zona && nombre.trim() && dni.trim());
+
+  const mensaje =
+    zona && total != null
+      ? encodeURIComponent(
+          `Hola, quiero reservar entradas para JESUCRISTO ROCKSTAR (Dom 18 de octubre):\n\n` +
+            `NOMBRE: ${nombre.trim()}\n` +
+            `DNI: ${dni.trim()}\n` +
+            `CANTIDAD: ${cantidad}\n` +
+            `ZONA: ${zona.label.toUpperCase()}\n` +
+            `HORARIO DE FUNCIÓN: ${funcion}\n` +
+            `MONTO: S/${total} SOLES (${activeTier.label.toUpperCase()})\n\n` +
+            `Quedo atento/a para enviar mi comprobante de pago. ¡Gracias!`
+        )
+      : "";
 
   return (
     <PageLayout>
@@ -133,6 +166,35 @@ function EntradasPage() {
             alt="Jesucristo Rockstar — Chaplin Grupo Cultural — Dom 18 de octubre, funciones 4:00 pm y 7:00 pm, Auditorio del Colegio de Ingenieros de Ica"
             className="w-full max-w-md mx-auto shadow-black border border-gris-textura mb-16"
           />
+
+          {/* Detalles del evento */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+            {detallesEvento.map(({ icon: Icon, label }) => (
+              <div key={label} className="flex items-start gap-3 border border-gris-textura px-5 py-4">
+                <Icon size={18} className="text-rojo shrink-0 mt-0.5" />
+                <span className="font-body text-blanco/80 text-sm leading-snug">{label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Sinopsis */}
+          <div className="max-w-3xl mb-16">
+            <h2 className="font-display text-blanco text-3xl mb-6">De qué trata</h2>
+            <p className="font-body text-blanco/70 text-base leading-relaxed mb-10">{sinopsis}</p>
+
+            <h2 className="font-display text-blanco text-3xl mb-6">Ficha técnica</h2>
+            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 mb-10">
+              {fichaTecnica.map((f) => (
+                <div key={f.rol} className="border-b border-gris-textura pb-3">
+                  <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/50">{f.rol}</p>
+                  <p className="font-body text-blanco text-base">{f.nombre}</p>
+                </div>
+              ))}
+            </div>
+
+            <h2 className="font-display text-blanco text-3xl mb-6">Elenco</h2>
+            <p className="font-body text-blanco/70 text-sm leading-relaxed">{elenco.join(" · ")}</p>
+          </div>
 
           {/* Banda de promo activa */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-rojo text-negro px-6 py-4 mb-16">
@@ -175,6 +237,9 @@ function EntradasPage() {
                           }`}
                         >
                           {t.label}
+                          <span className="block font-normal normal-case tracking-normal text-[10px] text-blanco/40 mt-1">
+                            {t.detalle}
+                          </span>
                         </th>
                       ))}
                     </tr>
@@ -267,24 +332,69 @@ function EntradasPage() {
                   </div>
                 </div>
 
-                <div className="border-t border-gris-textura pt-6 flex items-baseline justify-between">
-                  <span className="font-body text-blanco/60 text-sm uppercase tracking-[0.15em]">Total estimado</span>
-                  <span className="font-display text-rojo text-4xl">S/{total}</span>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-3">Nombres y apellidos</p>
+                    <input
+                      type="text"
+                      value={nombre}
+                      onChange={(e) => setNombre(e.target.value)}
+                      placeholder="Tu nombre completo"
+                      className="w-full bg-transparent border border-gris-textura text-blanco font-body text-sm px-4 py-3 focus:outline-none focus:border-rojo transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-3">DNI</p>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={dni}
+                      onChange={(e) => setDni(e.target.value)}
+                      placeholder="Tu DNI"
+                      className="w-full bg-transparent border border-gris-textura text-blanco font-body text-sm px-4 py-3 focus:outline-none focus:border-rojo transition-colors"
+                    />
+                  </div>
                 </div>
 
-                <a
-                  href={`https://wa.me/${WHATSAPP_NUMBER}?text=${mensaje}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-rojo w-full flex items-center justify-center gap-3"
-                >
-                  <MessageCircle size={18} />
-                  Reservar por WhatsApp
-                </a>
+                <div className="border-t border-gris-textura pt-6 flex items-baseline justify-between">
+                  <span className="font-body text-blanco/60 text-sm uppercase tracking-[0.15em]">Total estimado</span>
+                  <span className="font-display text-rojo text-4xl">{total != null ? `S/${total}` : "—"}</span>
+                </div>
+
+                {puedeReservar ? (
+                  <a
+                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${mensaje}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-rojo w-full flex items-center justify-center gap-3"
+                  >
+                    <MessageCircle size={18} />
+                    Reservar por WhatsApp
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full flex items-center justify-center gap-3 font-body font-bold text-sm uppercase tracking-[0.2em] px-9 py-3.5 bg-gris-textura text-blanco/40 cursor-not-allowed"
+                  >
+                    <MessageCircle size={18} />
+                    Reservar por WhatsApp
+                  </button>
+                )}
 
                 <p className="font-body text-blanco/50 text-xs leading-relaxed">
-                  La reserva se confirma directamente con nuestro equipo por WhatsApp. Cupos sujetos a disponibilidad.
+                  {puedeReservar
+                    ? "La reserva se confirma directamente con nuestro equipo por WhatsApp. Cupos sujetos a disponibilidad."
+                    : "Completa función, zona, nombre y DNI para continuar."}
                 </p>
+
+                <div className="border border-gris-textura px-5 py-4">
+                  <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-2">Medios de pago</p>
+                  <p className="font-body text-blanco/70 text-sm leading-relaxed">
+                    Plin: <span className="text-blanco font-semibold">969 821 836</span> (Yenny Huamani Huamani).
+                    Coordinamos el resto de medios de pago por WhatsApp al confirmar tu reserva.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
