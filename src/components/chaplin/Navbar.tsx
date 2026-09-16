@@ -12,9 +12,6 @@ const links = [
   { to: "/contacto", label: "Contacto" },
 ];
 
-// TODO: reemplazar por el link real cuando exista el sistema de compra propio de Chaplin.
-const TICKETS_URL = "https://teleticket.com.pe";
-
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -65,14 +62,12 @@ export function Navbar() {
           </ul>
 
           <div className="flex items-center gap-5">
-            <a
-              href={TICKETS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/entradas"
               className="hidden md:inline-flex font-body font-bold text-[12px] uppercase tracking-[0.2em] text-negro bg-rojo px-5 py-2.5 hover:bg-blanco transition-colors duration-300"
             >
               Entradas
-            </a>
+            </Link>
 
             {/* Hamburger mobile */}
             <button
@@ -130,15 +125,13 @@ export function Navbar() {
               </li>
             ))}
             <li className="pt-5">
-              <a
-                href={TICKETS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/entradas"
                 onClick={() => setOpen(false)}
                 className="inline-block font-body font-bold text-sm uppercase tracking-[0.2em] text-negro bg-rojo px-6 py-3"
               >
                 Entradas
-              </a>
+              </Link>
             </li>
           </ul>
 

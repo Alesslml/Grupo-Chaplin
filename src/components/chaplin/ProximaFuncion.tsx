@@ -104,19 +104,11 @@ export function ProximaFuncion() {
         </div>
 
         <div className="px-fade text-center mt-14">
-          <a
-            href={TICKETS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-rojo"
-          >
+          <Link to="/entradas" className="btn-rojo">
             Comprar entradas
-          </a>
+          </Link>
         </div>
       </div>
     </section>
   );
 }
-
-// TODO: reemplazar por el link real cuando exista el sistema de compra propio de Chaplin.
-const TICKETS_URL = "https://teleticket.com.pe";

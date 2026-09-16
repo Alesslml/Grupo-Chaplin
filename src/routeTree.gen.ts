@@ -17,6 +17,7 @@ import { Route as NosotrosRouteImport } from './routes/nosotros'
 import { Route as LibroDeReclamacionesRouteImport } from './routes/libro-de-reclamaciones'
 import { Route as FesmicaRouteImport } from './routes/fesmica'
 import { Route as EquipoRouteImport } from './routes/equipo'
+import { Route as EntradasRouteImport } from './routes/entradas'
 import { Route as EncuestaRouteImport } from './routes/encuesta'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as AliadosRouteImport } from './routes/aliados'
@@ -63,6 +64,11 @@ const EquipoRoute = EquipoRouteImport.update({
   path: '/equipo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EntradasRoute = EntradasRouteImport.update({
+  id: '/entradas',
+  path: '/entradas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EncuestaRoute = EncuestaRouteImport.update({
   id: '/encuesta',
   path: '/encuesta',
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/aliados': typeof AliadosRoute
   '/contacto': typeof ContactoRoute
   '/encuesta': typeof EncuestaRoute
+  '/entradas': typeof EntradasRoute
   '/equipo': typeof EquipoRoute
   '/fesmica': typeof FesmicaRoute
   '/libro-de-reclamaciones': typeof LibroDeReclamacionesRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/aliados': typeof AliadosRoute
   '/contacto': typeof ContactoRoute
   '/encuesta': typeof EncuestaRoute
+  '/entradas': typeof EntradasRoute
   '/equipo': typeof EquipoRoute
   '/fesmica': typeof FesmicaRoute
   '/libro-de-reclamaciones': typeof LibroDeReclamacionesRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/aliados': typeof AliadosRoute
   '/contacto': typeof ContactoRoute
   '/encuesta': typeof EncuestaRoute
+  '/entradas': typeof EntradasRoute
   '/equipo': typeof EquipoRoute
   '/fesmica': typeof FesmicaRoute
   '/libro-de-reclamaciones': typeof LibroDeReclamacionesRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/aliados'
     | '/contacto'
     | '/encuesta'
+    | '/entradas'
     | '/equipo'
     | '/fesmica'
     | '/libro-de-reclamaciones'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/aliados'
     | '/contacto'
     | '/encuesta'
+    | '/entradas'
     | '/equipo'
     | '/fesmica'
     | '/libro-de-reclamaciones'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/aliados'
     | '/contacto'
     | '/encuesta'
+    | '/entradas'
     | '/equipo'
     | '/fesmica'
     | '/libro-de-reclamaciones'
@@ -188,6 +200,7 @@ export interface RootRouteChildren {
   AliadosRoute: typeof AliadosRoute
   ContactoRoute: typeof ContactoRoute
   EncuestaRoute: typeof EncuestaRoute
+  EntradasRoute: typeof EntradasRoute
   EquipoRoute: typeof EquipoRoute
   FesmicaRoute: typeof FesmicaRoute
   LibroDeReclamacionesRoute: typeof LibroDeReclamacionesRoute
@@ -257,6 +270,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EquipoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/entradas': {
+      id: '/entradas'
+      path: '/entradas'
+      fullPath: '/entradas'
+      preLoaderRoute: typeof EntradasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/encuesta': {
       id: '/encuesta'
       path: '/encuesta'
@@ -300,6 +320,7 @@ const rootRouteChildren: RootRouteChildren = {
   AliadosRoute: AliadosRoute,
   ContactoRoute: ContactoRoute,
   EncuestaRoute: EncuestaRoute,
+  EntradasRoute: EntradasRoute,
   EquipoRoute: EquipoRoute,
   FesmicaRoute: FesmicaRoute,
   LibroDeReclamacionesRoute: LibroDeReclamacionesRoute,
