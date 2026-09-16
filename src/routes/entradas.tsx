@@ -3,6 +3,8 @@ import { useMemo, useState } from "react";
 import { PageLayout } from "@/components/chaplin/PageLayout";
 import { PageHero } from "@/components/chaplin/PageHero";
 import { MessageCircle, Minus, Plus } from "lucide-react";
+import flyerOficial from "@/assets/jesucristo-rockstar-flyer.jpg";
+import mapaZonas from "@/assets/jesucristo-rockstar-mapa.jpeg";
 
 export const Route = createFileRoute("/entradas")({
   head: () => ({
@@ -29,14 +31,6 @@ interface Zone {
   seats: number;
   prices: { twoXone: number; threeXtwo: number; twentyPct: number };
   sellable: true;
-}
-
-interface CourtesyZone {
-  key: string;
-  label: string;
-  color: string;
-  seats: number;
-  sellable: false;
 }
 
 const zonasVenta: Zone[] = [
@@ -73,14 +67,6 @@ const zonasVenta: Zone[] = [
     sellable: true,
   },
 ];
-
-const zonaCortesia: CourtesyZone = {
-  key: "cortesia",
-  label: "Zona Cortesía",
-  color: "#caa54d",
-  seats: 15,
-  sellable: false,
-};
 
 type TierKey = "twoXone" | "threeXtwo" | "twentyPct";
 
@@ -142,6 +128,12 @@ function EntradasPage() {
 
       <section className="bg-negro grain relative overflow-hidden">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-12 py-20">
+          <img
+            src={flyerOficial}
+            alt="Jesucristo Rockstar — Chaplin Grupo Cultural — Dom 18 de octubre, funciones 4:00 pm y 7:00 pm, Auditorio del Colegio de Ingenieros de Ica"
+            className="w-full max-w-md mx-auto shadow-black border border-gris-textura mb-16"
+          />
+
           {/* Banda de promo activa */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-rojo text-negro px-6 py-4 mb-16">
             <span className="font-body font-bold text-sm uppercase tracking-[0.2em]">
@@ -154,19 +146,17 @@ function EntradasPage() {
             {/* Mapa de zonas */}
             <div>
               <h2 className="font-display text-blanco text-3xl mb-8">Mapa de zonas</h2>
+              <img
+                src={mapaZonas}
+                alt="Mapa de asistencia Jesucristo Rockstar: Zona Superstar, Zona Getsemaní, Zona Hosanna y 2do piso Zona Pueblo"
+                className="w-full border border-gris-textura mb-6"
+              />
               <div className="border border-gris-textura">
-                <div className="bg-gris-textura text-blanco text-center font-display text-lg tracking-[0.2em] py-4">
-                  ESCENARIO
-                </div>
                 <ZoneRow zone={zonasVenta[0]} selected={zonaKey === "superstar"} onSelect={() => setZonaKey("superstar")} />
-                <CourtesyRow zone={zonaCortesia} />
                 <ZoneRow zone={zonasVenta[1]} selected={zonaKey === "getsemani"} onSelect={() => setZonaKey("getsemani")} />
                 <ZoneRow zone={zonasVenta[2]} selected={zonaKey === "hosanna"} onSelect={() => setZonaKey("hosanna")} />
                 <ZoneRow zone={zonasVenta[3]} selected={zonaKey === "pueblo"} onSelect={() => setZonaKey("pueblo")} />
               </div>
-              <p className="font-body text-blanco/50 text-xs mt-4 leading-relaxed">
-                La Zona Cortesía es de uso exclusivo por invitación y no está disponible para la venta.
-              </p>
             </div>
 
             {/* Tabla de precios + formulario */}
@@ -324,14 +314,3 @@ function ZoneRow({ zone, selected, onSelect }: { zone: Zone; selected: boolean; 
   );
 }
 
-function CourtesyRow({ zone }: { zone: CourtesyZone }) {
-  return (
-    <div className="w-full flex items-center justify-between px-6 py-5 border-t border-gris-textura opacity-50">
-      <div className="flex items-center gap-4">
-        <span className="w-5 h-5 shrink-0" style={{ backgroundColor: zone.color }} />
-        <span className="font-body font-semibold uppercase tracking-[0.1em] text-sm text-blanco">{zone.label}</span>
-      </div>
-      <span className="font-body text-blanco/50 text-xs uppercase tracking-[0.15em]">No disponible</span>
-    </div>
-  );
-}
