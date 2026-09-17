@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import QRCode from "qrcode";
 import {
   Calendar,
   Clock,
@@ -52,7 +51,6 @@ export const Route = createFileRoute("/ticket/$id")({
 function TicketPage() {
   const { ticket: initialTicket, ticketId } = Route.useLoaderData();
   const [ticket, setTicket] = useState<TicketReservation | null>(initialTicket);
-  const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
@@ -64,23 +62,6 @@ function TicketPage() {
       if (found) setTicket(found);
     }
   }, [ticket, ticketId]);
-
-  // Generar QR Code dinámico de verificación
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const fullUrl = window.location.href;
-      QRCode.toDataURL(fullUrl, {
-        width: 320,
-        margin: 2,
-        color: {
-          dark: "#0a0a0a",
-          light: "#ffffff",
-        },
-      })
-        .then((url) => setQrDataUrl(url))
-        .catch((err) => console.error("Error generando QR:", err));
-    }
-  }, [ticketId]);
 
   const meta = ticket ? ZONAS_CONFIG[ticket.zonaKey] || { label: "Zona General", color: "#fe0000", totalSeats: 60 } : null;
   const promoMeta = ticket ? PROMOS_CONFIG[ticket.etapaPromo] || { label: "Precio Regular" } : null;
@@ -396,30 +377,29 @@ function TicketPage() {
               <div className="w-full border-b-2 border-dashed border-gris-textura/70" />
             </div>
 
-            {/* Código QR de Verificación y Validación en Puerta */}
-            <div className="flex flex-col sm:flex-row items-center gap-6 p-5 bg-gradient-to-br from-zinc-950 to-zinc-900 border border-[#d4af37]/40 rounded-xl">
-              <div className="bg-white p-2.5 rounded-xl shadow-lg shrink-0">
-                {qrDataUrl ? (
-                  <img src={qrDataUrl} alt="Código QR de Validación" className="w-36 h-36 object-contain" />
-                ) : (
-                  <div className="w-36 h-36 bg-slate-200 animate-pulse rounded-lg" />
-                )}
+            {/* Verificación y Validación en Boletería mediante DNI y CRM */}
+            <div className="flex flex-col sm:flex-row items-center gap-5 p-5 bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 border border-[#d4af37]/40 rounded-xl">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center shrink-0 text-[#ffd700] shadow-inner">
+                <ShieldCheck className="w-7 h-7" />
               </div>
 
-              <div className="space-y-2 text-center sm:text-left">
-                <div className="inline-flex items-center gap-1.5 text-xs text-[#ffd700] font-bold uppercase tracking-wider">
-                  <Sparkles className="w-4 h-4" />
-                  <span>Código de Acceso en Puerta</span>
+              <div className="space-y-1 text-center sm:text-left flex-1">
+                <div className="inline-flex items-center gap-1.5 text-[11px] text-[#ffd700] font-bold uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Validación Directa en Boletería</span>
                 </div>
                 <h4 className="font-display text-xl text-blanco tracking-wide">
-                  PRESENTA ESTE CÓDIGO AL INGRESAR
+                  CANJE DE ENTRADAS CON TU DNI
                 </h4>
-                <p className="text-[11px] text-blanco/60 leading-relaxed">
-                  El personal de sala de Chaplin Grupo Cultural escaneará este código QR el día del evento en el Auditorio del Colegio de Ingenieros para hacer entrega de tus entradas físicas.
+                <p className="text-[11px] text-blanco/70 leading-relaxed">
+                  El personal de Chaplin Grupo Cultural validará tu compra en el sistema CRM con tu DNI (<strong className="text-blanco font-bold">{ticket.clienteDni || "Registrado"}</strong>) o tu Código de Ticket (<strong className="text-[#ffd700] font-mono font-bold">#{ticket.ticketCode || ticket.id}</strong>) en el Auditorio del Colegio de Ingenieros de Ica para hacer entrega de tus entradas físicas.
                 </p>
-                <span className="text-[10px] text-emerald-400 font-mono font-bold block pt-1">
-                  ● Boleto Oficial Verificado y Registrado
-                </span>
+                <div className="flex items-center justify-center sm:justify-start gap-1.5 pt-0.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                    Boleto Registrado y Verificado en el CRM Oficial
+                  </span>
+                </div>
               </div>
             </div>
 
