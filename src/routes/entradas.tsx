@@ -1,6 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { MessageCircle, Minus, Plus, Calendar, Clock, MapPin, Users } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { MessageCircle, Minus, Plus, Calendar, Clock, MapPin, Users, ShieldCheck, Flame } from "lucide-react";
+import {
+  getStoredReservations,
+  getZoneAvailability,
+  onCRMUpdate,
+  fetchPublicAvailabilityServer,
+  type TicketReservation,
+  type ZoneAvailability,
+} from "@/lib/tickets-crm";
 import flyerOficial from "@/assets/jesucristo-rockstar-flyer.jpg";
 import mapaZonas from "@/assets/jesucristo-rockstar-mapa.jpeg";
 
@@ -155,13 +163,81 @@ function EntradasPage() {
   const [dni, setDni] = useState("");
   const [vendedor, setVendedor] = useState("");
 
+  // CRM Live State (Conectado a Neon PostgreSQL en Tiempo Real)
+  const [crmReservations, setCrmReservations] = useState<TicketReservation[]>([]);
+  const [neonSoldMap, setNeonSoldMap] = useState<Record<string, Record<string, number>> | null>(null);
+
+  const syncNeonStock = async () => {
+    try {
+      const res = await fetchPublicAvailabilityServer();
+      if (res && res.ok && res.soldMap) {
+        setNeonSoldMap(res.soldMap);
+      }
+    } catch {
+      // Fallback a almacenamiento local si no hay conexión
+    }
+  };
+
+  useEffect(() => {
+    setCrmReservations(getStoredReservations());
+    syncNeonStock();
+    const interval = setInterval(syncNeonStock, 10000); // Polling cada 10 segundos
+
+    const unsubscribe = onCRMUpdate(() => {
+      setCrmReservations(getStoredReservations());
+      syncNeonStock();
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
+  }, []);
+
+  const liveReservations = useMemo(() => {
+    if (!neonSoldMap) return crmReservations;
+    const synthetic: TicketReservation[] = [];
+    for (const [func, zones] of Object.entries(neonSoldMap)) {
+      for (const [zKey, count] of Object.entries(zones)) {
+        if (count > 0) {
+          synthetic.push({
+            id: `neon-${func}-${zKey}`,
+            createdAt: new Date().toISOString(),
+            clienteNombre: "Venta Confirmada",
+            clienteTelefono: "-",
+            funcion: func as any,
+            zonaKey: zKey as any,
+            cantidad: count,
+            etapaPromo: "twoXone",
+            totalPagado: 0,
+            vendedor: "Harold López",
+            estado: "confirmado",
+          });
+        }
+      }
+    }
+    // Si Neon está conectado, usar la información directa de Neon PostgreSQL
+    return neonSoldMap !== null ? synthetic : crmReservations;
+  }, [neonSoldMap, crmReservations]);
+
+  const currentZoneAvail = useMemo(() => {
+    if (!zonaKey || !funcion) return null;
+    return getZoneAvailability(liveReservations, funcion, zonaKey);
+  }, [liveReservations, funcion, zonaKey]);
+
   const zona = zonasVenta.find((z) => z.key === zonaKey) ?? null;
   const precioPorUnidad = zona ? zona.prices[activeTier.key] : null;
   const total = precioPorUnidad != null ? precioPorUnidad * cantidad : null;
   const entradasTotales = cantidad * activeTier.entradasPorPrecio;
   const esPaquete = activeTier.entradasPorPrecio > 1;
 
-  const puedeReservar = Boolean(funcion && zona && nombre.trim() && dni.trim());
+  const noHayCupo = Boolean(
+    currentZoneAvail && (currentZoneAvail.isSoldOut || entradasTotales > currentZoneAvail.availableSeats)
+  );
+
+  const puedeReservar = Boolean(
+    funcion && zona && nombre.trim() && dni.trim() && !noHayCupo
+  );
 
   const cantidadLinea = esPaquete
     ? `CANTIDAD: ${cantidad} promoción(es) ${activeTier.label} = ${entradasTotales} entradas`
@@ -184,8 +260,8 @@ function EntradasPage() {
 
   return (
     <div className="bg-negro text-blanco overflow-x-hidden">
-      <header className="border-b border-gris-textura">
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 py-5 flex items-center">
+      <header className="border-b border-gris-textura sticky top-0 z-20 bg-negro/90 backdrop-blur-md">
+        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 py-4 flex items-center">
           <Link to="/entradas" className="flex items-center group" aria-label="Chaplin Grupo Cultural">
             <img
               src="/logo-chaplin.png"
@@ -517,10 +593,18 @@ function EntradasPage() {
                 className="w-full border border-gris-textura mb-6"
               />
               <div className="border border-gris-textura">
-                <ZoneRow zone={zonasVenta[0]} selected={zonaKey === "superstar"} onSelect={() => setZonaKey("superstar")} />
-                <ZoneRow zone={zonasVenta[1]} selected={zonaKey === "getsemani"} onSelect={() => setZonaKey("getsemani")} />
-                <ZoneRow zone={zonasVenta[2]} selected={zonaKey === "hosanna"} onSelect={() => setZonaKey("hosanna")} />
-                <ZoneRow zone={zonasVenta[3]} selected={zonaKey === "pueblo"} onSelect={() => setZonaKey("pueblo")} />
+                {zonasVenta.map((z) => {
+                  const avail = funcion ? getZoneAvailability(liveReservations, funcion, z.key) : undefined;
+                  return (
+                    <ZoneRow
+                      key={z.key}
+                      zone={z}
+                      selected={zonaKey === z.key}
+                      availability={avail}
+                      onSelect={() => setZonaKey(z.key)}
+                    />
+                  );
+                })}
               </div>
             </div>
 
@@ -538,7 +622,7 @@ function EntradasPage() {
                         onClick={() => setFuncion(f)}
                         className={`font-body text-sm uppercase tracking-[0.1em] px-5 py-2.5 border transition-colors ${
                           funcion === f
-                            ? "bg-rojo text-negro border-rojo"
+                            ? "bg-rojo text-negro border-rojo font-bold"
                             : "border-gris-textura text-blanco hover:border-rojo"
                         }`}
                       >
@@ -549,22 +633,51 @@ function EntradasPage() {
                 </div>
 
                 <div>
-                  <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-3">Zona</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60">Zona</p>
+                    {funcion && (
+                      <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">
+                        ● Stock en vivo ({funcion})
+                      </span>
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-3">
-                    {zonasVenta.map((z) => (
-                      <button
-                        key={z.key}
-                        type="button"
-                        onClick={() => setZonaKey(z.key)}
-                        className={`font-body text-sm uppercase tracking-[0.1em] px-5 py-2.5 border transition-colors ${
-                          zonaKey === z.key
-                            ? "bg-rojo text-negro border-rojo"
-                            : "border-gris-textura text-blanco hover:border-rojo"
-                        }`}
-                      >
-                        {z.label}
-                      </button>
-                    ))}
+                    {zonasVenta.map((z) => {
+                      const avail = funcion ? getZoneAvailability(liveReservations, funcion, z.key) : undefined;
+                      const isSoldOut = Boolean(avail?.isSoldOut);
+                      return (
+                        <button
+                          key={z.key}
+                          type="button"
+                          disabled={isSoldOut}
+                          onClick={() => setZonaKey(z.key)}
+                          className={`font-body text-sm uppercase tracking-[0.1em] px-4 py-2.5 border transition-all flex items-center gap-2 ${
+                            isSoldOut
+                              ? "border-zinc-800 bg-zinc-900/40 text-zinc-600 cursor-not-allowed line-through"
+                              : zonaKey === z.key
+                              ? "bg-rojo text-negro border-rojo font-bold"
+                              : "border-gris-textura text-blanco hover:border-rojo"
+                          }`}
+                        >
+                          <span>{z.label}</span>
+                          {avail && (
+                            <span
+                              className={`text-[9px] font-bold px-1.5 py-0.5 ${
+                                isSoldOut
+                                  ? "bg-rose-950 text-rose-400 no-underline"
+                                  : avail.isLowStock
+                                  ? "bg-amber-400 text-negro animate-pulse"
+                                  : zonaKey === z.key
+                                  ? "bg-negro/30 text-negro"
+                                  : "bg-blanco/10 text-blanco/70"
+                              }`}
+                            >
+                              {isSoldOut ? "AGOTADO" : `${avail.availableSeats} disp.`}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -671,9 +784,22 @@ function EntradasPage() {
                   </button>
                 )}
 
+                {noHayCupo && currentZoneAvail && (
+                  <div className="p-3 bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                    <span>
+                      {currentZoneAvail.isSoldOut
+                        ? `Esta zona (${zona?.label}) está agotada para la función de las ${funcion}. Por favor selecciona otro horario u otra zona.`
+                        : `Solo quedan ${currentZoneAvail.availableSeats} asientos en ${zona?.label} para las ${funcion}. Reduce la cantidad para continuar.`}
+                    </span>
+                  </div>
+                )}
+
                 <p className="font-body text-blanco/50 text-xs leading-relaxed">
-                  {puedeReservar
-                    ? "La reserva se confirma directamente con nuestro equipo por WhatsApp. Cupos sujetos a disponibilidad."
+                  {noHayCupo
+                    ? "El aforo solicitado supera la disponibilidad en vivo."
+                    : puedeReservar
+                    ? "La reserva se confirma directamente con nuestro equipo por WhatsApp. Cupos sujetos a disponibilidad en tiempo real."
                     : "Completa función, zona, nombre y DNI para continuar."}
                 </p>
 
@@ -701,22 +827,52 @@ function EntradasPage() {
   );
 }
 
-function ZoneRow({ zone, selected, onSelect }: { zone: Zone; selected: boolean; onSelect: () => void }) {
+function ZoneRow({
+  zone,
+  selected,
+  onSelect,
+  availability,
+}: {
+  zone: Zone;
+  selected: boolean;
+  onSelect: () => void;
+  availability?: ZoneAvailability;
+}) {
+  const isSoldOut = Boolean(availability?.isSoldOut);
+  const isLowStock = Boolean(availability?.isLowStock);
+
   return (
     <button
       type="button"
       onClick={onSelect}
+      disabled={isSoldOut}
       className={`w-full flex items-center justify-between px-6 py-5 border-t border-gris-textura text-left transition-colors ${
         selected ? "bg-rojo/10" : "hover:bg-blanco/5"
-      }`}
+      } ${isSoldOut ? "opacity-40 cursor-not-allowed bg-rose-950/10" : ""}`}
     >
       <div className="flex items-center gap-4">
         <span className="w-5 h-5 shrink-0" style={{ backgroundColor: zone.color }} />
-        <span className={`font-body font-semibold uppercase tracking-[0.1em] text-sm ${selected ? "text-rojo" : "text-blanco"}`}>
-          {zone.label}
-        </span>
+        <div>
+          <span className={`font-body font-semibold uppercase tracking-[0.1em] text-sm ${selected ? "text-rojo" : "text-blanco"}`}>
+            {zone.label}
+          </span>
+          {isSoldOut ? (
+            <span className="block text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-0.5">
+              ● Agotado para esta función
+            </span>
+          ) : isLowStock ? (
+            <span className="block text-[10px] text-amber-400 font-bold uppercase tracking-wider mt-0.5 animate-pulse">
+              🔥 ¡Últimos {availability?.availableSeats} asientos disponibles!
+            </span>
+          ) : null}
+        </div>
       </div>
-      <span className="font-body text-blanco/50 text-xs uppercase tracking-[0.15em]">{zone.seats} asientos</span>
+      <div className="text-right">
+        <span className="font-body text-blanco/80 text-xs font-semibold block">
+          {availability ? `${availability.availableSeats} disponibles` : `${zone.seats} asientos`}
+        </span>
+        <span className="font-body text-blanco/40 text-[10px]">de {zone.seats} totales</span>
+      </div>
     </button>
   );
 }

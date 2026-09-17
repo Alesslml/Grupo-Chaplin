@@ -70,3 +70,30 @@ export function ensureSurveySchema() {
   }
   return _ensured;
 }
+
+let _ticketsEnsured: Promise<void> | null = null;
+
+export function ensureTicketsSchema() {
+  if (!_ticketsEnsured) {
+    const sql = getSql();
+    _ticketsEnsured = sql`
+      create table if not exists ticket_reservations (
+        id text primary key,
+        created_at timestamptz not null default now(),
+        cliente_nombre text not null,
+        cliente_telefono text not null,
+        cliente_dni text,
+        funcion text not null,
+        zona_key text not null,
+        cantidad integer not null default 1,
+        etapa_promo text not null default 'twoXone',
+        total_pagado numeric(10, 2) not null default 0,
+        metodo_pago text not null default 'yape',
+        vendedor text not null default 'Harold López',
+        estado text not null default 'confirmado',
+        notas text
+      )
+    `.then(() => undefined);
+  }
+  return _ticketsEnsured;
+}

@@ -1,0 +1,558 @@
+import { createServerFn } from "@tanstack/react-start";
+import { ensureTicketsSchema, getSql } from "@/lib/db.server";
+
+export type MetodoPago = "efectivo" | "yape" | "plin" | "transferencia";
+
+export const METODOS_PAGO_CONFIG: Record<
+  MetodoPago,
+  { label: string; bg: string; text: string; border: string }
+> = {
+  yape: { label: "Yape", bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
+  plin: { label: "Plin", bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200" },
+  transferencia: { label: "Transferencia", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  efectivo: { label: "Efectivo", bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+};
+
+export interface TicketReservation {
+  id: string;
+  createdAt: string; // ISO string
+  clienteNombre: string;
+  clienteTelefono: string;
+  clienteDni?: string;
+  funcion: "4:00 pm" | "7:00 pm";
+  zonaKey: "superstar" | "getsemani" | "hosanna" | "pueblo";
+  cantidad: number;
+  etapaPromo: "twoXone" | "threeXtwo" | "twentyPct" | "regular";
+  totalPagado: number;
+  metodoPago?: MetodoPago;
+  vendedor: string;
+  estado: "confirmado" | "pendiente" | "anulado";
+  notas?: string;
+}
+
+export interface ZoneMeta {
+  key: "superstar" | "getsemani" | "hosanna" | "pueblo";
+  label: string;
+  color: string;
+  totalSeats: number;
+}
+
+export const ZONAS_CONFIG: Record<string, ZoneMeta> = {
+  superstar: { key: "superstar", label: "Zona Superstar", color: "#fe0000", totalSeats: 64 },
+  getsemani: { key: "getsemani", label: "Zona Getsemaní", color: "#f2d675", totalSeats: 46 },
+  hosanna: { key: "hosanna", label: "Zona Hosanna", color: "#7dd3e8", totalSeats: 66 },
+  pueblo: { key: "pueblo", label: "Zona Pueblo (2do piso)", color: "#2b3a8f", totalSeats: 80 },
+};
+
+const STORAGE_KEY = "chaplin_crm_reservations_v2";
+const EVENT_NAME = "chaplin_crm_updated";
+
+// CRM INICIA LIMPIO EN 0 PARA SU USO EN PRODUCCIÓN
+const INITIAL_EMPTY_RESERVATIONS: TicketReservation[] = [];
+
+export function isHaroldAuthenticated(username?: string, password?: string): boolean {
+  if (!username || !password) return false;
+  return (
+    username.trim().toLowerCase() === "harold" &&
+    password.trim() === "Chaplin2026!"
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SERVER FUNCTIONS (NEON POSTGRESQL)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+// 1. Verificación de credenciales de Harold
+export const verifyHaroldLoginServer = createServerFn({ method: "POST" })
+  .inputValidator((data: { username: string; password: string }) => data)
+  .handler(async ({ data }) => {
+    const ok = isHaroldAuthenticated(data.username, data.password);
+    return { ok, user: ok ? "Harold López" : null };
+  });
+
+// 2. Consulta de aforo en vivo para la ticketera pública y el CRM (Disponible para todos)
+export const fetchPublicAvailabilityServer = createServerFn({ method: "POST" }).handler(async () => {
+  await ensureTicketsSchema();
+  const sql = getSql();
+  const rows = await sql`
+    select funcion, zona_key, sum(cantidad)::int as sold
+    from ticket_reservations
+    where estado != 'anulado'
+    group by funcion, zona_key
+  `;
+
+  const soldMap: Record<string, Record<string, number>> = {
+    "4:00 pm": { superstar: 0, getsemani: 0, hosanna: 0, pueblo: 0 },
+    "7:00 pm": { superstar: 0, getsemani: 0, hosanna: 0, pueblo: 0 },
+  };
+
+  for (const row of rows) {
+    const f = String(row.funcion);
+    const z = String(row.zona_key);
+    const count = Number(row.sold || 0);
+    if (soldMap[f]) {
+      soldMap[f][z] = count;
+    }
+  }
+
+  return { ok: true as const, soldMap };
+});
+
+// 3. Obtener listado completo de compras en Neon (Requiere login de Harold)
+export const fetchAdminReservationsServer = createServerFn({ method: "POST" })
+  .inputValidator((data: { username: string; password: string }) => data)
+  .handler(async ({ data }) => {
+    if (!isHaroldAuthenticated(data.username, data.password)) {
+      throw new Error("UNAUTHORIZED");
+    }
+    await ensureTicketsSchema();
+    const sql = getSql();
+    const rows = await sql`
+      select 
+        id, 
+        created_at, 
+        cliente_nombre, 
+        cliente_telefono, 
+        cliente_dni, 
+        funcion, 
+        zona_key, 
+        cantidad, 
+        etapa_promo, 
+        total_pagado::float as total_pagado, 
+        metodo_pago, 
+        vendedor, 
+        estado, 
+        notas
+      from ticket_reservations
+      order by created_at desc
+    `;
+
+    const reservations: TicketReservation[] = rows.map((r) => ({
+      id: String(r.id),
+      createdAt: new Date(r.created_at).toISOString(),
+      clienteNombre: String(r.cliente_nombre),
+      clienteTelefono: String(r.cliente_telefono),
+      clienteDni: r.cliente_dni ? String(r.cliente_dni) : undefined,
+      funcion: r.funcion as any,
+      zonaKey: r.zona_key as any,
+      cantidad: Number(r.cantidad || 1),
+      etapaPromo: r.etapa_promo as any,
+      totalPagado: Number(r.total_pagado || 0),
+      metodoPago: (r.metodo_pago || "yape") as any,
+      vendedor: String(r.vendedor || "Harold López"),
+      estado: (r.estado || "confirmado") as any,
+      notas: r.notas ? String(r.notas) : undefined,
+    }));
+
+    return { ok: true as const, reservations };
+  });
+
+// 4. Guardar una nueva venta directamente en Neon PostgreSQL
+export const saveAdminReservationServer = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      auth: { username: string; password: string };
+      reservation: Omit<TicketReservation, "id" | "createdAt">;
+    }) => data
+  )
+  .handler(async ({ data }) => {
+    if (!isHaroldAuthenticated(data.auth.username, data.auth.password)) {
+      throw new Error("UNAUTHORIZED");
+    }
+    await ensureTicketsSchema();
+    const sql = getSql();
+    const id = "res-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 6);
+    const r = data.reservation;
+
+    await sql`
+      insert into ticket_reservations (
+        id,
+        cliente_nombre,
+        cliente_telefono,
+        cliente_dni,
+        funcion,
+        zona_key,
+        cantidad,
+        etapa_promo,
+        total_pagado,
+        metodo_pago,
+        vendedor,
+        estado,
+        notas
+      ) values (
+        ${id},
+        ${r.clienteNombre},
+        ${r.clienteTelefono},
+        ${r.clienteDni || null},
+        ${r.funcion},
+        ${r.zonaKey},
+        ${r.cantidad},
+        ${r.etapaPromo},
+        ${r.totalPagado},
+        ${r.metodoPago || "yape"},
+        ${r.vendedor || "Harold López"},
+        ${r.estado || "confirmado"},
+        ${r.notas || null}
+      )
+    `;
+
+    const saved: TicketReservation = {
+      ...r,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+
+    return { ok: true as const, reservation: saved };
+  });
+
+// 5. Eliminar una venta de Neon PostgreSQL (devuelve los cupos automáticamente)
+export const deleteAdminReservationServer = createServerFn({ method: "POST" })
+  .inputValidator((data: { auth: { username: string; password: string }; id: string }) => data)
+  .handler(async ({ data }) => {
+    if (!isHaroldAuthenticated(data.auth.username, data.auth.password)) {
+      throw new Error("UNAUTHORIZED");
+    }
+    await ensureTicketsSchema();
+    const sql = getSql();
+    await sql`delete from ticket_reservations where id = ${data.id}`;
+    return { ok: true as const };
+  });
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CLIENT-SIDE STORAGE & LIVE EVENT SYNC
+   ───────────────────────────────────────────────────────────────────────────── */
+
+export const HAROLD_AUTH_KEY = "chaplin_harold_auth_v1";
+
+export function getStoredHaroldAuth(): { username: string; password: string } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(HAROLD_AUTH_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (isHaroldAuthenticated(parsed.username, parsed.password)) {
+      return { username: parsed.username, password: parsed.password };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredHaroldAuth(auth: { username: string; password: string } | null) {
+  if (typeof window === "undefined") return;
+  if (!auth) {
+    localStorage.removeItem(HAROLD_AUTH_KEY);
+  } else {
+    localStorage.setItem(HAROLD_AUTH_KEY, JSON.stringify(auth));
+  }
+}
+
+export function getStoredReservations(): TicketReservation[] {
+  if (typeof window === "undefined") return INITIAL_EMPTY_RESERVATIONS;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_EMPTY_RESERVATIONS));
+      return INITIAL_EMPTY_RESERVATIONS;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return INITIAL_EMPTY_RESERVATIONS;
+  }
+}
+
+export function saveStoredReservationsLocally(reservations: TicketReservation[]) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(reservations));
+    window.dispatchEvent(new CustomEvent(EVENT_NAME));
+  }
+}
+
+export function onCRMUpdate(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const handler = () => callback();
+  window.addEventListener(EVENT_NAME, handler);
+  window.addEventListener("storage", handler);
+  return () => {
+    window.removeEventListener(EVENT_NAME, handler);
+    window.removeEventListener("storage", handler);
+  };
+}
+
+export async function saveReservation(
+  reservation: Omit<TicketReservation, "id" | "createdAt">
+): Promise<TicketReservation> {
+  const auth = getStoredHaroldAuth();
+  let newRes: TicketReservation | null = null;
+
+  if (auth) {
+    try {
+      const res = await saveAdminReservationServer({
+        data: {
+          auth,
+          reservation,
+        },
+      });
+      if (res && res.ok && res.reservation) {
+        newRes = res.reservation;
+      }
+    } catch (err) {
+      console.error("Error guardando en Neon:", err);
+    }
+  }
+
+  if (!newRes) {
+    newRes = {
+      ...reservation,
+      id: "res-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 6),
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  const current = getStoredReservations();
+  const updated = [newRes, ...current.filter((item) => item.id !== newRes!.id)];
+  saveStoredReservationsLocally(updated);
+  return newRes;
+}
+
+export async function deleteReservation(id: string): Promise<boolean> {
+  const auth = getStoredHaroldAuth();
+  if (auth) {
+    try {
+      await deleteAdminReservationServer({
+        data: {
+          auth,
+          id,
+        },
+      });
+    } catch (err) {
+      console.error("Error eliminando en Neon:", err);
+    }
+  }
+
+  const current = getStoredReservations();
+  const updated = current.filter((r) => r.id !== id);
+  saveStoredReservationsLocally(updated);
+  return true;
+}
+
+export async function syncReservationsWithNeon(): Promise<TicketReservation[]> {
+  const auth = getStoredHaroldAuth();
+  if (!auth) return getStoredReservations();
+
+  try {
+    const res = await fetchAdminReservationsServer({
+      data: auth,
+    });
+    if (res && res.ok) {
+      saveStoredReservationsLocally(res.reservations);
+      return res.reservations;
+    }
+  } catch (err) {
+    console.error("Error sincronizando con Neon:", err);
+  }
+  return getStoredReservations();
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DISPONIBILIDAD Y ESTADÍSTICAS
+   ───────────────────────────────────────────────────────────────────────────── */
+
+export interface ZoneAvailability {
+  zonaKey: string;
+  totalSeats: number;
+  soldSeats: number;
+  availableSeats: number;
+  percentSold: number;
+  isSoldOut: boolean;
+  isLowStock: boolean;
+}
+
+export function getZoneAvailability(
+  reservations: TicketReservation[],
+  funcion: string,
+  zonaKey: string
+): ZoneAvailability {
+  const meta = ZONAS_CONFIG[zonaKey] || { totalSeats: 50 };
+  const sold = reservations
+    .filter((r) => r.funcion === funcion && r.zonaKey === zonaKey && r.estado !== "anulado")
+    .reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+
+  const available = Math.max(0, meta.totalSeats - sold);
+  const percent = Math.min(100, Math.round((sold / meta.totalSeats) * 100));
+
+  return {
+    zonaKey,
+    totalSeats: meta.totalSeats,
+    soldSeats: sold,
+    availableSeats: available,
+    percentSold: percent,
+    isSoldOut: available <= 0,
+    isLowStock: available > 0 && available <= 10,
+  };
+}
+
+export function getCRMStats(reservations: TicketReservation[]) {
+  const active = reservations.filter((r) => r.estado !== "anulado");
+  const totalRevenue = active.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
+  const totalTickets = active.reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+
+  const active4pm = active.filter((r) => r.funcion === "4:00 pm");
+  const active7pm = active.filter((r) => r.funcion === "7:00 pm");
+
+  const tickets4pm = active4pm.reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+  const tickets7pm = active7pm.reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+
+  const revenue4pm = active4pm.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
+  const revenue7pm = active7pm.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
+
+  const totalCap = 256; // 64 + 46 + 66 + 80
+
+  return {
+    totalRevenue,
+    totalTickets,
+    tickets4pm,
+    tickets7pm,
+    revenue4pm,
+    revenue7pm,
+    totalCap,
+    percent4pm: Math.round((tickets4pm / totalCap) * 100),
+    percent7pm: Math.round((tickets7pm / totalCap) * 100),
+  };
+}
+
+export interface PromoMeta {
+  key: "twoXone" | "threeXtwo" | "twentyPct" | "regular";
+  label: string;
+  tag: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  dateRange: string;
+}
+
+export const PROMOS_CONFIG: Record<string, PromoMeta> = {
+  twoXone: {
+    key: "twoXone",
+    label: "Preventa 2x1",
+    tag: "2x1",
+    badgeBg: "bg-rose-50",
+    badgeText: "text-rose-700",
+    badgeBorder: "border-rose-200",
+    dateRange: "16 al 22 Sep",
+  },
+  threeXtwo: {
+    key: "threeXtwo",
+    label: "Preventa 3x2",
+    tag: "3x2",
+    badgeBg: "bg-amber-50",
+    badgeText: "text-amber-700",
+    badgeBorder: "border-amber-200",
+    dateRange: "23 Sep al 2 Oct",
+  },
+  twentyPct: {
+    key: "twentyPct",
+    label: "Preventa 20% dto.",
+    tag: "20% dto",
+    badgeBg: "bg-purple-50",
+    badgeText: "text-purple-700",
+    badgeBorder: "border-purple-200",
+    dateRange: "3 al 11 Oct",
+  },
+  regular: {
+    key: "regular",
+    label: "Precio Regular",
+    tag: "Regular",
+    badgeBg: "bg-slate-100",
+    badgeText: "text-slate-700",
+    badgeBorder: "border-slate-300",
+    dateRange: "12 al 18 Oct",
+  },
+};
+
+export interface PromoStat {
+  key: "twoXone" | "threeXtwo" | "twentyPct" | "regular";
+  meta: PromoMeta;
+  ticketsSold: number;
+  revenue: number;
+  ordersCount: number;
+  percentOfTotalTickets: number;
+  percentOfTotalRevenue: number;
+  avgTicketPrice: number;
+  isLeaderTickets: boolean;
+  isLeaderRevenue: boolean;
+}
+
+export interface PromosBreakdown {
+  items: PromoStat[];
+  totalTickets: number;
+  totalRevenue: number;
+  totalOrders: number;
+  avgTicketPriceGlobal: number;
+  topPromoByTickets: PromoStat | null;
+  topPromoByRevenue: PromoStat | null;
+}
+
+export function getPromosBreakdown(reservations: TicketReservation[]): PromosBreakdown {
+  const active = reservations.filter((r) => r.estado !== "anulado");
+  const totalTickets = active.reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+  const totalRevenue = active.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
+  const totalOrders = active.length;
+  const avgTicketPriceGlobal = totalTickets > 0 ? totalRevenue / totalTickets : 0;
+
+  const promoKeys: Array<"twoXone" | "threeXtwo" | "twentyPct" | "regular"> = [
+    "twoXone",
+    "threeXtwo",
+    "twentyPct",
+    "regular",
+  ];
+
+  let maxTickets = 0;
+  let maxRevenue = 0;
+
+  const rawItems = promoKeys.map((key) => {
+    const list = active.filter((r) => r.etapaPromo === key);
+    const ticketsSold = list.reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+    const revenue = list.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
+    const ordersCount = list.length;
+    const avgTicketPrice = ticketsSold > 0 ? revenue / ticketsSold : 0;
+    const percentOfTotalTickets = totalTickets > 0 ? Math.round((ticketsSold / totalTickets) * 100) : 0;
+    const percentOfTotalRevenue = totalRevenue > 0 ? Math.round((revenue / totalRevenue) * 100) : 0;
+
+    if (ticketsSold > maxTickets) maxTickets = ticketsSold;
+    if (revenue > maxRevenue) maxRevenue = revenue;
+
+    return {
+      key,
+      meta: PROMOS_CONFIG[key],
+      ticketsSold,
+      revenue,
+      ordersCount,
+      percentOfTotalTickets,
+      percentOfTotalRevenue,
+      avgTicketPrice,
+      isLeaderTickets: false,
+      isLeaderRevenue: false,
+    };
+  });
+
+  const items = rawItems.map((item) => ({
+    ...item,
+    isLeaderTickets: maxTickets > 0 && item.ticketsSold === maxTickets,
+    isLeaderRevenue: maxRevenue > 0 && item.revenue === maxRevenue,
+  }));
+
+  const topPromoByTickets = maxTickets > 0 ? items.find((i) => i.ticketsSold === maxTickets) || null : null;
+  const topPromoByRevenue = maxRevenue > 0 ? items.find((i) => i.revenue === maxRevenue) || null : null;
+
+  return {
+    items,
+    totalTickets,
+    totalRevenue,
+    totalOrders,
+    avgTicketPriceGlobal,
+    topPromoByTickets,
+    topPromoByRevenue,
+  };
+}
