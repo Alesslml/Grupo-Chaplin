@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { ensureTicketsSchema, getSql } from "@/lib/db.server";
 
-export type MetodoPago = "efectivo" | "yape" | "plin" | "transferencia";
+export type MetodoPago = "efectivo" | "yape" | "plin" | "transferencia" | "cortesia";
 
 export const METODOS_PAGO_CONFIG: Record<
   MetodoPago,
@@ -11,6 +11,7 @@ export const METODOS_PAGO_CONFIG: Record<
   plin: { label: "Plin", bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200" },
   transferencia: { label: "Transferencia", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
   efectivo: { label: "Efectivo", bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  cortesia: { label: "Pase de Cortesía", bg: "bg-amber-50", text: "text-amber-800", border: "border-amber-300" },
 };
 
 export interface TicketReservation {
@@ -22,7 +23,7 @@ export interface TicketReservation {
   funcion: "4:00 pm" | "7:00 pm";
   zonaKey: "superstar" | "cortesia" | "getsemani" | "hosanna" | "pueblo";
   cantidad: number;
-  etapaPromo: "twoXone" | "threeXtwo" | "twentyPct" | "regular";
+  etapaPromo: "twoXone" | "threeXtwo" | "twentyPct" | "regular" | "cortesia";
   totalPagado: number;
   metodoPago?: MetodoPago;
   vendedor: string;
@@ -49,11 +50,24 @@ export function buildWhatsAppReservationMessage(
   reservation: TicketReservation,
   baseUrl: string = "https://chaplingrupocultural.com"
 ): string {
+  const isCortesia =
+    reservation.etapaPromo === "cortesia" ||
+    reservation.zonaKey === "cortesia" ||
+    Number(reservation.totalPagado) === 0;
+
   const meta = ZONAS_CONFIG[reservation.zonaKey] || { label: "Zona General" };
-  const promoMeta = PROMOS_CONFIG[reservation.etapaPromo] || { label: "Precio Regular" };
-  const metodoLabel = METODOS_PAGO_CONFIG[reservation.metodoPago || "yape"]?.label || "Yape";
+  const promoMeta = isCortesia
+    ? { label: "Pase de Cortesía" }
+    : PROMOS_CONFIG[reservation.etapaPromo] || { label: "Precio Regular" };
+  const metodoLabel = isCortesia
+    ? "Pase de Cortesía"
+    : METODOS_PAGO_CONFIG[reservation.metodoPago || "yape"]?.label || "Yape";
   const ticketCode = reservation.ticketCode || reservation.id;
   const ticketUrl = `${baseUrl}/ticket/${reservation.ticketCode || reservation.id}`;
+
+  const montoText = isCortesia
+    ? `S/. 0.00 SOLES (PASE DE CORTESÍA)`
+    : `S/. ${Number(reservation.totalPagado).toFixed(2)} SOLES (${promoMeta.label.toUpperCase()})`;
 
   return (
     `🎸✝️🤘🔥 🎭\n\n` +
@@ -63,7 +77,7 @@ export function buildWhatsAppReservationMessage(
     `CANTIDAD: ${reservation.cantidad}\n` +
     `ZONA: ${meta.label.toUpperCase()}\n` +
     `HORARIO DE FUNCIÓN: ${reservation.funcion.toUpperCase()} (Domingo 18 de Octubre)\n` +
-    `MONTO: S/. ${Number(reservation.totalPagado).toFixed(2)} SOLES (${promoMeta.label.toUpperCase()})\n` +
+    `MONTO: ${montoText}\n` +
     `VENDEDOR: ${reservation.vendedor}\n` +
     `CÓDIGO DE TICKET: #${ticketCode}\n\n` +
     `🎟️ ENLACE DE TU BOLETO DIGITAL OFICIAL:\n` +
@@ -127,12 +141,12 @@ export const verifyHaroldLoginServer = createServerFn({ method: "POST" })
 export const fetchPublicAvailabilityServer = createServerFn({ method: "POST" }).handler(async () => {
   await ensureTicketsSchema();
   const sql = getSql();
-  const rows = await sql`
+  const rows = (await sql`
     select funcion, zona_key, sum(cantidad)::int as sold
     from ticket_reservations
     where estado != 'anulado'
     group by funcion, zona_key
-  `;
+  `) as any[];
 
   const soldMap: Record<string, Record<string, number>> = {
     "4:00 pm": { superstar: 0, cortesia: 0, getsemani: 0, hosanna: 0, pueblo: 0 },
@@ -160,7 +174,7 @@ export const fetchAdminReservationsServer = createServerFn({ method: "POST" })
     }
     await ensureTicketsSchema();
     const sql = getSql();
-    const rows = await sql`
+    const rows = (await sql`
       select 
         id, 
         created_at, 
@@ -179,7 +193,7 @@ export const fetchAdminReservationsServer = createServerFn({ method: "POST" })
         ticket_code
       from ticket_reservations
       order by created_at desc
-    `;
+    `) as any[];
 
     const reservations: TicketReservation[] = rows.map((r, idx) => ({
       id: String(r.id),
@@ -220,10 +234,10 @@ export const saveAdminReservationServer = createServerFn({ method: "POST" })
     const r = data.reservation;
 
     // Calcular siguiente secuencial por función y zona
-    const countRow = await sql`
+    const countRow = (await sql`
       select count(*)::int as cnt from ticket_reservations 
       where funcion = ${r.funcion} and zona_key = ${r.zonaKey}
-    `;
+    `) as any[];
     const nextSeq = Number(countRow[0]?.cnt || 0) + 1;
     const ticketCode = r.ticketCode || generateTicketCode(r.funcion, r.zonaKey, nextSeq);
 
@@ -278,7 +292,7 @@ export const fetchTicketByIdServer = createServerFn({ method: "POST" })
     if (!data.id) return { ok: false as const, ticket: null };
     await ensureTicketsSchema();
     const sql = getSql();
-    const rows = await sql`
+    const rows = (await sql`
       select 
         id, 
         created_at, 
@@ -298,7 +312,7 @@ export const fetchTicketByIdServer = createServerFn({ method: "POST" })
       from ticket_reservations
       where id = ${data.id} or ticket_code = ${data.id}
       limit 1
-    `;
+    `) as any[];
 
     if (!rows || rows.length === 0) {
       return { ok: false as const, ticket: null };
@@ -551,7 +565,7 @@ export function getCRMStats(reservations: TicketReservation[]) {
 }
 
 export interface PromoMeta {
-  key: "twoXone" | "threeXtwo" | "twentyPct" | "regular";
+  key: "twoXone" | "threeXtwo" | "twentyPct" | "regular" | "cortesia";
   label: string;
   tag: string;
   badgeBg: string;
@@ -597,10 +611,19 @@ export const PROMOS_CONFIG: Record<string, PromoMeta> = {
     badgeBorder: "border-slate-300",
     dateRange: "12 al 18 Oct",
   },
+  cortesia: {
+    key: "cortesia",
+    label: "Pase de Cortesía",
+    tag: "Cortesía",
+    badgeBg: "bg-amber-50",
+    badgeText: "text-amber-800",
+    badgeBorder: "border-amber-300",
+    dateRange: "Sin costo (S/ 0.00)",
+  },
 };
 
 export interface PromoStat {
-  key: "twoXone" | "threeXtwo" | "twentyPct" | "regular";
+  key: "twoXone" | "threeXtwo" | "twentyPct" | "regular" | "cortesia";
   meta: PromoMeta;
   ticketsSold: number;
   revenue: number;
@@ -629,11 +652,12 @@ export function getPromosBreakdown(reservations: TicketReservation[]): PromosBre
   const totalOrders = active.length;
   const avgTicketPriceGlobal = totalTickets > 0 ? totalRevenue / totalTickets : 0;
 
-  const promoKeys: Array<"twoXone" | "threeXtwo" | "twentyPct" | "regular"> = [
+  const promoKeys: Array<"twoXone" | "threeXtwo" | "twentyPct" | "regular" | "cortesia"> = [
     "twoXone",
     "threeXtwo",
     "twentyPct",
     "regular",
+    "cortesia",
   ];
 
   let maxTickets = 0;
@@ -667,12 +691,23 @@ export function getPromosBreakdown(reservations: TicketReservation[]): PromosBre
 
   const items = rawItems.map((item) => ({
     ...item,
-    isLeaderTickets: maxTickets > 0 && item.ticketsSold === maxTickets,
-    isLeaderRevenue: maxRevenue > 0 && item.revenue === maxRevenue,
+    isLeaderTickets: maxTickets > 0 && item.key !== "cortesia" && item.ticketsSold === maxTickets,
+    isLeaderRevenue: maxRevenue > 0 && item.key !== "cortesia" && item.revenue === maxRevenue,
   }));
 
-  const topPromoByTickets = maxTickets > 0 ? items.find((i) => i.ticketsSold === maxTickets) || null : null;
-  const topPromoByRevenue = maxRevenue > 0 ? items.find((i) => i.revenue === maxRevenue) || null : null;
+  // Excluimos 'cortesia' del cálculo de líderes comerciales de promociones
+  const commercialItems = items.filter((i) => i.key !== "cortesia");
+  let maxCommercialTickets = 0;
+  let maxCommercialRevenue = 0;
+  commercialItems.forEach((i) => {
+    if (i.ticketsSold > maxCommercialTickets) maxCommercialTickets = i.ticketsSold;
+    if (i.revenue > maxCommercialRevenue) maxCommercialRevenue = i.revenue;
+  });
+
+  const topPromoByTickets =
+    maxCommercialTickets > 0 ? commercialItems.find((i) => i.ticketsSold === maxCommercialTickets) || null : null;
+  const topPromoByRevenue =
+    maxCommercialRevenue > 0 ? commercialItems.find((i) => i.revenue === maxCommercialRevenue) || null : null;
 
   return {
     items,

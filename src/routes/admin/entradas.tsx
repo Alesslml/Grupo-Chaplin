@@ -62,11 +62,11 @@ export const Route = createFileRoute("/admin/entradas")({
 });
 
 const PRECIOS_POR_DEFECTO: Record<string, Record<string, number>> = {
-  superstar: { twoXone: 80, threeXtwo: 160, twentyPct: 64, regular: 80 },
-  cortesia: { twoXone: 0, threeXtwo: 0, twentyPct: 0, regular: 0 },
-  getsemani: { twoXone: 60, threeXtwo: 120, twentyPct: 48, regular: 60 },
-  hosanna: { twoXone: 40, threeXtwo: 80, twentyPct: 32, regular: 40 },
-  pueblo: { twoXone: 20, threeXtwo: 40, twentyPct: 16, regular: 20 },
+  superstar: { twoXone: 80, threeXtwo: 160, twentyPct: 64, regular: 80, cortesia: 0 },
+  cortesia: { twoXone: 0, threeXtwo: 0, twentyPct: 0, regular: 0, cortesia: 0 },
+  getsemani: { twoXone: 60, threeXtwo: 120, twentyPct: 48, regular: 60, cortesia: 0 },
+  hosanna: { twoXone: 40, threeXtwo: 80, twentyPct: 32, regular: 40, cortesia: 0 },
+  pueblo: { twoXone: 20, threeXtwo: 40, twentyPct: 16, regular: 20, cortesia: 0 },
 };
 
 function AdminEntradasPage() {
@@ -96,7 +96,7 @@ function AdminEntradasPage() {
   // La zona inicia en null para que RECIÉN al seleccionarla se muestre el aforo disponible
   const [formZona, setFormZona] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState(2);
-  const [promo, setPromo] = useState<"twoXone" | "threeXtwo" | "twentyPct" | "regular">("twoXone");
+  const [promo, setPromo] = useState<"twoXone" | "threeXtwo" | "twentyPct" | "regular" | "cortesia">("twoXone");
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("yape");
   const [vendedor, setVendedor] = useState("");
   const [notas, setNotas] = useState("");
@@ -216,9 +216,13 @@ function AdminEntradasPage() {
     return getZoneAvailability(reservations, formFuncion, formZona);
   }, [reservations, formFuncion, formZona]);
 
+  // Detección de Pase de Cortesía activo en el formulario
+  const isCortesiaSelected = formZona === "cortesia" || promo === "cortesia";
+
   // Precio sugerido en el formulario
   const precioSugerido = useMemo(() => {
     if (!formZona) return 0;
+    if (formZona === "cortesia" || promo === "cortesia") return 0;
     const base = PRECIOS_POR_DEFECTO[formZona]?.[promo] || 80;
     if (promo === "twoXone") {
       const grupos = Math.ceil(cantidad / 2);
@@ -232,7 +236,7 @@ function AdminEntradasPage() {
   }, [formZona, promo, cantidad]);
 
   const [totalManual, setTotalManual] = useState<number | null>(null);
-  const totalFinal = totalManual !== null ? totalManual : precioSugerido;
+  const totalFinal = isCortesiaSelected ? 0 : (totalManual !== null ? totalManual : precioSugerido);
 
   // Manejar creación
   const handleSubmit = async (e: React.FormEvent) => {
@@ -241,6 +245,11 @@ function AdminEntradasPage() {
 
     setIsSubmitting(true);
     try {
+      const isCortesiaEntry = formZona === "cortesia" || promo === "cortesia";
+      const finalPromo = isCortesiaEntry ? "cortesia" : promo;
+      const finalMetodo = isCortesiaEntry ? "cortesia" : metodoPago;
+      const finalTotal = isCortesiaEntry ? 0 : (Number(totalFinal) || 0);
+
       const newRes = await saveReservation({
         clienteNombre: nombre.trim(),
         clienteTelefono: telefono.trim() || "No registrado",
@@ -248,12 +257,12 @@ function AdminEntradasPage() {
         funcion: formFuncion,
         zonaKey: formZona as any,
         cantidad: Number(cantidad) || 1,
-        etapaPromo: promo,
-        totalPagado: Number(totalFinal) || 0,
-        metodoPago,
-        vendedor: vendedor.trim() || "Boletería",
+        etapaPromo: finalPromo,
+        totalPagado: finalTotal,
+        metodoPago: finalMetodo,
+        vendedor: vendedor.trim() || (isCortesiaEntry ? "Dirección" : "Boletería"),
         estado: "confirmado",
-        notas: notas.trim() || undefined,
+        notas: notas.trim() || (isCortesiaEntry ? "Pase de Cortesía" : undefined),
       });
 
       setLastRegistered(newRes);
@@ -263,6 +272,8 @@ function AdminEntradasPage() {
       setVendedor("");
       setNotas("");
       setFormZona(null); // Resetea la zona para el siguiente registro
+      setPromo("twoXone");
+      setMetodoPago("yape");
       setTotalManual(null);
       setReservations(getStoredReservations());
     } finally {
@@ -994,6 +1005,7 @@ function AdminEntradasPage() {
                     <option value="threeXtwo">Preventa 3x2</option>
                     <option value="twentyPct">Preventa 20% dto.</option>
                     <option value="regular">Precio Regular</option>
+                    <option value="cortesia">🎁 Pase de Cortesía</option>
                   </select>
                 </div>
 
@@ -1008,6 +1020,7 @@ function AdminEntradasPage() {
                     <option value="plin">🔵 Solo Plin</option>
                     <option value="transferencia">🏦 Solo Transferencia</option>
                     <option value="efectivo">💵 Solo Efectivo</option>
+                    <option value="cortesia">🎁 Solo Cortesía</option>
                   </select>
                 </div>
               </div>
@@ -1096,7 +1109,16 @@ function AdminEntradasPage() {
                             </td>
 
                             <td className="px-4 py-3.5">
-                              <div className="font-bold text-red-600 text-sm">S/ {r.totalPagado.toFixed(2)}</div>
+                              {r.etapaPromo === "cortesia" || r.zonaKey === "cortesia" || Number(r.totalPagado) === 0 ? (
+                                <div className="font-bold text-amber-600 text-sm flex items-center gap-1.5">
+                                  <span>S/ 0.00</span>
+                                  <span className="text-[10px] text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded font-extrabold">
+                                    Cortesía
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="font-bold text-red-600 text-sm">S/ {r.totalPagado.toFixed(2)}</div>
+                              )}
                               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                 {PROMOS_CONFIG[r.etapaPromo] ? (
                                   <span
@@ -1222,37 +1244,76 @@ function AdminEntradasPage() {
             </div>
 
             {/* Mensaje de Confirmación tras Registrar con Enlace de Ticket */}
-            {lastRegistered && (
-              <div className="p-6 bg-emerald-50 border-2 border-emerald-300 text-emerald-950 rounded-2xl shadow-sm space-y-4 animate-fade-in">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-7 h-7 text-emerald-600 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full mb-1">
-                        <span>Ticket #{lastRegistered.ticketCode || lastRegistered.id}</span>
-                      </div>
-                      <h3 className="font-bold text-lg text-emerald-950">
-                        ¡Venta registrada con éxito para {lastRegistered.clienteNombre}!
-                      </h3>
-                      <p className="text-xs text-emerald-800 mt-1">
-                        Se descontaron <strong>{lastRegistered.cantidad} asientos</strong> de{" "}
-                        <strong>{ZONAS_CONFIG[lastRegistered.zonaKey]?.label}</strong> para la función de las{" "}
-                        <strong>{lastRegistered.funcion}</strong>. Total: <strong>S/ {lastRegistered.totalPagado.toFixed(2)}</strong> vía{" "}
-                        <strong>{METODOS_PAGO_CONFIG[lastRegistered.metodoPago || "yape"]?.label || "Yape"}</strong>.
-                      </p>
-                    </div>
-                  </div>
+            {lastRegistered && (() => {
+              const isCortesia =
+                lastRegistered.etapaPromo === "cortesia" ||
+                lastRegistered.zonaKey === "cortesia" ||
+                Number(lastRegistered.totalPagado) === 0;
 
-                  <a
-                    href={`/ticket/${lastRegistered.ticketCode || lastRegistered.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-emerald-300 hover:border-emerald-400 text-emerald-800 text-xs font-bold rounded-lg transition-colors shadow-2xs shrink-0"
-                  >
-                    <span>Ver Boleto Digital</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
+              return (
+                <div
+                  className={`p-6 border-2 rounded-2xl shadow-sm space-y-4 animate-fade-in ${
+                    isCortesia
+                      ? "bg-amber-50/90 border-amber-300 text-amber-950"
+                      : "bg-emerald-50 border-emerald-300 text-emerald-950"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      {isCortesia ? (
+                        <Sparkles className="w-7 h-7 text-amber-600 shrink-0 mt-0.5" />
+                      ) : (
+                        <CheckCircle2 className="w-7 h-7 text-emerald-600 shrink-0 mt-0.5" />
+                      )}
+                      <div>
+                        <div
+                          className={`inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full mb-1 ${
+                            isCortesia
+                              ? "bg-amber-200/80 text-amber-900 border border-amber-300"
+                              : "bg-emerald-100 text-emerald-800"
+                          }`}
+                        >
+                          <span>Ticket #{lastRegistered.ticketCode || lastRegistered.id}</span>
+                          {isCortesia && (
+                            <span className="font-bold text-amber-800">· PASE DE CORTESÍA (S/ 0.00)</span>
+                          )}
+                        </div>
+                        <h3 className="font-bold text-lg">
+                          {isCortesia
+                            ? `¡Pase de cortesía registrado con éxito para ${lastRegistered.clienteNombre}!`
+                            : `¡Venta registrada con éxito para ${lastRegistered.clienteNombre}!`}
+                        </h3>
+                        <p className={`text-xs mt-1 ${isCortesia ? "text-amber-900" : "text-emerald-800"}`}>
+                          Se asignaron <strong>{lastRegistered.cantidad} asientos</strong> de{" "}
+                          <strong>{ZONAS_CONFIG[lastRegistered.zonaKey]?.label}</strong> para la función de las{" "}
+                          <strong>{lastRegistered.funcion}</strong>. Total:{" "}
+                          <strong className={isCortesia ? "text-amber-800" : ""}>
+                            {isCortesia ? "S/ 0.00 (Sin Costo)" : `S/ ${lastRegistered.totalPagado.toFixed(2)}`}
+                          </strong>{" "}
+                          vía{" "}
+                          <strong>
+                            {isCortesia
+                              ? "Pase de Cortesía"
+                              : METODOS_PAGO_CONFIG[lastRegistered.metodoPago || "yape"]?.label || "Yape"}
+                          </strong>.
+                        </p>
+                      </div>
+                    </div>
+
+                    <a
+                      href={`/ticket/${lastRegistered.ticketCode || lastRegistered.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border text-xs font-bold rounded-lg transition-colors shadow-2xs shrink-0 ${
+                        isCortesia
+                          ? "border-amber-300 hover:border-amber-400 text-amber-900"
+                          : "border-emerald-300 hover:border-emerald-400 text-emerald-800"
+                      }`}
+                    >
+                      <span>Ver Boleto Digital</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
 
                 {/* Acciones directas para enviar por WhatsApp al comprador */}
                 <div className="p-4 bg-white border border-emerald-200 rounded-xl space-y-2.5">
@@ -1313,9 +1374,11 @@ function AdminEntradasPage() {
                   <button
                     type="button"
                     onClick={() => setLastRegistered(null)}
-                    className="px-4 py-2 bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider hover:bg-emerald-900 rounded-md transition-colors shadow-2xs"
+                    className={`px-4 py-2 text-white text-xs font-bold uppercase tracking-wider rounded-md transition-colors shadow-2xs ${
+                      isCortesia ? "bg-amber-800 hover:bg-amber-900" : "bg-emerald-800 hover:bg-emerald-900"
+                    }`}
                   >
-                    + Registrar Otra Venta
+                    {isCortesia ? "+ Registrar Otro Pase de Cortesía" : "+ Registrar Otra Venta"}
                   </button>
                   <button
                     type="button"
@@ -1323,13 +1386,17 @@ function AdminEntradasPage() {
                       setActiveTab("dashboard");
                       setLastRegistered(null);
                     }}
-                    className="px-4 py-2 bg-white border border-emerald-300 text-emerald-800 text-xs font-bold uppercase tracking-wider hover:bg-emerald-100 rounded-md transition-colors"
+                    className={`px-4 py-2 bg-white border text-xs font-bold uppercase tracking-wider rounded-md transition-colors ${
+                      isCortesia
+                        ? "border-amber-300 text-amber-900 hover:bg-amber-100"
+                        : "border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                    }`}
                   >
                     Ver en el Dashboard
                   </button>
                 </div>
               </div>
-            )}
+            ); })()}
 
             {/* Tarjeta del Formulario Limpio en Color Claro */}
             <div className="border border-slate-200 bg-white p-6 sm:p-8 rounded-xl shadow-sm space-y-6">
@@ -1393,7 +1460,18 @@ function AdminEntradasPage() {
                         <button
                           key={meta.key}
                           type="button"
-                          onClick={() => setFormZona(meta.key)}
+                          onClick={() => {
+                            setFormZona(meta.key);
+                            if (meta.key === "cortesia") {
+                              setPromo("cortesia");
+                              setMetodoPago("cortesia");
+                              setTotalManual(0);
+                            } else if (promo === "cortesia") {
+                              setPromo("twoXone");
+                              setMetodoPago("yape");
+                              setTotalManual(null);
+                            }
+                          }}
                           className={`p-3 rounded-lg border text-left transition-all relative ${
                             isSelected
                               ? "border-red-600 bg-red-50/80 ring-2 ring-red-600/30 shadow-xs"
@@ -1507,16 +1585,34 @@ function AdminEntradasPage() {
                     <label className="block text-xs uppercase tracking-wider text-slate-700 font-bold mb-1.5">
                       Etapa / Promoción
                     </label>
-                    <select
-                      value={promo}
-                      onChange={(e) => setPromo(e.target.value as any)}
-                      className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 focus:outline-hidden focus:border-red-600 font-medium"
-                    >
-                      <option value="twoXone">Preventa 2x1 (Hoy)</option>
-                      <option value="threeXtwo">Preventa 3x2</option>
-                      <option value="twentyPct">Preventa 20%</option>
-                      <option value="regular">Precio Regular</option>
-                    </select>
+                    {formZona === "cortesia" ? (
+                      <div className="w-full bg-amber-50 border-2 border-amber-300 rounded-md px-3.5 py-2 text-xs text-amber-900 font-bold flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Pase de Cortesía · Costo S/ 0.00 (Sin promociones)</span>
+                      </div>
+                    ) : (
+                      <select
+                        value={promo}
+                        onChange={(e) => {
+                          const newPromo = e.target.value as any;
+                          setPromo(newPromo);
+                          if (newPromo === "cortesia") {
+                            setMetodoPago("cortesia");
+                            setTotalManual(0);
+                          } else if (metodoPago === "cortesia") {
+                            setMetodoPago("yape");
+                            setTotalManual(null);
+                          }
+                        }}
+                        className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 focus:outline-hidden focus:border-red-600 font-medium"
+                      >
+                        <option value="twoXone">Preventa 2x1 (Hoy)</option>
+                        <option value="threeXtwo">Preventa 3x2</option>
+                        <option value="twentyPct">Preventa 20%</option>
+                        <option value="regular">Precio Regular</option>
+                        <option value="cortesia">🎁 Pase de Cortesía (Costo S/ 0.00)</option>
+                      </select>
+                    )}
                   </div>
                 </div>
 
@@ -1526,35 +1622,66 @@ function AdminEntradasPage() {
                     <label className="block text-xs uppercase tracking-wider text-slate-700 font-bold mb-1.5">
                       Total Pagado por el Cliente (S/) *
                     </label>
-                    <input
-                      type="number"
-                      step="1"
-                      value={totalFinal}
-                      onChange={(e) => setTotalManual(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-base text-red-600 font-extrabold focus:outline-hidden focus:border-red-600 focus:ring-1 focus:ring-red-600"
-                    />
-                    <span className="text-[11px] text-slate-500 mt-1 block">
-                      Calculado automáticamente según la promo.
-                    </span>
+                    {isCortesiaSelected ? (
+                      <div>
+                        <input
+                          type="text"
+                          disabled
+                          value="S/ 0.00 (Cortesía)"
+                          className="w-full bg-amber-50 border-2 border-amber-300 rounded-md px-3.5 py-2.5 text-base text-amber-800 font-extrabold cursor-not-allowed"
+                        />
+                        <span className="text-[11px] text-amber-700 font-semibold mt-1 block">
+                          🎁 Costo S/ 0.00 obligatorio por pase oficial de cortesía.
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        <input
+                          type="number"
+                          step="1"
+                          value={totalFinal}
+                          onChange={(e) => setTotalManual(parseFloat(e.target.value) || 0)}
+                          className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-base text-red-600 font-extrabold focus:outline-hidden focus:border-red-600 focus:ring-1 focus:ring-red-600"
+                        />
+                        <span className="text-[11px] text-slate-500 mt-1 block">
+                          Calculado automáticamente según la promo.
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div>
                     <label className="block text-xs uppercase tracking-wider text-slate-700 font-bold mb-1.5">
                       Método de Pago *
                     </label>
-                    <select
-                      value={metodoPago}
-                      onChange={(e) => setMetodoPago(e.target.value as MetodoPago)}
-                      className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 font-semibold focus:outline-hidden focus:border-red-600 focus:ring-1 focus:ring-red-600"
-                    >
-                      <option value="efectivo">💵 Efectivo</option>
-                      <option value="yape">🟣 Yape</option>
-                      <option value="plin">🔵 Plin</option>
-                      <option value="transferencia">🏦 Transferencia Bancaria</option>
-                    </select>
-                    <span className="text-[11px] text-slate-500 mt-1 block">
-                      Medio por el cual el cliente realizó el abono.
-                    </span>
+                    {isCortesiaSelected ? (
+                      <div>
+                        <div className="w-full bg-amber-50 border-2 border-amber-300 rounded-md px-3.5 py-2.5 text-sm text-amber-900 font-bold flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-amber-600" />
+                          <span>🎁 Pase de Cortesía (Sin Costo)</span>
+                        </div>
+                        <span className="text-[11px] text-amber-700 font-medium mt-1 block">
+                          Entrada oficial de honor sin abono bancario.
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        <select
+                          value={metodoPago}
+                          onChange={(e) => setMetodoPago(e.target.value as MetodoPago)}
+                          className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 font-semibold focus:outline-hidden focus:border-red-600 focus:ring-1 focus:ring-red-600"
+                        >
+                          <option value="efectivo">💵 Efectivo</option>
+                          <option value="yape">🟣 Yape</option>
+                          <option value="plin">🔵 Plin</option>
+                          <option value="transferencia">🏦 Transferencia Bancaria</option>
+                          <option value="cortesia">🎁 Pase de Cortesía</option>
+                        </select>
+                        <span className="text-[11px] text-slate-500 mt-1 block">
+                          Medio por el cual el cliente realizó el abono.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1592,14 +1719,18 @@ function AdminEntradasPage() {
                   disabled={!formZona || isSubmitting}
                   className={`w-full py-3.5 font-bold uppercase tracking-wider text-sm rounded-lg transition-all flex items-center justify-center gap-2 mt-4 shadow-sm ${
                     formZona && !isSubmitting
-                      ? "bg-red-600 text-white hover:bg-red-700 cursor-pointer"
+                      ? isCortesiaSelected
+                        ? "bg-amber-600 text-white hover:bg-amber-700 cursor-pointer"
+                        : "bg-red-600 text-white hover:bg-red-700 cursor-pointer"
                       : "bg-slate-200 text-slate-400 cursor-not-allowed"
                   }`}
                 >
                   <ShieldCheck className="w-5 h-5" />
                   <span>
                     {isSubmitting
-                      ? "Registrando Venta en el Sistema..."
+                      ? "Registrando en el Sistema..."
+                      : isCortesiaSelected
+                      ? `Confirmar Pase de Cortesía (${cantidad} Asientos · S/ 0.00)`
                       : formZona
                       ? `Confirmar Venta y Descontar ${cantidad} Asientos (${ZONAS_CONFIG[formZona]?.label})`
                       : "Selecciona una zona arriba para continuar"}

@@ -63,9 +63,16 @@ function TicketPage() {
     }
   }, [ticket, ticketId]);
 
+  const isCortesia =
+    ticket?.etapaPromo === "cortesia" ||
+    ticket?.zonaKey === "cortesia" ||
+    Number(ticket?.totalPagado) === 0;
+
   const meta = ticket ? ZONAS_CONFIG[ticket.zonaKey] || { label: "Zona General", color: "#fe0000", totalSeats: 60 } : null;
   const promoMeta = ticket ? PROMOS_CONFIG[ticket.etapaPromo] || { label: "Precio Regular" } : null;
-  const metodoLabel = ticket ? METODOS_PAGO_CONFIG[ticket.metodoPago || "yape"]?.label || "Yape" : "Yape";
+  const promoLabel = isCortesia ? "Pase de Cortesía (Sin Costo)" : (promoMeta?.label || "Precio Regular");
+  const totalLabel = isCortesia ? "S/ 0.00 SOLES (CORTESÍA)" : `S/ ${Number(ticket?.totalPagado).toFixed(2)} SOLES`;
+  const metodoLabel = isCortesia ? "Pase de Cortesía" : (ticket ? METODOS_PAGO_CONFIG[ticket.metodoPago || "yape"]?.label || "Yape" : "Yape");
 
   const handleCopyLink = () => {
     if (typeof window !== "undefined") {
@@ -236,6 +243,27 @@ function TicketPage() {
 
           {/* Cuerpo del Ticket */}
           <div className="p-6 sm:p-8 space-y-6">
+            {isCortesia && (
+              <div className="p-3.5 bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-amber-500/20 border-2 border-amber-400/60 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-200 shadow-sm animate-fade-in">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-400/20 border border-amber-400/50 flex items-center justify-center text-amber-300 shrink-0">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold uppercase tracking-wider text-[11px] text-amber-300 block">
+                      Pase Oficial de Cortesía · Costo S/ 0.00
+                    </span>
+                    <span className="text-[10px] text-amber-200/70 block">
+                      Entrada de honor confirmada para el evento.
+                    </span>
+                  </div>
+                </div>
+                <span className="font-mono font-extrabold text-[10px] bg-amber-400/25 text-amber-200 px-2.5 py-1 rounded-full border border-amber-400/50 uppercase tracking-widest shrink-0">
+                  Cortesía
+                </span>
+              </div>
+            )}
+
             {/* Código del ticket y zona */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gris-textura/60">
               <div>
@@ -336,14 +364,14 @@ function TicketPage() {
                 <div className="p-3 sm:p-3.5 flex justify-between items-center">
                   <span className="text-blanco/50 font-medium">PROMOCIÓN / TARIFA:</span>
                   <span className="font-bold text-amber-300 uppercase">
-                    {promoMeta?.label}
+                    {promoLabel}
                   </span>
                 </div>
 
                 <div className="p-3 sm:p-3.5 flex justify-between items-center">
                   <span className="text-blanco/50 font-medium">TOTAL PAGADO:</span>
-                  <span className="font-mono font-bold text-emerald-400 text-sm">
-                    S/ {Number(ticket.totalPagado).toFixed(2)} SOLES
+                  <span className={`font-mono font-bold text-sm ${isCortesia ? "text-amber-400" : "text-emerald-400"}`}>
+                    {totalLabel}
                   </span>
                 </div>
 
@@ -392,12 +420,12 @@ function TicketPage() {
                   CANJE DE ENTRADAS CON TU DNI
                 </h4>
                 <p className="text-[11px] text-blanco/70 leading-relaxed">
-                  El personal de Chaplin Grupo Cultural validará tu compra en el sistema CRM con tu DNI (<strong className="text-blanco font-bold">{ticket.clienteDni || "Registrado"}</strong>) o tu Código de Ticket (<strong className="text-[#ffd700] font-mono font-bold">#{ticket.ticketCode || ticket.id}</strong>) en el Auditorio del Colegio de Ingenieros de Ica para hacer entrega de tus entradas físicas.
+                  El personal de Chaplin Grupo Cultural validará tu {isCortesia ? "pase de cortesía" : "compra"} en el sistema CRM con tu DNI (<strong className="text-blanco font-bold">{ticket.clienteDni || "Registrado"}</strong>) o tu Código de Ticket (<strong className="text-[#ffd700] font-mono font-bold">#{ticket.ticketCode || ticket.id}</strong>) en el Auditorio del Colegio de Ingenieros de Ica para hacer entrega de tus entradas físicas.
                 </p>
                 <div className="flex items-center justify-center sm:justify-start gap-1.5 pt-0.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
-                    Boleto Registrado y Verificado en el CRM Oficial
+                    {isCortesia ? "Pase de Cortesía Registrado en el CRM Oficial" : "Boleto Registrado y Verificado en el CRM Oficial"}
                   </span>
                 </div>
               </div>

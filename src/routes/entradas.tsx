@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
-import { MessageCircle, Minus, Plus, Calendar, Clock, MapPin, Users, ShieldCheck, Flame } from "lucide-react";
+import { MessageCircle, Minus, Plus, Calendar, Clock, MapPin, Users, ShieldCheck, Flame, AlertCircle } from "lucide-react";
 import {
   getStoredReservations,
   getZoneAvailability,
