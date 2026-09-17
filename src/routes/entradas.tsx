@@ -70,7 +70,7 @@ const zonasVenta: Zone[] = [
     key: "superstar",
     label: "Zona Superstar",
     color: "#fe0000",
-    seats: 64,
+    seats: 60,
     prices: { twoXone: 80, threeXtwo: 160, twentyPct: 64, regular: 80 },
     sellable: true,
   },
@@ -78,7 +78,7 @@ const zonasVenta: Zone[] = [
     key: "getsemani",
     label: "Zona Getsemaní",
     color: "#f2d675",
-    seats: 46,
+    seats: 47,
     prices: { twoXone: 60, threeXtwo: 120, twentyPct: 48, regular: 60 },
     sellable: true,
   },
@@ -86,7 +86,7 @@ const zonasVenta: Zone[] = [
     key: "hosanna",
     label: "Zona Hosanna",
     color: "#7dd3e8",
-    seats: 66,
+    seats: 67,
     prices: { twoXone: 40, threeXtwo: 80, twentyPct: 32, regular: 40 },
     sellable: true,
   },
@@ -589,11 +589,43 @@ function EntradasPage() {
               <h2 className="font-display text-blanco text-3xl mb-8">Mapa de zonas</h2>
               <img
                 src={mapaZonas}
-                alt="Mapa de asistencia Jesucristo Rockstar: Zona Superstar, Zona Getsemaní, Zona Hosanna y 2do piso Zona Pueblo"
+                alt="Mapa de asistencia Jesucristo Rockstar: Zona Superstar, Zona Cortesía, Zona Getsemaní, Zona Hosanna y 2do piso Zona Pueblo"
                 className="w-full border border-gris-textura mb-6"
               />
               <div className="border border-gris-textura">
-                {zonasVenta.map((z) => {
+                {zonasVenta.slice(0, 1).map((z) => {
+                  const avail = funcion ? getZoneAvailability(liveReservations, funcion, z.key) : undefined;
+                  return (
+                    <ZoneRow
+                      key={z.key}
+                      zone={z}
+                      selected={zonaKey === z.key}
+                      availability={avail}
+                      onSelect={() => setZonaKey(z.key)}
+                    />
+                  );
+                })}
+                {/* Zona Cortesía - Fila referencial del mapa (14 asientos) */}
+                <div className="w-full flex items-center justify-between px-6 py-4 border-t border-gris-textura text-left bg-blanco/[0.02]">
+                  <div className="flex items-center gap-4">
+                    <span className="w-5 h-5 shrink-0" style={{ backgroundColor: "#c59a58" }} />
+                    <div>
+                      <span className="font-body font-semibold uppercase tracking-[0.1em] text-sm text-blanco/80">
+                        Zona Cortesía
+                      </span>
+                      <span className="block text-[10px] text-amber-300/80 font-medium mt-0.5">
+                        Fila reservada para invitados especiales y producción
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-body text-blanco/80 text-xs font-semibold block">
+                      14 asientos
+                    </span>
+                    <span className="font-body text-blanco/40 text-[10px]">por función</span>
+                  </div>
+                </div>
+                {zonasVenta.slice(1).map((z) => {
                   const avail = funcion ? getZoneAvailability(liveReservations, funcion, z.key) : undefined;
                   return (
                     <ZoneRow

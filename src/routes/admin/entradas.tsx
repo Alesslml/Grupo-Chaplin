@@ -59,6 +59,7 @@ export const Route = createFileRoute("/admin/entradas")({
 
 const PRECIOS_POR_DEFECTO: Record<string, Record<string, number>> = {
   superstar: { twoXone: 80, threeXtwo: 160, twentyPct: 64, regular: 80 },
+  cortesia: { twoXone: 0, threeXtwo: 0, twentyPct: 0, regular: 0 },
   getsemani: { twoXone: 60, threeXtwo: 120, twentyPct: 48, regular: 60 },
   hosanna: { twoXone: 40, threeXtwo: 80, twentyPct: 32, regular: 40 },
   pueblo: { twoXone: 20, threeXtwo: 40, twentyPct: 16, regular: 20 },
@@ -531,7 +532,7 @@ function AdminEntradasPage() {
                     </span>
                     <div className="font-display text-2xl text-slate-900 font-bold leading-tight mt-0.5">
                       {stats.tickets4pm}{" "}
-                      <span className="text-xs text-slate-400 font-normal font-body">/ 256</span>
+                      <span className="text-xs text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
                     </div>
                     <span className="text-[10px] text-amber-700 font-semibold block mt-0.5">
                       {stats.percent4pm}% ocupado
@@ -544,7 +545,7 @@ function AdminEntradasPage() {
                     </span>
                     <div className="font-display text-2xl text-slate-900 font-bold leading-tight mt-0.5">
                       {stats.tickets7pm}{" "}
-                      <span className="text-xs text-slate-400 font-normal font-body">/ 256</span>
+                      <span className="text-xs text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
                     </div>
                     <span className="text-[10px] text-sky-700 font-semibold block mt-0.5">
                       {stats.percent7pm}% ocupado
@@ -566,7 +567,7 @@ function AdminEntradasPage() {
                 <div className="flex items-baseline justify-between">
                   <div className="font-display text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
                     {stats.tickets4pm}{" "}
-                    <span className="text-base text-slate-400 font-normal font-body">/ 256</span>
+                    <span className="text-base text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
                   </div>
                   <span className="text-xs font-bold text-amber-700">
                     S/ {stats.revenue4pm.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
@@ -577,7 +578,7 @@ function AdminEntradasPage() {
                 </div>
                 <div className="flex justify-between text-[11px] text-slate-500 mt-1.5 font-medium">
                   <span>{stats.percent4pm}% del aforo</span>
-                  <span>{256 - stats.tickets4pm} libres</span>
+                  <span>{stats.totalCap - stats.tickets4pm} libres</span>
                 </div>
               </div>
 
@@ -591,7 +592,7 @@ function AdminEntradasPage() {
                 <div className="flex items-baseline justify-between">
                   <div className="font-display text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
                     {stats.tickets7pm}{" "}
-                    <span className="text-base text-slate-400 font-normal font-body">/ 256</span>
+                    <span className="text-base text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
                   </div>
                   <span className="text-xs font-bold text-sky-700">
                     S/ {stats.revenue7pm.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
@@ -602,7 +603,7 @@ function AdminEntradasPage() {
                 </div>
                 <div className="flex justify-between text-[11px] text-slate-500 mt-1.5 font-medium">
                   <span>{stats.percent7pm}% del aforo</span>
-                  <span>{256 - stats.tickets7pm} libres</span>
+                  <span>{stats.totalCap - stats.tickets7pm} libres</span>
                 </div>
               </div>
             </div>
@@ -799,7 +800,7 @@ function AdminEntradasPage() {
                     </span>
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Auditorio del Colegio de Ingenieros de Ica · Capacidad: 256 asientos por función.
+                    Auditorio del Colegio de Ingenieros de Ica · Capacidad: {stats.totalCap} asientos por función.
                   </p>
                 </div>
 
@@ -830,7 +831,7 @@ function AdminEntradasPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 {zonasMonitor.map((z) => {
                   const meta = ZONAS_CONFIG[z.zonaKey];
                   return (
@@ -950,6 +951,7 @@ function AdminEntradasPage() {
                   >
                     <option value="todas">Todas las zonas</option>
                     <option value="superstar">Superstar</option>
+                    <option value="cortesia">Cortesía</option>
                     <option value="getsemani">Getsemaní</option>
                     <option value="hosanna">Hosanna</option>
                     <option value="pueblo">Pueblo</option>
@@ -1249,7 +1251,7 @@ function AdminEntradasPage() {
                   <label className="block text-xs uppercase tracking-wider text-slate-700 font-bold mb-2">
                     2. Selecciona la Zona Comprada *
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                     {Object.values(ZONAS_CONFIG).map((meta) => {
                       const avail = getZoneAvailability(reservations, formFuncion, meta.key);
                       const isSelected = formZona === meta.key;

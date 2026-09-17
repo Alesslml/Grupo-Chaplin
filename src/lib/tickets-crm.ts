@@ -20,7 +20,7 @@ export interface TicketReservation {
   clienteTelefono: string;
   clienteDni?: string;
   funcion: "4:00 pm" | "7:00 pm";
-  zonaKey: "superstar" | "getsemani" | "hosanna" | "pueblo";
+  zonaKey: "superstar" | "cortesia" | "getsemani" | "hosanna" | "pueblo";
   cantidad: number;
   etapaPromo: "twoXone" | "threeXtwo" | "twentyPct" | "regular";
   totalPagado: number;
@@ -31,16 +31,17 @@ export interface TicketReservation {
 }
 
 export interface ZoneMeta {
-  key: "superstar" | "getsemani" | "hosanna" | "pueblo";
+  key: "superstar" | "cortesia" | "getsemani" | "hosanna" | "pueblo";
   label: string;
   color: string;
   totalSeats: number;
 }
 
 export const ZONAS_CONFIG: Record<string, ZoneMeta> = {
-  superstar: { key: "superstar", label: "Zona Superstar", color: "#fe0000", totalSeats: 64 },
-  getsemani: { key: "getsemani", label: "Zona Getsemaní", color: "#f2d675", totalSeats: 46 },
-  hosanna: { key: "hosanna", label: "Zona Hosanna", color: "#7dd3e8", totalSeats: 66 },
+  superstar: { key: "superstar", label: "Zona Superstar", color: "#fe0000", totalSeats: 60 },
+  cortesia: { key: "cortesia", label: "Zona Cortesía", color: "#c59a58", totalSeats: 14 },
+  getsemani: { key: "getsemani", label: "Zona Getsemaní", color: "#f2d675", totalSeats: 47 },
+  hosanna: { key: "hosanna", label: "Zona Hosanna", color: "#7dd3e8", totalSeats: 67 },
   pueblo: { key: "pueblo", label: "Zona Pueblo (2do piso)", color: "#2b3a8f", totalSeats: 80 },
 };
 
@@ -82,8 +83,8 @@ export const fetchPublicAvailabilityServer = createServerFn({ method: "POST" }).
   `;
 
   const soldMap: Record<string, Record<string, number>> = {
-    "4:00 pm": { superstar: 0, getsemani: 0, hosanna: 0, pueblo: 0 },
-    "7:00 pm": { superstar: 0, getsemani: 0, hosanna: 0, pueblo: 0 },
+    "4:00 pm": { superstar: 0, cortesia: 0, getsemani: 0, hosanna: 0, pueblo: 0 },
+    "7:00 pm": { superstar: 0, cortesia: 0, getsemani: 0, hosanna: 0, pueblo: 0 },
   };
 
   for (const row of rows) {
@@ -407,7 +408,7 @@ export function getCRMStats(reservations: TicketReservation[]) {
   const revenue4pm = active4pm.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
   const revenue7pm = active7pm.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
 
-  const totalCap = 256; // 64 + 46 + 66 + 80
+  const totalCap = 268; // 60 + 14 + 47 + 67 + 80
 
   return {
     totalRevenue,
