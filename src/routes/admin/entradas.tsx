@@ -97,6 +97,7 @@ function AdminEntradasPage() {
   const [formZona, setFormZona] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState(2);
   const [promo, setPromo] = useState<"twoXone" | "threeXtwo" | "twentyPct" | "regular">("twoXone");
+  const [metodoPago, setMetodoPago] = useState<MetodoPago>("yape");
   const [vendedor, setVendedor] = useState("");
   const [notas, setNotas] = useState("");
   const [lastRegistered, setLastRegistered] = useState<TicketReservation | null>(null);
