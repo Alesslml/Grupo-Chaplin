@@ -97,8 +97,7 @@ function AdminEntradasPage() {
   const [formZona, setFormZona] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState(2);
   const [promo, setPromo] = useState<"twoXone" | "threeXtwo" | "twentyPct" | "regular">("twoXone");
-  const [metodoPago, setMetodoPago] = useState<MetodoPago>("yape");
-  const [vendedor, setVendedor] = useState("Harold López");
+  const [vendedor, setVendedor] = useState("");
   const [notas, setNotas] = useState("");
   const [lastRegistered, setLastRegistered] = useState<TicketReservation | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -251,7 +250,7 @@ function AdminEntradasPage() {
         etapaPromo: promo,
         totalPagado: Number(totalFinal) || 0,
         metodoPago,
-        vendedor: vendedor.trim() || "Harold López",
+        vendedor: vendedor.trim() || "Boletería",
         estado: "confirmado",
         notas: notas.trim() || undefined,
       });
@@ -260,6 +259,7 @@ function AdminEntradasPage() {
       setNombre("");
       setTelefono("");
       setDni("");
+      setVendedor("");
       setNotas("");
       setFormZona(null); // Resetea la zona para el siguiente registro
       setTotalManual(null);
@@ -1567,7 +1567,7 @@ function AdminEntradasPage() {
                       type="text"
                       value={vendedor}
                       onChange={(e) => setVendedor(e.target.value)}
-                      placeholder="Harold López"
+                      placeholder="Ej. Mariana, Harold, Boletería, Venta directa..."
                       className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-red-600 focus:ring-1 focus:ring-red-600"
                     />
                   </div>

@@ -357,7 +357,7 @@ function TicketPage() {
                 <div className="p-3 sm:p-3.5 flex justify-between items-center">
                   <span className="text-blanco/50 font-medium">ASESOR / VENDEDOR:</span>
                   <span className="text-blanco/80 font-medium">
-                    {ticket.vendedor || "Harold López"}
+                    {ticket.vendedor || "Boletería Oficial"}
                   </span>
                 </div>
 
