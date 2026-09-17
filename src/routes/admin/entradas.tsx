@@ -27,6 +27,9 @@ import {
   Tag,
   TrendingUp,
   BarChart3,
+  Copy,
+  ExternalLink,
+  Share2,
 } from "lucide-react";
 import {
   getStoredReservations,
@@ -40,6 +43,7 @@ import {
   getZoneAvailability,
   getCRMStats,
   getPromosBreakdown,
+  buildWhatsAppReservationMessage,
   ZONAS_CONFIG,
   METODOS_PAGO_CONFIG,
   PROMOS_CONFIG,
@@ -97,6 +101,26 @@ function AdminEntradasPage() {
   const [vendedor, setVendedor] = useState("Harold López");
   const [notas, setNotas] = useState("");
   const [lastRegistered, setLastRegistered] = useState<TicketReservation | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleSendWhatsApp = (res: TicketReservation) => {
+    const rawPhone = res.clienteTelefono.replace(/\D/g, "");
+    const cleanPhone = rawPhone.length === 9 ? `51${rawPhone}` : rawPhone;
+    const msg = buildWhatsAppReservationMessage(res);
+    const url = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank");
+  };
+
+  const handleCopyTicketLink = (res: TicketReservation) => {
+    if (typeof window !== "undefined") {
+      const ticketUrl = `${window.location.origin}/ticket/${res.ticketCode || res.id}`;
+      navigator.clipboard.writeText(ticketUrl);
+      setCopiedId(res.id);
+      setTimeout(() => setCopiedId(null), 2500);
+    }
+  };
 
   // Cargar y sincronizar datos
   const reload = () => {
@@ -1025,11 +1049,16 @@ function AdminEntradasPage() {
                                 })}{" "}
                                 · DNI: {r.clienteDni || "-"}
                               </div>
-                              {r.notas && (
-                                <span className="inline-block bg-slate-100 text-[10px] text-slate-600 px-1.5 py-0.5 mt-1 rounded-sm border border-slate-200">
-                                  {r.notas}
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <span className="font-mono text-[10px] font-bold text-red-700 bg-red-50 border border-red-200/80 px-1.5 py-0.5 rounded-sm">
+                                  #{r.ticketCode || r.id}
                                 </span>
-                              )}
+                                {r.notas && (
+                                  <span className="bg-slate-100 text-[10px] text-slate-600 px-1.5 py-0.5 rounded-sm border border-slate-200">
+                                    {r.notas}
+                                  </span>
+                                )}
+                              </div>
                             </td>
 
                             <td className="px-4 py-3.5">
@@ -1104,23 +1133,57 @@ function AdminEntradasPage() {
                             </td>
 
                             <td className="px-4 py-3.5 text-right">
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  if (
-                                    confirm(
-                                      `¿Eliminar la reserva de ${r.clienteNombre}? Se devolverán ${r.cantidad} asientos al aforo disponible de ${meta?.label}.`
-                                    )
-                                  ) {
-                                    await deleteReservation(r.id);
-                                    setReservations(getStoredReservations());
-                                  }
-                                }}
-                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
-                                title="Eliminar reserva y devolver asientos al aforo"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSendWhatsApp(r)}
+                                  className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-colors"
+                                  title="Enviar ticket por WhatsApp al cliente"
+                                >
+                                  <MessageCircle className="w-4 h-4" />
+                                </button>
+
+                                <a
+                                  href={`/ticket/${r.ticketCode || r.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors inline-block"
+                                  title="Ver boleto digital en nueva pestaña"
+                                >
+                                  <Ticket className="w-4 h-4" />
+                                </a>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyTicketLink(r)}
+                                  className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors"
+                                  title="Copiar enlace del boleto"
+                                >
+                                  {copiedId === r.id ? (
+                                    <Check className="w-4 h-4 text-emerald-600" />
+                                  ) : (
+                                    <Copy className="w-4 h-4" />
+                                  )}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (
+                                      confirm(
+                                        `¿Eliminar la reserva de ${r.clienteNombre}? Se devolverán ${r.cantidad} asientos al aforo disponible de ${meta?.label}.`
+                                      )
+                                    ) {
+                                      await deleteReservation(r.id);
+                                      setReservations(getStoredReservations());
+                                    }
+                                  }}
+                                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+                                  title="Eliminar reserva y devolver asientos al aforo"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1157,29 +1220,99 @@ function AdminEntradasPage() {
               </span>
             </div>
 
-            {/* Mensaje de Confirmación tras Registrar */}
+            {/* Mensaje de Confirmación tras Registrar con Enlace de Ticket */}
             {lastRegistered && (
-              <div className="p-5 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl shadow-xs space-y-3 animate-fade-in">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="font-bold text-base text-emerald-900">
-                      ¡Venta registrada con éxito para {lastRegistered.clienteNombre}!
-                    </h3>
-                    <p className="text-xs text-emerald-800 mt-1">
-                      Se descontaron <strong>{lastRegistered.cantidad} asientos</strong> de{" "}
-                      <strong>{ZONAS_CONFIG[lastRegistered.zonaKey]?.label}</strong> para la función de las{" "}
-                      <strong>{lastRegistered.funcion}</strong>. Total pagado: <strong>S/ {lastRegistered.totalPagado.toFixed(2)}</strong> vía{" "}
-                      <strong>{METODOS_PAGO_CONFIG[lastRegistered.metodoPago || "yape"]?.label || "Yape"}</strong>.
-                    </p>
+              <div className="p-6 bg-emerald-50 border-2 border-emerald-300 text-emerald-950 rounded-2xl shadow-sm space-y-4 animate-fade-in">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-7 h-7 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full mb-1">
+                        <span>Ticket #{lastRegistered.ticketCode || lastRegistered.id}</span>
+                      </div>
+                      <h3 className="font-bold text-lg text-emerald-950">
+                        ¡Venta registrada con éxito para {lastRegistered.clienteNombre}!
+                      </h3>
+                      <p className="text-xs text-emerald-800 mt-1">
+                        Se descontaron <strong>{lastRegistered.cantidad} asientos</strong> de{" "}
+                        <strong>{ZONAS_CONFIG[lastRegistered.zonaKey]?.label}</strong> para la función de las{" "}
+                        <strong>{lastRegistered.funcion}</strong>. Total: <strong>S/ {lastRegistered.totalPagado.toFixed(2)}</strong> vía{" "}
+                        <strong>{METODOS_PAGO_CONFIG[lastRegistered.metodoPago || "yape"]?.label || "Yape"}</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <a
+                    href={`/ticket/${lastRegistered.ticketCode || lastRegistered.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-emerald-300 hover:border-emerald-400 text-emerald-800 text-xs font-bold rounded-lg transition-colors shadow-2xs shrink-0"
+                  >
+                    <span>Ver Boleto Digital</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+
+                {/* Acciones directas para enviar por WhatsApp al comprador */}
+                <div className="p-4 bg-white border border-emerald-200 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                      <MessageCircle className="w-4 h-4 text-emerald-600" />
+                      <span>Enviar confirmación con enlace personalizado a {lastRegistered.clienteNombre}:</span>
+                    </span>
+                    <span className="font-mono text-xs font-bold text-emerald-700">{lastRegistered.clienteTelefono}</span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSendWhatsApp(lastRegistered)}
+                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-xs flex items-center gap-2"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Enviar por WhatsApp al Cliente</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCopyTicketLink(lastRegistered)}
+                      className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5"
+                    >
+                      {copiedId === lastRegistered.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                      <span>{copiedId === lastRegistered.id ? "¡Link Copiado!" : "Copiar Link del Boleto"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const msg = buildWhatsAppReservationMessage(lastRegistered);
+                        navigator.clipboard.writeText(msg);
+                        setCopiedId("msg-" + lastRegistered.id);
+                        setTimeout(() => setCopiedId(null), 2500);
+                      }}
+                      className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5"
+                    >
+                      {copiedId === "msg-" + lastRegistered.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                      <span>{copiedId === "msg-" + lastRegistered.id ? "¡Mensaje Copiado!" : "Copiar Texto Completo"}</span>
+                    </button>
+
+                    <a
+                      href={`/ticket/${lastRegistered.ticketCode || lastRegistered.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="sm:hidden px-3.5 py-2.5 bg-slate-100 text-slate-800 text-xs font-bold rounded-lg flex items-center gap-1.5"
+                    >
+                      <Ticket className="w-4 h-4" />
+                      <span>Ver Boleto</span>
+                    </a>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 pt-2 border-t border-emerald-200">
+                <div className="flex items-center gap-3 pt-1">
                   <button
                     type="button"
                     onClick={() => setLastRegistered(null)}
-                    className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider hover:bg-emerald-700 rounded-md transition-colors shadow-xs"
+                    className="px-4 py-2 bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider hover:bg-emerald-900 rounded-md transition-colors shadow-2xs"
                   >
                     + Registrar Otra Venta
                   </button>

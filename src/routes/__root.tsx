@@ -85,7 +85,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       const isAllowed =
         pathname === "/entradas" ||
         pathname.startsWith("/entradas/") ||
-        pathname.startsWith("/admin");
+        pathname.startsWith("/admin") ||
+        pathname.startsWith("/ticket");
 
       if (!isAllowed) {
         throw redirect({

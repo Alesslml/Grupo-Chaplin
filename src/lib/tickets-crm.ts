@@ -28,6 +28,58 @@ export interface TicketReservation {
   vendedor: string;
   estado: "confirmado" | "pendiente" | "anulado";
   notas?: string;
+  ticketCode?: string;
+}
+
+export function generateTicketCode(funcion: string, zonaKey: string, sequentialNumber: number): string {
+  const funcPrefix = funcion.includes("4:00") ? "4PM" : "7PM";
+  const zonePrefixMap: Record<string, string> = {
+    superstar: "SUP",
+    cortesia: "COR",
+    getsemani: "GET",
+    hosanna: "HOS",
+    pueblo: "PUE",
+  };
+  const zonePrefix = zonePrefixMap[zonaKey] || "JR";
+  const numPad = String(Math.max(1, sequentialNumber)).padStart(3, "0");
+  return `JR-${funcPrefix}-${zonePrefix}-${numPad}`;
+}
+
+export function buildWhatsAppReservationMessage(
+  reservation: TicketReservation,
+  baseUrl: string = "https://chaplingrupocultural.com"
+): string {
+  const meta = ZONAS_CONFIG[reservation.zonaKey] || { label: "Zona General" };
+  const promoMeta = PROMOS_CONFIG[reservation.etapaPromo] || { label: "Precio Regular" };
+  const metodoLabel = METODOS_PAGO_CONFIG[reservation.metodoPago || "yape"]?.label || "Yape";
+  const ticketCode = reservation.ticketCode || reservation.id;
+  const ticketUrl = `${baseUrl}/ticket/${reservation.ticketCode || reservation.id}`;
+
+  return (
+    `🎸✝️🤘🔥 🎭\n\n` +
+    `RESERVACIÓN "JESUCRISTO ROCKSTAR" (${metodoLabel.toUpperCase()})\n\n` +
+    `NOMBRE: ${reservation.clienteNombre.toUpperCase()}\n` +
+    `DNI: ${reservation.clienteDni || "Por confirmar"}\n` +
+    `CANTIDAD: ${reservation.cantidad}\n` +
+    `ZONA: ${meta.label.toUpperCase()}\n` +
+    `HORARIO DE FUNCIÓN: ${reservation.funcion.toUpperCase()} (Domingo 18 de Octubre)\n` +
+    `MONTO: S/. ${Number(reservation.totalPagado).toFixed(2)} SOLES (${promoMeta.label.toUpperCase()})\n` +
+    `VENDEDOR: ${reservation.vendedor}\n` +
+    `CÓDIGO DE TICKET: #${ticketCode}\n\n` +
+    `🎟️ ENLACE DE TU BOLETO DIGITAL OFICIAL:\n` +
+    `${ticketUrl}\n\n` +
+    `TENER EN CUENTA:\n\n` +
+    `Por favor llegar minutos antes de la función; el ingreso a la sala será por orden de llegada. ⏰\n\n` +
+    `Por favor presentar su DNI en boletería el día de la función para hacer entrega de sus entradas. 🎟️\n\n` +
+    `Público recomendado: Apto para mayores de 14 años. 👥\n\n` +
+    `Una vez iniciada la función no se permitirá el ingreso. 🚪\n\n` +
+    `No se permite la grabación ni la toma de fotografías una vez iniciada la función. 📵\n\n` +
+    `Los cambios de horario se pueden realizar hasta 48 horas antes de la función y según disponibilidad. 🗓️\n\n` +
+    `Muchas gracias 👍🏽 por apoyar el arte y la cultura, en especial el teatro 🎭...\n\n` +
+    `¡LOS ESPERAMOS PARA ROCKEAR! 🤘🔥\n\n` +
+    `Chaplin Grupo Cultural, pasión por el teatro 🎭\n\n` +
+    `🎸✝️🤘🔥 🎭`
+  );
 }
 
 export interface ZoneMeta {
@@ -123,12 +175,13 @@ export const fetchAdminReservationsServer = createServerFn({ method: "POST" })
         metodo_pago, 
         vendedor, 
         estado, 
-        notas
+        notas,
+        ticket_code
       from ticket_reservations
       order by created_at desc
     `;
 
-    const reservations: TicketReservation[] = rows.map((r) => ({
+    const reservations: TicketReservation[] = rows.map((r, idx) => ({
       id: String(r.id),
       createdAt: new Date(r.created_at).toISOString(),
       clienteNombre: String(r.cliente_nombre),
@@ -143,6 +196,7 @@ export const fetchAdminReservationsServer = createServerFn({ method: "POST" })
       vendedor: String(r.vendedor || "Harold López"),
       estado: (r.estado || "confirmado") as any,
       notas: r.notas ? String(r.notas) : undefined,
+      ticketCode: r.ticket_code ? String(r.ticket_code) : generateTicketCode(String(r.funcion), String(r.zona_key), rows.length - idx),
     }));
 
     return { ok: true as const, reservations };
@@ -165,6 +219,14 @@ export const saveAdminReservationServer = createServerFn({ method: "POST" })
     const id = "res-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 6);
     const r = data.reservation;
 
+    // Calcular siguiente secuencial por función y zona
+    const countRow = await sql`
+      select count(*)::int as cnt from ticket_reservations 
+      where funcion = ${r.funcion} and zona_key = ${r.zonaKey}
+    `;
+    const nextSeq = Number(countRow[0]?.cnt || 0) + 1;
+    const ticketCode = r.ticketCode || generateTicketCode(r.funcion, r.zonaKey, nextSeq);
+
     await sql`
       insert into ticket_reservations (
         id,
@@ -179,7 +241,8 @@ export const saveAdminReservationServer = createServerFn({ method: "POST" })
         metodo_pago,
         vendedor,
         estado,
-        notas
+        notas,
+        ticket_code
       ) values (
         ${id},
         ${r.clienteNombre},
@@ -193,17 +256,74 @@ export const saveAdminReservationServer = createServerFn({ method: "POST" })
         ${r.metodoPago || "yape"},
         ${r.vendedor || "Harold López"},
         ${r.estado || "confirmado"},
-        ${r.notas || null}
+        ${r.notas || null},
+        ${ticketCode}
       )
     `;
 
     const saved: TicketReservation = {
       ...r,
       id,
+      ticketCode,
       createdAt: new Date().toISOString(),
     };
 
     return { ok: true as const, reservation: saved };
+  });
+
+// 5. Consulta pública de un boleto digital por ID o código (Para compradores)
+export const fetchTicketByIdServer = createServerFn({ method: "POST" })
+  .inputValidator((data: { id: string }) => data)
+  .handler(async ({ data }) => {
+    if (!data.id) return { ok: false as const, ticket: null };
+    await ensureTicketsSchema();
+    const sql = getSql();
+    const rows = await sql`
+      select 
+        id, 
+        created_at, 
+        cliente_nombre, 
+        cliente_telefono, 
+        cliente_dni, 
+        funcion, 
+        zona_key, 
+        cantidad, 
+        etapa_promo, 
+        total_pagado::float as total_pagado, 
+        metodo_pago, 
+        vendedor, 
+        estado, 
+        notas,
+        ticket_code
+      from ticket_reservations
+      where id = ${data.id} or ticket_code = ${data.id}
+      limit 1
+    `;
+
+    if (!rows || rows.length === 0) {
+      return { ok: false as const, ticket: null };
+    }
+
+    const r = rows[0];
+    const ticket: TicketReservation = {
+      id: String(r.id),
+      createdAt: new Date(r.created_at).toISOString(),
+      clienteNombre: String(r.cliente_nombre),
+      clienteTelefono: String(r.cliente_telefono),
+      clienteDni: r.cliente_dni ? String(r.cliente_dni) : undefined,
+      funcion: r.funcion as any,
+      zonaKey: r.zona_key as any,
+      cantidad: Number(r.cantidad || 1),
+      etapaPromo: r.etapa_promo as any,
+      totalPagado: Number(r.total_pagado || 0),
+      metodoPago: (r.metodo_pago || "yape") as any,
+      vendedor: String(r.vendedor || "Harold López"),
+      estado: (r.estado || "confirmado") as any,
+      notas: r.notas ? String(r.notas) : undefined,
+      ticketCode: r.ticket_code ? String(r.ticket_code) : undefined,
+    };
+
+    return { ok: true as const, ticket };
   });
 
 // 5. Eliminar una venta de Neon PostgreSQL (devuelve los cupos automáticamente)
@@ -304,9 +424,16 @@ export async function saveReservation(
   }
 
   if (!newRes) {
+    const current = getStoredReservations();
+    const sameCount = current.filter(
+      (c) => c.funcion === reservation.funcion && c.zonaKey === reservation.zonaKey
+    ).length;
+    const ticketCode = generateTicketCode(reservation.funcion, reservation.zonaKey, sameCount + 1);
+
     newRes = {
       ...reservation,
       id: "res-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 6),
+      ticketCode,
       createdAt: new Date().toISOString(),
     };
   }

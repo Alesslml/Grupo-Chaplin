@@ -93,7 +93,9 @@ export function ensureTicketsSchema() {
         estado text not null default 'confirmado',
         notas text
       )
-    `.then(() => undefined);
+    `
+      .then(() => sql`alter table ticket_reservations add column if not exists ticket_code text`)
+      .then(() => undefined);
   }
   return _ticketsEnsured;
 }

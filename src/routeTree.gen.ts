@@ -22,6 +22,7 @@ import { Route as EncuestaRouteImport } from './routes/encuesta'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as AliadosRouteImport } from './routes/aliados'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TicketIdRouteImport } from './routes/ticket.$id'
 import { Route as AdminEntradasRouteImport } from './routes/admin/entradas'
 import { Route as AdminEncuestasRouteImport } from './routes/admin/encuestas'
 
@@ -90,6 +91,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TicketIdRoute = TicketIdRouteImport.update({
+  id: '/ticket/$id',
+  path: '/ticket/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminEntradasRoute = AdminEntradasRouteImport.update({
   id: '/admin/entradas',
   path: '/admin/entradas',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/terminos': typeof TerminosRoute
   '/admin/encuestas': typeof AdminEncuestasRoute
   '/admin/entradas': typeof AdminEntradasRoute
+  '/ticket/$id': typeof TicketIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/terminos': typeof TerminosRoute
   '/admin/encuestas': typeof AdminEncuestasRoute
   '/admin/entradas': typeof AdminEntradasRoute
+  '/ticket/$id': typeof TicketIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/terminos': typeof TerminosRoute
   '/admin/encuestas': typeof AdminEncuestasRoute
   '/admin/entradas': typeof AdminEntradasRoute
+  '/ticket/$id': typeof TicketIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/terminos'
     | '/admin/encuestas'
     | '/admin/entradas'
+    | '/ticket/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/terminos'
     | '/admin/encuestas'
     | '/admin/entradas'
+    | '/ticket/$id'
   id:
     | '__root__'
     | '/'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/terminos'
     | '/admin/encuestas'
     | '/admin/entradas'
+    | '/ticket/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -223,6 +235,7 @@ export interface RootRouteChildren {
   TerminosRoute: typeof TerminosRoute
   AdminEncuestasRoute: typeof AdminEncuestasRoute
   AdminEntradasRoute: typeof AdminEntradasRoute
+  TicketIdRoute: typeof TicketIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -318,6 +331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ticket/$id': {
+      id: '/ticket/$id'
+      path: '/ticket/$id'
+      fullPath: '/ticket/$id'
+      preLoaderRoute: typeof TicketIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/entradas': {
       id: '/admin/entradas'
       path: '/admin/entradas'
@@ -351,6 +371,7 @@ const rootRouteChildren: RootRouteChildren = {
   TerminosRoute: TerminosRoute,
   AdminEncuestasRoute: AdminEncuestasRoute,
   AdminEntradasRoute: AdminEntradasRoute,
+  TicketIdRoute: TicketIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
