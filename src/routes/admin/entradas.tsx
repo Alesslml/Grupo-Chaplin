@@ -51,6 +51,7 @@ import {
   isHaroldAuthenticated,
   onCRMUpdate,
   getZoneAvailability,
+  getEffectiveTicketsCount,
   getCRMStats,
   getPromosBreakdown,
   buildWhatsAppReservationMessage,
@@ -252,8 +253,8 @@ function AdminEntradasPage() {
     if (formZona === "cortesia" || promo === "cortesia") return 0;
     const base = PRECIOS_POR_DEFECTO[formZona]?.[promo] || 80;
     if (promo === "twoXone") {
-      const grupos = Math.ceil(cantidad / 2);
-      return grupos * base;
+      // En Preventa 2x1, cada unidad comprada entrega 2 entradas por el precio base listado
+      return cantidad * base;
     }
     if (promo === "threeXtwo") {
       const grupos = Math.ceil(cantidad / 3);
@@ -581,33 +582,57 @@ function AdminEntradasPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-red-500 selection:text-white font-body">
       {/* Top Header en Modo Claro */}
+      {/* Top Header en Modo Claro */}
       <header className="border-b border-slate-200 sticky top-0 z-30 bg-white/95 backdrop-blur-md shadow-xs">
-        <div className="max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Link to="/entradas" className="shrink-0 group">
-              <img
-                src="/logo-chaplin.png"
-                alt="Chaplin Grupo Cultural"
-                className="h-9 w-auto object-contain transition-transform group-hover:scale-105"
-              />
-            </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="bg-red-600 text-white text-[10px] font-bold uppercase tracking-[0.18em] px-2 py-0.5 rounded-sm">
-                  CRM · Jesucristo Rockstar
-                </span>
-                <span className="flex items-center gap-1.5 text-emerald-700 text-xs font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-xs">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Sistema en Vivo · Tiempo Real
-                </span>
+        <div className="max-w-[1300px] mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-4">
+              <Link to="/entradas" className="shrink-0 group">
+                <img
+                  src="/logo-chaplin.png"
+                  alt="Chaplin Grupo Cultural"
+                  className="h-8 sm:h-9 w-auto object-contain transition-transform group-hover:scale-105"
+                />
+              </Link>
+              <div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="bg-red-600 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.16em] px-1.5 sm:px-2 py-0.5 rounded-xs">
+                    CRM · Rockstar
+                  </span>
+                  <span className="flex items-center gap-1 text-emerald-700 text-[10px] sm:text-xs font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    En vivo
+                  </span>
+                </div>
+                <h1 className="font-display text-slate-900 text-lg sm:text-2xl tracking-wide leading-tight mt-0.5">
+                  Panel de Control de Harold
+                </h1>
               </div>
-              <h1 className="font-display text-slate-900 text-2xl tracking-wide leading-tight mt-0.5">
-                Panel de Control de Harold
-              </h1>
+            </div>
+
+            {/* Acciones en Mobile */}
+            <div className="flex md:hidden items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleManualSync}
+                disabled={isSyncing}
+                className="p-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+                title="Sincronizar reservas"
+              >
+                <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin text-red-600" : ""}`} />
+              </button>
+              <Link
+                to="/entradas"
+                target="_blank"
+                className="p-2 bg-red-600 text-white rounded-md transition-all shadow-xs"
+                title="Ver Ticketera pública"
+              >
+                <ArrowUpRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3">
             <button
               onClick={handleManualSync}
               disabled={isSyncing}
@@ -646,24 +671,24 @@ function AdminEntradasPage() {
         </div>
 
         {/* NAVEGACIÓN PRINCIPAL: 1. DASHBOARD & CRM vs 2. REGISTRAR VENTA vs 3. ASISTENCIA */}
-        <div className="border-t border-slate-200 bg-slate-100/70">
-          <div className="max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-            <div className="flex flex-wrap gap-1.5 py-2">
+        <div className="border-t border-slate-200 bg-slate-100/80">
+          <div className="max-w-[1300px] mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-2">
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => {
                   setActiveTab("dashboard");
                   setLastRegistered(null);
                 }}
-                className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === "dashboard"
-                    ? "bg-white text-slate-900 border-slate-300 shadow-sm"
+                    ? "bg-white text-slate-900 border-slate-300 shadow-xs"
                     : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60"
                 }`}
               >
-                <LayoutDashboard className={`w-4 h-4 ${activeTab === "dashboard" ? "text-red-600" : "text-slate-500"}`} />
+                <LayoutDashboard className={`w-3.5 h-3.5 ${activeTab === "dashboard" ? "text-red-600" : "text-slate-500"}`} />
                 <span>1. Dashboard & CRM</span>
-                <span className="ml-1 px-1.5 py-0.2 text-[10px] font-bold bg-slate-200 text-slate-700 rounded-full">
+                <span className="px-1.5 py-0.2 text-[10px] font-bold bg-slate-200 text-slate-700 rounded-full">
                   {reservations.length}
                 </span>
               </button>
@@ -674,14 +699,14 @@ function AdminEntradasPage() {
                   setActiveTab("registro");
                   setLastRegistered(null);
                 }}
-                className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === "registro"
-                    ? "bg-white text-slate-900 border-slate-300 shadow-sm"
+                    ? "bg-white text-slate-900 border-slate-300 shadow-xs"
                     : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60"
                 }`}
               >
-                <UserPlus className={`w-4 h-4 ${activeTab === "registro" ? "text-red-600" : "text-slate-500"}`} />
-                <span>2. Registrar Venta</span>
+                <UserPlus className={`w-3.5 h-3.5 ${activeTab === "registro" ? "text-red-600" : "text-slate-500"}`} />
+                <span>2. Nueva Venta</span>
               </button>
 
               <button
@@ -690,15 +715,15 @@ function AdminEntradasPage() {
                   setActiveTab("asistencia");
                   setLastRegistered(null);
                 }}
-                className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === "asistencia"
-                    ? "bg-white text-slate-900 border-slate-300 shadow-sm"
+                    ? "bg-white text-slate-900 border-slate-300 shadow-xs"
                     : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60"
                 }`}
               >
-                <UserCheck className={`w-4 h-4 ${activeTab === "asistencia" ? "text-emerald-600" : "text-slate-500"}`} />
-                <span>3. Control de Asistencia (Puerta)</span>
-                <span className={`ml-1 px-1.5 py-0.2 text-[10px] font-bold rounded-full ${
+                <UserCheck className={`w-3.5 h-3.5 ${activeTab === "asistencia" ? "text-emerald-600" : "text-slate-500"}`} />
+                <span>3. Asistencia (Puerta)</span>
+                <span className={`px-1.5 py-0.2 text-[10px] font-bold rounded-full ${
                   stats.totalAttendedTickets > 0 ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"
                 }`}>
                   {stats.totalAttendedTickets} en sala
@@ -706,15 +731,16 @@ function AdminEntradasPage() {
               </button>
             </div>
 
-            <div className="flex items-center gap-2 py-2">
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => exportTicketsToExcel(filteredReservations)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-white text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 border border-slate-300 rounded-md transition-colors shadow-2xs cursor-pointer"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-white text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 border border-slate-300 rounded-md transition-colors shadow-2xs cursor-pointer whitespace-nowrap"
                 title="Descargar base de datos del CRM a Excel (.csv con formato UTF-8 BOM)"
               >
                 <Download className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Exportar a Excel</span>
+                <span className="hidden sm:inline">Exportar a Excel</span>
+                <span className="sm:hidden">Excel</span>
               </button>
 
               {activeTab === "dashboard" && (
@@ -724,10 +750,10 @@ function AdminEntradasPage() {
                     setActiveTab("registro");
                     setLastRegistered(null);
                   }}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 rounded-md transition-colors shadow-xs cursor-pointer"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 rounded-md transition-colors shadow-xs cursor-pointer whitespace-nowrap"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
-                  <span>+ Registrar Venta</span>
+                  <span>+ Venta</span>
                 </button>
               )}
             </div>
@@ -735,120 +761,102 @@ function AdminEntradasPage() {
         </div>
       </header>
 
-      <main className="max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-[1300px] mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
         {/* ==================================================================== */}
         {/* PARTE 1: DASHBOARD CON MÉTRICAS, AFORO EN VIVO Y REGISTRO DE COMPRADORES */}
         {/* ==================================================================== */}
         {activeTab === "dashboard" && (
-          <div className="space-y-8 animate-fade-in">
-            {/* 1. Tarjetas de Métricas Globales (KPIs) Separadas por Función */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="border border-slate-200 bg-white p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors">
-                <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
+          <div className="space-y-6 sm:space-y-8 animate-fade-in">
+            {/* 1. Tarjetas de Métricas Globales (KPIs) en Grid 2x2 para Móviles */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors">
+                <div className="flex items-center justify-between text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 sm:mb-2">
                   <span>Recaudación Total</span>
-                  <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center">
-                    <DollarSign className="w-4 h-4 text-emerald-600" />
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-50 flex items-center justify-center">
+                    <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
                   </div>
                 </div>
-                <div className="font-display text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
-                  S/ {stats.totalRevenue.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+                <div className="font-display text-xl sm:text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
+                  S/ {stats.totalRevenue.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-2 font-medium flex-wrap">
-                  <span className="text-amber-800 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-500 mt-1.5 sm:mt-2 font-medium flex-wrap">
+                  <span className="text-amber-800 font-bold bg-amber-50 px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded border border-amber-200">
                     4pm: S/ {stats.revenue4pm.toFixed(0)}
                   </span>
-                  <span className="text-sky-800 font-bold bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200">
+                  <span className="text-sky-800 font-bold bg-sky-50 px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded border border-sky-200">
                     7pm: S/ {stats.revenue7pm.toFixed(0)}
                   </span>
                 </div>
               </div>
 
-              {/* ENTRADAS VENDIDAS SEPARADAS POR FUNCIÓN (Sin mezclar en 512) */}
-              <div className="border border-slate-200 bg-white p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors">
-                <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-                  <span>Entradas por Función</span>
-                  <div className="w-7 h-7 rounded-full bg-red-50 flex items-center justify-center">
-                    <Ticket className="w-4 h-4 text-red-600" />
+              {/* ENTRADAS VENDIDAS TOTALES (Con conteo x2 en 2x1) */}
+              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors">
+                <div className="flex items-center justify-between text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 sm:mb-2">
+                  <span>Entradas Vendidas</span>
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-red-50 flex items-center justify-center">
+                    <Ticket className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-600" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 mt-1">
-                  <div className="p-2 bg-amber-50/70 border border-amber-200/80 rounded-lg">
-                    <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">
-                      4:00 PM
-                    </span>
-                    <div className="font-display text-2xl text-slate-900 font-bold leading-tight mt-0.5">
-                      {stats.tickets4pm}{" "}
-                      <span className="text-xs text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
-                    </div>
-                    <span className="text-[10px] text-amber-700 font-semibold block mt-0.5">
-                      {stats.percent4pm}% ocupado
-                    </span>
-                  </div>
-
-                  <div className="p-2 bg-sky-50/70 border border-sky-200/80 rounded-lg">
-                    <span className="text-[10px] font-bold text-sky-800 uppercase tracking-wider block">
-                      7:00 PM
-                    </span>
-                    <div className="font-display text-2xl text-slate-900 font-bold leading-tight mt-0.5">
-                      {stats.tickets7pm}{" "}
-                      <span className="text-xs text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
-                    </div>
-                    <span className="text-[10px] text-sky-700 font-semibold block mt-0.5">
-                      {stats.percent7pm}% ocupado
-                    </span>
-                  </div>
+                <div className="font-display text-xl sm:text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
+                  {stats.totalTickets}{" "}
+                  <span className="text-xs sm:text-sm font-normal text-slate-400 font-body">asientos</span>
                 </div>
-                <span className="block text-[11px] text-slate-500 mt-2 font-medium">
-                  Total acumulado: <strong className="text-slate-800 font-bold">{stats.totalTickets} entradas</strong>
-                </span>
-              </div>
-
-              <div className="border border-slate-200 bg-white p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors">
-                <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-                  <span>Función 4:00 PM</span>
-                  <div className="w-7 h-7 rounded-full bg-amber-50 flex items-center justify-center">
-                    <Clock className="w-4 h-4 text-amber-600" />
-                  </div>
-                </div>
-                <div className="flex items-baseline justify-between">
-                  <div className="font-display text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
-                    {stats.tickets4pm}{" "}
-                    <span className="text-base text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
-                  </div>
-                  <span className="text-xs font-bold text-amber-700">
-                    S/ {stats.revenue4pm.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+                <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-500 mt-1.5 sm:mt-2 font-medium flex-wrap">
+                  <span className="text-amber-800 font-bold bg-amber-50 px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded border border-amber-200">
+                    4pm: {stats.tickets4pm}
+                  </span>
+                  <span className="text-sky-800 font-bold bg-sky-50 px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded border border-sky-200">
+                    7pm: {stats.tickets7pm}
                   </span>
                 </div>
-                <div className="w-full bg-slate-100 h-2 mt-2.5 rounded-full overflow-hidden">
+              </div>
+
+              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors">
+                <div className="flex items-center justify-between text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 sm:mb-2">
+                  <span>Función 4:00 PM</span>
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-amber-50 flex items-center justify-center">
+                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600" />
+                  </div>
+                </div>
+                <div className="flex items-baseline justify-between flex-wrap gap-1">
+                  <div className="font-display text-xl sm:text-3xl text-slate-900 font-bold tracking-tight">
+                    {stats.tickets4pm}{" "}
+                    <span className="text-xs sm:text-sm text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
+                  </div>
+                  <span className="text-[11px] sm:text-xs font-bold text-amber-700">
+                    S/ {stats.revenue4pm.toFixed(0)}
+                  </span>
+                </div>
+                <div className="w-full bg-slate-100 h-1.5 sm:h-2 mt-2 rounded-full overflow-hidden">
                   <div className="bg-amber-500 h-full transition-all" style={{ width: `${stats.percent4pm}%` }} />
                 </div>
-                <div className="flex justify-between text-[11px] text-slate-500 mt-1.5 font-medium">
-                  <span>{stats.percent4pm}% del aforo</span>
+                <div className="flex justify-between text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium">
+                  <span>{stats.percent4pm}% aforo</span>
                   <span>{stats.totalCap - stats.tickets4pm} libres</span>
                 </div>
               </div>
 
-              <div className="border border-slate-200 bg-white p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors">
-                <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
+              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors">
+                <div className="flex items-center justify-between text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 sm:mb-2">
                   <span>Función 7:00 PM</span>
-                  <div className="w-7 h-7 rounded-full bg-sky-50 flex items-center justify-center">
-                    <Clock className="w-4 h-4 text-sky-600" />
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-sky-50 flex items-center justify-center">
+                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600" />
                   </div>
                 </div>
-                <div className="flex items-baseline justify-between">
-                  <div className="font-display text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
+                <div className="flex items-baseline justify-between flex-wrap gap-1">
+                  <div className="font-display text-xl sm:text-3xl text-slate-900 font-bold tracking-tight">
                     {stats.tickets7pm}{" "}
-                    <span className="text-base text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
+                    <span className="text-xs sm:text-sm text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
                   </div>
-                  <span className="text-xs font-bold text-sky-700">
-                    S/ {stats.revenue7pm.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+                  <span className="text-[11px] sm:text-xs font-bold text-sky-700">
+                    S/ {stats.revenue7pm.toFixed(0)}
                   </span>
                 </div>
-                <div className="w-full bg-slate-100 h-2 mt-2.5 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-100 h-1.5 sm:h-2 mt-2 rounded-full overflow-hidden">
                   <div className="bg-sky-500 h-full transition-all" style={{ width: `${stats.percent7pm}%` }} />
                 </div>
-                <div className="flex justify-between text-[11px] text-slate-500 mt-1.5 font-medium">
-                  <span>{stats.percent7pm}% del aforo</span>
+                <div className="flex justify-between text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium">
+                  <span>{stats.percent7pm}% aforo</span>
                   <span>{stats.totalCap - stats.tickets7pm} libres</span>
                 </div>
               </div>
@@ -1174,106 +1182,252 @@ function AdminEntradasPage() {
                 </div>
               </div>
 
-              {/* Filtros Completos: Búsqueda, Función, Zona, Promoción, Método, Vendedor y Asistencia */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5">
+              {/* Filtros: Búsqueda prominente arriba, dropdowns en grid responsive */}
+              <div className="space-y-2.5">
                 <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type="text"
-                    placeholder="Buscar cliente, DNI, código..."
+                    placeholder="Buscar por cliente, DNI, teléfono o código #..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-md pl-9 pr-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-red-600 focus:bg-white"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-10 pr-3 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-red-600 focus:bg-white transition-colors"
                   />
                 </div>
 
-                <div>
-                  <select
-                    value={filtroFuncion}
-                    onChange={(e) => setFiltroFuncion(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600"
-                  >
-                    <option value="todas">Todas las funciones</option>
-                    <option value="4:00 pm">Solo Función 4:00 PM</option>
-                    <option value="7:00 pm">Solo Función 7:00 PM</option>
-                  </select>
-                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                  <div>
+                    <select
+                      value={filtroFuncion}
+                      onChange={(e) => setFiltroFuncion(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-md px-2.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600"
+                    >
+                      <option value="todas">Horario (Todas)</option>
+                      <option value="4:00 pm">Solo 4:00 PM</option>
+                      <option value="7:00 pm">Solo 7:00 PM</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <select
-                    value={filtroZona}
-                    onChange={(e) => setFiltroZona(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600"
-                  >
-                    <option value="todas">Todas las zonas</option>
-                    <option value="superstar">Superstar</option>
-                    <option value="cortesia">Cortesía</option>
-                    <option value="getsemani">Getsemaní</option>
-                    <option value="hosanna">Hosanna</option>
-                    <option value="pueblo">Pueblo</option>
-                  </select>
-                </div>
+                  <div>
+                    <select
+                      value={filtroZona}
+                      onChange={(e) => setFiltroZona(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-md px-2.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600"
+                    >
+                      <option value="todas">Zonas (Todas)</option>
+                      <option value="superstar">Superstar</option>
+                      <option value="cortesia">Cortesía</option>
+                      <option value="getsemani">Getsemaní</option>
+                      <option value="hosanna">Hosanna</option>
+                      <option value="pueblo">Pueblo</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <select
-                    value={filtroPromo}
-                    onChange={(e) => setFiltroPromo(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600"
-                  >
-                    <option value="todas">Todas las promociones</option>
-                    <option value="twoXone">Preventa 2x1</option>
-                    <option value="threeXtwo">Preventa 3x2</option>
-                    <option value="twentyPct">Preventa 20% dto.</option>
-                    <option value="regular">Precio Regular</option>
-                    <option value="cortesia">🎁 Pase de Cortesía</option>
-                  </select>
-                </div>
+                  <div>
+                    <select
+                      value={filtroPromo}
+                      onChange={(e) => setFiltroPromo(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-md px-2.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600"
+                    >
+                      <option value="todas">Promos (Todas)</option>
+                      <option value="twoXone">Preventa 2x1</option>
+                      <option value="threeXtwo">Preventa 3x2</option>
+                      <option value="twentyPct">Preventa 20%</option>
+                      <option value="regular">Precio Regular</option>
+                      <option value="cortesia">🎁 Cortesía</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <select
-                    value={filtroMetodo}
-                    onChange={(e) => setFiltroMetodo(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600"
-                  >
-                    <option value="todos">Todos los métodos</option>
-                    <option value="yape">🟣 Solo Yape</option>
-                    <option value="plin">🔵 Solo Plin</option>
-                    <option value="transferencia">🏦 Solo Transferencia</option>
-                    <option value="efectivo">💵 Solo Efectivo</option>
-                    <option value="cortesia">🎁 Solo Cortesía</option>
-                  </select>
-                </div>
+                  <div>
+                    <select
+                      value={filtroMetodo}
+                      onChange={(e) => setFiltroMetodo(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-md px-2.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600"
+                    >
+                      <option value="todos">Pagos (Todos)</option>
+                      <option value="yape">🟣 Yape</option>
+                      <option value="plin">🔵 Plin</option>
+                      <option value="transferencia">🏦 Transferencia</option>
+                      <option value="efectivo">💵 Efectivo</option>
+                      <option value="cortesia">🎁 Cortesía</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <select
-                    value={filtroVendedor}
-                    onChange={(e) => setFiltroVendedor(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600 font-medium"
-                  >
-                    <option value="todos">👤 Todos los vendedores ({vendedoresList.length})</option>
-                    {vendedoresList.map((vend) => (
-                      <option key={vend} value={vend}>
-                        👤 {vend}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  <div>
+                    <select
+                      value={filtroVendedor}
+                      onChange={(e) => setFiltroVendedor(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-md px-2.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600 font-medium"
+                    >
+                      <option value="todos">Vendedores ({vendedoresList.length})</option>
+                      {vendedoresList.map((vend) => (
+                        <option key={vend} value={vend}>
+                          👤 {vend}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <select
-                    value={filtroAsistencia}
-                    onChange={(e) => setFiltroAsistencia(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600 font-medium"
-                  >
-                    <option value="todas">🎟️ Todas las asistencias</option>
-                    <option value="solo_ingresados">🟢 Solo Ingresados a Sala</option>
-                    <option value="solo_pendientes">⚪ Solo Pendientes</option>
-                  </select>
+                  <div>
+                    <select
+                      value={filtroAsistencia}
+                      onChange={(e) => setFiltroAsistencia(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-md px-2.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600 font-medium"
+                    >
+                      <option value="todas">Puerta (Todas)</option>
+                      <option value="solo_ingresados">🟢 Ingresados</option>
+                      <option value="solo_pendientes">⚪ Pendientes</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              {/* Tabla Cómoda y Espaciosa */}
-              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+              {/* VISTA MOBILE (<md): Tarjetas compactas sin scroll horizontal */}
+              <div className="md:hidden space-y-3">
+                {filteredReservations.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+                    No se encontraron registros con los filtros actuales.
+                  </div>
+                ) : (
+                  filteredReservations.map((r) => {
+                    const meta = ZONAS_CONFIG[r.zonaKey];
+                    const effectiveTickets = getEffectiveTicketsCount(r);
+                    return (
+                      <div
+                        key={r.id}
+                        className="border border-slate-200 bg-white rounded-xl p-3.5 shadow-2xs space-y-2.5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="font-bold text-slate-900 text-sm leading-tight truncate">
+                              {r.clienteNombre}
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-0.5">
+                              DNI: {r.clienteDni || "-"} · {new Date(r.createdAt).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                            </div>
+                          </div>
+                          <span className="font-mono text-[10px] font-bold text-red-700 bg-red-50 border border-red-200/80 px-1.5 py-0.5 rounded-sm shrink-0">
+                            #{r.ticketCode || r.id}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 flex-wrap text-xs">
+                          <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                            {r.funcion}
+                          </span>
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold text-slate-800 border"
+                            style={{ backgroundColor: `${meta?.color}15`, borderColor: `${meta?.color}40` }}
+                          >
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: meta?.color }} />
+                            {meta?.label}
+                          </span>
+                          {r.asistio ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 ml-auto">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Ingresado</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200 ml-auto">
+                              <span>Pendiente</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 p-2 bg-slate-50 border border-slate-200/80 rounded-lg text-xs">
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase font-semibold block">Entradas:</span>
+                            <span className="font-extrabold text-slate-900 text-sm">
+                              {effectiveTickets} {effectiveTickets === 1 ? "asiento" : "asientos"}
+                            </span>
+                            {r.etapaPromo === "twoXone" && (
+                              <span className="text-[10px] text-amber-700 font-bold block">
+                                ({r.cantidad} promo 2x1)
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase font-semibold block">Total & Pago:</span>
+                            <div className="font-extrabold text-red-600 text-sm">
+                              {Number(r.totalPagado) === 0 ? "S/ 0.00" : `S/ ${Number(r.totalPagado).toFixed(2)}`}
+                            </div>
+                            <span className="text-[10px] text-slate-500 capitalize truncate block">
+                              {r.metodoPago || "yape"} · {r.vendedor || "Boletería"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Botones de acción mobile */}
+                        <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-100 flex-wrap">
+                          <a
+                            href={`https://wa.me/51${r.clienteTelefono.replace(/\D/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-md transition-colors"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>WhatsApp</span>
+                          </a>
+
+                          <div className="flex items-center gap-1">
+                            {r.asistio ? (
+                              <button
+                                type="button"
+                                onClick={() => setAttendanceRevertTarget(r)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-300 rounded-md hover:bg-slate-200"
+                              >
+                                <RotateCcw className="w-3 h-3 text-slate-500" />
+                                <span>Desmarcar</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleConfirmAttendance(r)}
+                                disabled={isMarkingAttendance}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-2xs"
+                              >
+                                <UserCheck className="w-3 h-3" />
+                                <span>Ingresar</span>
+                              </button>
+                            )}
+
+                            <a
+                              href={`/ticket/${r.ticketCode || r.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1 text-slate-500 hover:text-red-600 bg-slate-100 rounded-md border border-slate-200"
+                              title="Ver boleto"
+                            >
+                              <ArrowUpRight className="w-3.5 h-3.5" />
+                            </a>
+
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (
+                                  confirm(
+                                    `¿Eliminar la reserva de ${r.clienteNombre}? Se devolverán ${effectiveTickets} asientos al aforo disponible de ${meta?.label}.`
+                                  )
+                                ) {
+                                  await deleteReservation(r.id);
+                                  setReservations(getStoredReservations());
+                                }
+                              }}
+                              className="p-1 text-slate-400 hover:text-red-600 rounded-md"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* VISTA DESKTOP (>=md): Tabla completa */}
+              <div className="hidden md:block overflow-x-auto border border-slate-200 rounded-lg">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] font-bold">
@@ -1297,6 +1451,7 @@ function AdminEntradasPage() {
                     ) : (
                       filteredReservations.map((r) => {
                         const meta = ZONAS_CONFIG[r.zonaKey];
+                        const effectiveTickets = getEffectiveTicketsCount(r);
                         return (
                           <tr
                             key={r.id}
@@ -1351,9 +1506,16 @@ function AdminEntradasPage() {
                             </td>
 
                             <td className="px-4 py-3.5 text-center">
-                              <span className="bg-slate-100 border border-slate-200 px-2.5 py-1 font-bold text-slate-800 rounded-md text-xs">
-                                {r.cantidad}
-                              </span>
+                              <div className="flex flex-col items-center">
+                                <span className="bg-slate-100 border border-slate-200 px-2.5 py-1 font-bold text-slate-800 rounded-md text-xs">
+                                  {effectiveTickets} {effectiveTickets === 1 ? "asiento" : "asientos"}
+                                </span>
+                                {r.etapaPromo === "twoXone" && (
+                                  <span className="text-[10px] text-amber-700 font-semibold mt-0.5">
+                                    ({r.cantidad} promo 2x1)
+                                  </span>
+                                )}
+                              </div>
                             </td>
 
                             <td className="px-4 py-3.5">
@@ -1483,7 +1645,7 @@ function AdminEntradasPage() {
                                   onClick={async () => {
                                     if (
                                       confirm(
-                                        `¿Eliminar la reserva de ${r.clienteNombre}? Se devolverán ${r.cantidad} asientos al aforo disponible de ${meta?.label}.`
+                                        `¿Eliminar la reserva de ${r.clienteNombre}? Se devolverán ${effectiveTickets} asientos al aforo disponible de ${meta?.label}.`
                                       )
                                     ) {
                                       await deleteReservation(r.id);
@@ -1741,7 +1903,7 @@ function AdminEntradasPage() {
                   <label className="block text-xs uppercase tracking-wider text-slate-700 font-bold mb-2">
                     2. Selecciona la Zona Comprada *
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
                     {Object.values(ZONAS_CONFIG).map((meta) => {
                       const avail = getZoneAvailability(reservations, formFuncion, meta.key);
                       const isSelected = formZona === meta.key;
@@ -1805,7 +1967,9 @@ function AdminEntradasPage() {
                         {formZoneAvail.availableSeats} asientos disponibles
                       </div>
                       <span className="text-slate-400 text-xs">
-                        de {formZoneAvail.totalSeats} totales
+                        {promo === "twoXone"
+                          ? `equivale a máx ${Math.floor(formZoneAvail.availableSeats / 2)} promos 2x1`
+                          : `de ${formZoneAvail.totalSeats} totales`}
                       </span>
                     </div>
                   </div>
@@ -1858,16 +2022,28 @@ function AdminEntradasPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs uppercase tracking-wider text-slate-700 font-bold mb-1.5">
-                      Número de Entradas a Descontar
+                      {promo === "twoXone" ? "Cantidad de Promos 2x1 Compradas *" : "Número de Entradas a Descontar *"}
                     </label>
                     <input
                       type="number"
                       min="1"
-                      max={formZoneAvail ? formZoneAvail.availableSeats : 50}
+                      max={formZoneAvail ? (promo === "twoXone" ? Math.max(1, Math.floor(formZoneAvail.availableSeats / 2)) : formZoneAvail.availableSeats) : 50}
                       value={cantidad}
                       onChange={(e) => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
                       className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 font-bold focus:outline-hidden focus:border-red-600 focus:ring-1 focus:ring-red-600"
                     />
+
+                    {promo === "twoXone" && (
+                      <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
+                        <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          <span>Promo 2x1: {cantidad} comprada(s) = {cantidad * 2} entradas entregadas</span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-amber-700">
+                          Se descontarán <strong>{cantidad * 2} asientos</strong> del aforo disponible en sala.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -2021,7 +2197,9 @@ function AdminEntradasPage() {
                       : isCortesiaSelected
                       ? `Confirmar Pase de Cortesía (${cantidad} Asientos · S/ 0.00)`
                       : formZona
-                      ? `Confirmar Venta y Descontar ${cantidad} Asientos (${ZONAS_CONFIG[formZona]?.label})`
+                      ? promo === "twoXone"
+                        ? `Confirmar Venta 2x1 y Descontar ${cantidad * 2} Asientos (${cantidad} promo = ${cantidad * 2} entradas)`
+                        : `Confirmar Venta y Descontar ${cantidad} Asientos (${ZONAS_CONFIG[formZona]?.label})`
                       : "Selecciona una zona arriba para continuar"}
                   </span>
                 </button>
@@ -2074,100 +2252,100 @@ function AdminEntradasPage() {
             </div>
 
             {/* Tarjetas de Aforo y Asistencia en Vivo */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="border border-emerald-200 bg-emerald-50/50 p-5 rounded-xl shadow-xs">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+              <div className="border border-emerald-200 bg-emerald-50/50 p-3.5 sm:p-5 rounded-xl shadow-xs">
                 <div className="flex items-center justify-between text-emerald-800 text-xs font-bold uppercase tracking-wider mb-2">
-                  <span>Asistentes en Sala</span>
-                  <div className="w-7 h-7 rounded-full bg-emerald-200/70 flex items-center justify-center">
+                  <span className="truncate">Asistentes en Sala</span>
+                  <div className="w-7 h-7 rounded-full bg-emerald-200/70 flex items-center justify-center shrink-0">
                     <UserCheck className="w-4 h-4 text-emerald-800" />
                   </div>
                 </div>
-                <div className="font-display text-3xl md:text-4xl text-emerald-950 font-bold tracking-tight">
+                <div className="font-display text-2xl sm:text-3xl lg:text-4xl text-emerald-950 font-bold tracking-tight">
                   {stats.totalAttendedTickets}{" "}
-                  <span className="text-base text-emerald-700 font-normal font-body">/ {stats.totalTickets}</span>
+                  <span className="text-sm sm:text-base text-emerald-700 font-normal font-body">/ {stats.totalTickets}</span>
                 </div>
-                <div className="w-full bg-emerald-200 h-2 mt-2.5 rounded-full overflow-hidden">
+                <div className="w-full bg-emerald-200 h-2 mt-2 rounded-full overflow-hidden">
                   <div
                     className="bg-emerald-600 h-full transition-all"
                     style={{ width: `${stats.percentAttendedTotal}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-[11px] text-emerald-800 mt-1.5 font-bold">
-                  <span>{stats.percentAttendedTotal}% del público en sala</span>
+                <div className="flex justify-between text-[10px] sm:text-[11px] text-emerald-800 mt-1.5 font-bold">
+                  <span>{stats.percentAttendedTotal}% en sala</span>
                   <span>{Math.max(0, stats.totalTickets - stats.totalAttendedTickets)} pendientes</span>
                 </div>
               </div>
 
-              <div className="border border-slate-200 bg-white p-5 rounded-xl shadow-xs">
+              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-                  <span>Función 4:00 PM (Puerta)</span>
-                  <div className="w-7 h-7 rounded-full bg-amber-50 flex items-center justify-center">
+                  <span className="truncate">Función 4:00 PM</span>
+                  <div className="w-7 h-7 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
                     <Clock className="w-4 h-4 text-amber-600" />
                   </div>
                 </div>
-                <div className="font-display text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
+                <div className="font-display text-2xl sm:text-3xl lg:text-4xl text-slate-900 font-bold tracking-tight">
                   {stats.attended4pm}{" "}
-                  <span className="text-base text-slate-400 font-normal font-body">/ {stats.tickets4pm}</span>
+                  <span className="text-sm sm:text-base text-slate-400 font-normal font-body">/ {stats.tickets4pm}</span>
                 </div>
-                <div className="w-full bg-slate-100 h-2 mt-2.5 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-100 h-2 mt-2 rounded-full overflow-hidden">
                   <div
                     className="bg-amber-500 h-full transition-all"
                     style={{ width: `${stats.percentAttended4pm}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-[11px] text-slate-500 mt-1.5 font-medium">
+                <div className="flex justify-between text-[10px] sm:text-[11px] text-slate-500 mt-1.5 font-medium">
                   <span>{stats.percentAttended4pm}% ingresados</span>
-                  <span>{Math.max(0, stats.tickets4pm - stats.attended4pm)} por llegar</span>
+                  <span>{Math.max(0, stats.tickets4pm - stats.attended4pm)} faltan</span>
                 </div>
               </div>
 
-              <div className="border border-slate-200 bg-white p-5 rounded-xl shadow-xs">
+              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-                  <span>Función 7:00 PM (Puerta)</span>
-                  <div className="w-7 h-7 rounded-full bg-sky-50 flex items-center justify-center">
+                  <span className="truncate">Función 7:00 PM</span>
+                  <div className="w-7 h-7 rounded-full bg-sky-50 flex items-center justify-center shrink-0">
                     <Clock className="w-4 h-4 text-sky-600" />
                   </div>
                 </div>
-                <div className="font-display text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
+                <div className="font-display text-2xl sm:text-3xl lg:text-4xl text-slate-900 font-bold tracking-tight">
                   {stats.attended7pm}{" "}
-                  <span className="text-base text-slate-400 font-normal font-body">/ {stats.tickets7pm}</span>
+                  <span className="text-sm sm:text-base text-slate-400 font-normal font-body">/ {stats.tickets7pm}</span>
                 </div>
-                <div className="w-full bg-slate-100 h-2 mt-2.5 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-100 h-2 mt-2 rounded-full overflow-hidden">
                   <div
                     className="bg-sky-500 h-full transition-all"
                     style={{ width: `${stats.percentAttended7pm}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-[11px] text-slate-500 mt-1.5 font-medium">
+                <div className="flex justify-between text-[10px] sm:text-[11px] text-slate-500 mt-1.5 font-medium">
                   <span>{stats.percentAttended7pm}% ingresados</span>
-                  <span>{Math.max(0, stats.tickets7pm - stats.attended7pm)} por llegar</span>
+                  <span>{Math.max(0, stats.tickets7pm - stats.attended7pm)} faltan</span>
                 </div>
               </div>
 
-              <div className="border border-slate-200 bg-white p-5 rounded-xl shadow-xs">
+              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-                  <span>Grupos / Canjes</span>
-                  <div className="w-7 h-7 rounded-full bg-purple-50 flex items-center justify-center">
+                  <span className="truncate">Órdenes / Grupos</span>
+                  <div className="w-7 h-7 rounded-full bg-purple-50 flex items-center justify-center shrink-0">
                     <Ticket className="w-4 h-4 text-purple-600" />
                   </div>
                 </div>
-                <div className="font-display text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
+                <div className="font-display text-2xl sm:text-3xl lg:text-4xl text-slate-900 font-bold tracking-tight">
                   {stats.attendedOrdersCount}{" "}
-                  <span className="text-base text-slate-400 font-normal font-body">
+                  <span className="text-sm sm:text-base text-slate-400 font-normal font-body">
                     / {reservations.filter((r) => r.estado !== "anulado").length}
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-500 mt-2.5 font-medium">
-                  Boletos / órdenes validadas en boletería
+                <div className="text-[10px] sm:text-[11px] text-slate-500 mt-2 font-medium">
+                  Boletos / compras validadas en puerta
                 </div>
               </div>
             </div>
 
             {/* SECCIÓN VALIDADOR RÁPIDO EN PUERTA (ESCANEAR / DIGITAR) */}
-            <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white rounded-2xl p-6 sm:p-8 border border-slate-800 shadow-xl space-y-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+            <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white rounded-2xl p-4 sm:p-8 border border-slate-800 shadow-xl space-y-5">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400">
+                  <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
                     <ScanLine className="w-5 h-5" />
                   </div>
                   <div>
@@ -2175,7 +2353,7 @@ function AdminEntradasPage() {
                       Escanear o Validar Entrada
                     </h3>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Ingresa el código oficial (ej. <strong className="text-white">JR-4PM-SUP-001</strong>), el número de <strong className="text-white">DNI</strong> o el nombre del titular.
+                      Ingresa el código oficial (ej. <strong className="text-white">JR-4PM-SUP-001</strong>), el <strong className="text-white">DNI</strong> o el nombre.
                     </p>
                   </div>
                 </div>
@@ -2194,7 +2372,7 @@ function AdminEntradasPage() {
                     type="text"
                     value={scanQuery}
                     onChange={(e) => setScanQuery(e.target.value)}
-                    placeholder="Código de ticket (ej. JR-4PM-SUP-001) o DNI del cliente..."
+                    placeholder="Código de ticket o DNI del cliente..."
                     className="w-full bg-slate-800/80 border-2 border-slate-700 rounded-xl pl-12 pr-4 py-3 text-sm text-white placeholder:text-slate-400 focus:outline-hidden focus:border-red-500 focus:bg-slate-800 font-mono tracking-wide uppercase"
                     autoFocus
                   />
@@ -2225,30 +2403,30 @@ function AdminEntradasPage() {
               {/* RESULTADOS DEL VALIDADOR */}
               {/* CASO 1: 🚨 TICKET YA USADO (DUPLICADO - NO PROCEDE) */}
               {scanAlert && scanAlert.type === "duplicate" && (
-                <div className="p-6 bg-red-950/90 border-2 border-red-500 rounded-2xl shadow-2xl text-white animate-fade-in space-y-4">
+                <div className="p-4 sm:p-6 bg-red-950/90 border-2 border-red-500 rounded-2xl shadow-2xl text-white animate-fade-in space-y-4">
                   <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-red-600 flex items-center justify-center text-white shrink-0 shadow-lg animate-pulse">
-                      <AlertOctagon className="w-8 h-8" />
+                    <div className="w-12 sm:w-14 h-12 sm:h-14 rounded-2xl bg-red-600 flex items-center justify-center text-white shrink-0 shadow-lg animate-pulse">
+                      <AlertOctagon className="w-7 sm:w-8 h-7 sm:h-8" />
                     </div>
                     <div className="flex-1">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-800 border border-red-400 text-xs font-black uppercase tracking-wider text-red-100 mb-2 shadow-xs">
-                        <Ban className="w-4 h-4 text-red-300" />
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-800 border border-red-400 text-[11px] font-black uppercase tracking-wider text-red-100 mb-1.5 shadow-xs">
+                        <Ban className="w-3.5 h-3.5 text-red-300" />
                         <span>ACCESO DENEGADO · NO PROCEDE</span>
                       </div>
-                      <h3 className="font-display text-2xl sm:text-3xl text-white font-extrabold tracking-tight leading-tight">
+                      <h3 className="font-display text-xl sm:text-2xl md:text-3xl text-white font-extrabold tracking-tight leading-tight">
                         ¡ALERTA DE SEGURIDAD! ESTE TICKET YA FUE UTILIZADO
                       </h3>
-                      <p className="text-sm text-red-200 mt-1 font-medium">
+                      <p className="text-xs sm:text-sm text-red-200 mt-1 font-medium">
                         El boleto ya fue registrado en puerta anteriormente. Queda terminantemente prohibido autorizar el reingreso con el mismo boleto.
                       </p>
                     </div>
                   </div>
 
                   {/* Detalle del canje previo */}
-                  <div className="bg-red-900/60 border border-red-700/80 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                  <div className="bg-red-900/60 border border-red-700/80 rounded-xl p-3.5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                     <div>
                       <span className="text-red-300 font-bold block uppercase text-[10px]">Primer Ingreso Registrado</span>
-                      <span className="text-white font-extrabold text-sm block mt-0.5">
+                      <span className="text-white font-extrabold text-xs sm:text-sm block mt-0.5">
                         {scanAlert.previousUsedAt
                           ? new Date(scanAlert.previousUsedAt).toLocaleString("es-PE", {
                               day: "2-digit",
@@ -2263,20 +2441,20 @@ function AdminEntradasPage() {
                     </div>
                     <div>
                       <span className="text-red-300 font-bold block uppercase text-[10px]">Titular Registrado</span>
-                      <span className="text-white font-bold text-sm block mt-0.5">
+                      <span className="text-white font-bold text-xs sm:text-sm block mt-0.5">
                         {scanAlert.ticket?.clienteNombre}
                       </span>
                     </div>
                     <div>
                       <span className="text-red-300 font-bold block uppercase text-[10px]">Código & DNI</span>
-                      <span className="font-mono text-amber-300 font-bold text-sm block mt-0.5">
+                      <span className="font-mono text-amber-300 font-bold text-xs sm:text-sm block mt-0.5">
                         #{scanAlert.ticket?.ticketCode || scanAlert.ticket?.id} · DNI: {scanAlert.ticket?.clienteDni || "No reg."}
                       </span>
                     </div>
                     <div>
-                      <span className="text-red-300 font-bold block uppercase text-[10px]">Función & Zona</span>
-                      <span className="text-white font-bold text-sm block mt-0.5">
-                        {scanAlert.ticket?.funcion} ({scanAlert.ticket?.cantidad} pers.) · {ZONAS_CONFIG[scanAlert.ticket?.zonaKey || ""]?.label || scanAlert.ticket?.zonaKey}
+                      <span className="text-red-300 font-bold block uppercase text-[10px]">Función & Asistentes</span>
+                      <span className="text-white font-bold text-xs sm:text-sm block mt-0.5">
+                        {scanAlert.ticket?.funcion} ({scanAlert.ticket ? getEffectiveTicketsCount(scanAlert.ticket) : 0} pers.{scanAlert.ticket?.etapaPromo === "twoXone" ? " · 2x1" : ""}) · {ZONAS_CONFIG[scanAlert.ticket?.zonaKey || ""]?.label || scanAlert.ticket?.zonaKey}
                       </span>
                     </div>
                   </div>
@@ -2299,82 +2477,90 @@ function AdminEntradasPage() {
               )}
 
               {/* CASO 2: 🟢 TICKET VÁLIDO - LISTO PARA INGRESAR (PENDIENTE) */}
-              {scanAlert && scanAlert.type === "success" && scannedTicket && !scannedTicket.asistio && (
-                <div className="p-6 bg-emerald-950/90 border-2 border-emerald-500 rounded-2xl shadow-2xl text-white animate-fade-in space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shrink-0 shadow-lg">
-                        <UserCheck className="w-8 h-8" />
-                      </div>
-                      <div>
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800 border border-emerald-400 text-xs font-black uppercase tracking-wider text-emerald-100 mb-1.5 shadow-xs">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-300" />
-                          <span>BOLETO VÁLIDO · LISTO PARA INGRESAR</span>
+              {scanAlert && scanAlert.type === "success" && scannedTicket && !scannedTicket.asistio && (() => {
+                const effectiveCount = getEffectiveTicketsCount(scannedTicket);
+                return (
+                  <div className="p-4 sm:p-6 bg-emerald-950/90 border-2 border-emerald-500 rounded-2xl shadow-2xl text-white animate-fade-in space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 sm:w-14 h-12 sm:h-14 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shrink-0 shadow-lg">
+                          <UserCheck className="w-7 sm:w-8 h-7 sm:h-8" />
                         </div>
-                        <h3 className="font-display text-2xl sm:text-3xl text-white font-extrabold tracking-tight">
-                          {scannedTicket.clienteNombre}
-                        </h3>
-                        <p className="text-sm text-emerald-200 mt-0.5">
-                          DNI: <strong className="text-white">{scannedTicket.clienteDni || "Registrado al canje"}</strong> · Teléfono: {scannedTicket.clienteTelefono} · Vendedor: {scannedTicket.vendedor}
-                        </p>
+                        <div>
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800 border border-emerald-400 text-[11px] font-black uppercase tracking-wider text-emerald-100 mb-1.5 shadow-xs">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                            <span>BOLETO VÁLIDO · LISTO PARA INGRESAR</span>
+                          </div>
+                          <h3 className="font-display text-2xl sm:text-3xl text-white font-extrabold tracking-tight">
+                            {scannedTicket.clienteNombre}
+                          </h3>
+                          <p className="text-xs sm:text-sm text-emerald-200 mt-0.5">
+                            DNI: <strong className="text-white">{scannedTicket.clienteDni || "Registrado al canje"}</strong> · Tel: {scannedTicket.clienteTelefono} · Vendedor: {scannedTicket.vendedor}
+                          </p>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="text-right">
-                      <span className="font-mono text-xs font-extrabold px-3 py-1.5 rounded-lg bg-black/40 border border-emerald-400/50 text-emerald-300 block w-fit sm:ml-auto">
-                        #{scannedTicket.ticketCode || scannedTicket.id}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Resumen de entradas */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-emerald-900/60 border border-emerald-700/60 rounded-xl p-4 text-xs">
-                    <div>
-                      <span className="text-emerald-300 font-bold block uppercase text-[10px]">Función</span>
-                      <span className="text-white font-extrabold text-base block mt-0.5">
-                        {scannedTicket.funcion}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-emerald-300 font-bold block uppercase text-[10px]">Zona en Sala</span>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: ZONAS_CONFIG[scannedTicket.zonaKey]?.color }}
-                        />
-                        <span className="text-white font-extrabold text-base">
-                          {ZONAS_CONFIG[scannedTicket.zonaKey]?.label || scannedTicket.zonaKey}
+                      <div className="text-right">
+                        <span className="font-mono text-xs font-extrabold px-3 py-1.5 rounded-lg bg-black/40 border border-emerald-400/50 text-emerald-300 block w-fit sm:ml-auto">
+                          #{scannedTicket.ticketCode || scannedTicket.id}
                         </span>
                       </div>
                     </div>
-                    <div>
-                      <span className="text-emerald-300 font-bold block uppercase text-[10px]">Cantidad de Asistentes</span>
-                      <span className="text-yellow-300 font-black text-2xl block mt-0.5">
-                        {scannedTicket.cantidad} {scannedTicket.cantidad === 1 ? "PERSONA" : "PERSONAS"}
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* Botón Gigante de Confirmación de Ingreso */}
-                  <button
-                    type="button"
-                    onClick={() => handleConfirmAttendance(scannedTicket)}
-                    disabled={isMarkingAttendance}
-                    className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black uppercase tracking-wider text-base rounded-xl transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                  >
-                    <CheckCircle2 className="w-6 h-6 text-slate-950" />
-                    <span>
-                      {isMarkingAttendance
-                        ? "Registrando Ingreso en el Sistema..."
-                        : `✅ CONFIRMAR INGRESO · ADMITIR A ${scannedTicket.cantidad} PERSONA(S)`}
-                    </span>
-                  </button>
-                </div>
-              )}
+                    {/* Resumen de entradas */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-emerald-900/60 border border-emerald-700/60 rounded-xl p-4 text-xs">
+                      <div>
+                        <span className="text-emerald-300 font-bold block uppercase text-[10px]">Función</span>
+                        <span className="text-white font-extrabold text-base block mt-0.5">
+                          {scannedTicket.funcion}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-emerald-300 font-bold block uppercase text-[10px]">Zona en Sala</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: ZONAS_CONFIG[scannedTicket.zonaKey]?.color }}
+                          />
+                          <span className="text-white font-extrabold text-base">
+                            {ZONAS_CONFIG[scannedTicket.zonaKey]?.label || scannedTicket.zonaKey}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-emerald-300 font-bold block uppercase text-[10px]">Cantidad de Asistentes</span>
+                        <span className="text-yellow-300 font-black text-2xl block mt-0.5">
+                          {effectiveCount} {effectiveCount === 1 ? "PERSONA" : "PERSONAS"}
+                        </span>
+                        {scannedTicket.etapaPromo === "twoXone" && (
+                          <span className="text-[11px] text-emerald-200 block font-normal mt-0.5">
+                            ({scannedTicket.cantidad} compras en promo 2x1 = {effectiveCount} entradas)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Botón Gigante de Confirmación de Ingreso */}
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmAttendance(scannedTicket)}
+                      disabled={isMarkingAttendance}
+                      className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black uppercase tracking-wider text-base rounded-xl transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      <CheckCircle2 className="w-6 h-6 text-slate-950" />
+                      <span>
+                        {isMarkingAttendance
+                          ? "Registrando Ingreso en el Sistema..."
+                          : `✅ CONFIRMAR INGRESO · ADMITIR A ${effectiveCount} PERSONA(S)`}
+                      </span>
+                    </button>
+                  </div>
+                );
+              })()}
 
               {/* CASO 3: 🎉 INGRESO RECIÉN CONFIRMADO */}
               {scanAlert && scanAlert.type === "success" && scannedTicket?.asistio && (
-                <div className="p-6 bg-emerald-900/80 border-2 border-emerald-400 rounded-2xl shadow-xl text-white animate-fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="p-4 sm:p-6 bg-emerald-900/80 border-2 border-emerald-400 rounded-2xl shadow-xl text-white animate-fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center shrink-0 font-black text-xl shadow-lg">
                       ✓
@@ -2383,8 +2569,8 @@ function AdminEntradasPage() {
                       <div className="font-extrabold text-lg sm:text-xl text-emerald-100">
                         ¡Ingreso Registrado con Éxito!
                       </div>
-                      <p className="text-xs text-emerald-200 mt-0.5">
-                        {scannedTicket.clienteNombre} · {scannedTicket.cantidad} persona(s) en {ZONAS_CONFIG[scannedTicket.zonaKey]?.label} ({scannedTicket.funcion}).
+                      <p className="text-xs sm:text-sm text-emerald-200 mt-0.5">
+                        {scannedTicket.clienteNombre} · {getEffectiveTicketsCount(scannedTicket)} persona(s) {scannedTicket.etapaPromo === "twoXone" ? "(promo 2x1) " : ""}en {ZONAS_CONFIG[scannedTicket.zonaKey]?.label} ({scannedTicket.funcion}).
                       </p>
                     </div>
                   </div>
@@ -2396,7 +2582,7 @@ function AdminEntradasPage() {
                       setScanAlert(null);
                       setScanQuery("");
                     }}
-                    className="px-4 py-2 bg-white/15 hover:bg-white/25 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors shrink-0 cursor-pointer"
+                    className="w-full sm:w-auto px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors shrink-0 cursor-pointer text-center"
                   >
                     Validar Siguiente Boleto →
                   </button>
@@ -2405,7 +2591,7 @@ function AdminEntradasPage() {
 
               {/* CASO 4: ❌ TICKET NO ENCONTRADO */}
               {scanAlert && scanAlert.type === "not_found" && (
-                <div className="p-5 bg-amber-950/90 border border-amber-500/80 rounded-2xl text-amber-200 animate-fade-in flex items-start gap-3">
+                <div className="p-4 sm:p-5 bg-amber-950/90 border border-amber-500/80 rounded-2xl text-amber-200 animate-fade-in flex items-start gap-3">
                   <AlertCircle className="w-6 h-6 text-amber-400 shrink-0 mt-0.5" />
                   <div>
                     <div className="font-bold text-amber-100 text-sm">Boleto no localizado</div>
@@ -2416,10 +2602,10 @@ function AdminEntradasPage() {
             </div>
 
             {/* TABLA: LISTA DE ASISTENCIA EN PUERTA (CANJES Y CONTROL) */}
-            <div className="border border-slate-200 bg-white p-6 rounded-2xl shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div className="border border-slate-200 bg-white p-4 sm:p-6 rounded-2xl shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
                 <div>
-                  <h3 className="font-display text-2xl text-slate-900 tracking-wide font-bold">
+                  <h3 className="font-display text-xl sm:text-2xl text-slate-900 tracking-wide font-bold">
                     Lista de Asistencia en Puerta
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
@@ -2431,7 +2617,7 @@ function AdminEntradasPage() {
                   <button
                     type="button"
                     onClick={() => exportTicketsToExcel(attendanceFilteredList, { onlyAttended: filtroAsistenciaTab === "asistidos" })}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold uppercase tracking-wider rounded-md transition-all shadow-2xs cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold uppercase tracking-wider rounded-md transition-all shadow-2xs cursor-pointer w-full sm:w-auto justify-center"
                     title="Exportar esta vista filtrada de asistencia a Excel"
                   >
                     <Download className="w-3.5 h-3.5 text-emerald-700" />
@@ -2441,13 +2627,13 @@ function AdminEntradasPage() {
               </div>
 
               {/* Filtros de la Lista de Asistencia */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap">
-                {/* Pestañas de Asistencia */}
-                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200/80">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                {/* Pestañas de Asistencia con scroll horizontal en móvil */}
+                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200/80 overflow-x-auto no-scrollbar whitespace-nowrap">
                   <button
                     type="button"
                     onClick={() => setFiltroAsistenciaTab("todos")}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer shrink-0 ${
                       filtroAsistenciaTab === "todos"
                         ? "bg-white text-slate-900 shadow-2xs"
                         : "text-slate-600 hover:text-slate-900"
@@ -2458,18 +2644,18 @@ function AdminEntradasPage() {
                   <button
                     type="button"
                     onClick={() => setFiltroAsistenciaTab("asistidos")}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer shrink-0 ${
                       filtroAsistenciaTab === "asistidos"
                         ? "bg-emerald-600 text-white shadow-2xs"
                         : "text-slate-600 hover:text-emerald-700"
                     }`}
                   >
-                    🟢 Ingresados a Sala ({stats.totalAttendedTickets})
+                    🟢 En Sala ({stats.totalAttendedTickets})
                   </button>
                   <button
                     type="button"
                     onClick={() => setFiltroAsistenciaTab("pendientes")}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer shrink-0 ${
                       filtroAsistenciaTab === "pendientes"
                         ? "bg-slate-800 text-white shadow-2xs"
                         : "text-slate-600 hover:text-slate-900"
@@ -2480,7 +2666,7 @@ function AdminEntradasPage() {
                 </div>
 
                 {/* Filtros secundarios: Función y Vendedor */}
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
                   <select
                     value={filtroAsistenciaFuncion}
                     onChange={(e) => setFiltroAsistenciaFuncion(e.target.value)}
@@ -2506,8 +2692,108 @@ function AdminEntradasPage() {
                 </div>
               </div>
 
-              {/* Tabla de Asistencia */}
-              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+              {/* VISTA 1: MÓVIL (< md) - Tarjetas para porteros y staff en celular */}
+              <div className="md:hidden space-y-3">
+                {attendanceFilteredList.length === 0 ? (
+                  <div className="text-center py-10 text-slate-400 text-xs bg-slate-50 border border-slate-200 rounded-xl">
+                    No hay asistentes registrados con los filtros seleccionados.
+                  </div>
+                ) : (
+                  attendanceFilteredList.map((r) => {
+                    const meta = ZONAS_CONFIG[r.zonaKey];
+                    const effectiveCount = getEffectiveTicketsCount(r);
+                    return (
+                      <div
+                        key={r.id}
+                        className={`p-4 rounded-xl border transition-all ${
+                          r.asistio
+                            ? "bg-emerald-50/40 border-emerald-300/80 shadow-2xs"
+                            : "bg-white border-slate-200 shadow-xs"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="font-mono font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded text-[11px]">
+                            #{r.ticketCode || r.id}
+                          </span>
+                          {r.asistio ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>INGRESADO</span>
+                              {r.asistioAt && (
+                                <span className="font-mono ml-1">
+                                  {new Date(r.asistioAt).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                              <span>PENDIENTE</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="font-bold text-slate-900 text-sm">{r.clienteNombre}</div>
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          DNI: <strong className="text-slate-700">{r.clienteDni || "Sin DNI"}</strong> · Tel: {r.clienteTelefono}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-slate-100 text-xs">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Función & Zona</span>
+                            <div className="font-bold text-slate-800 mt-0.5">{r.funcion}</div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: meta?.color }} />
+                              <span className="text-[11px] text-slate-700 font-medium">{meta?.label}</span>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Asistentes</span>
+                            <span className="font-bold text-slate-900 text-sm block mt-0.5">
+                              {effectiveCount} {effectiveCount === 1 ? "persona" : "personas"}
+                            </span>
+                            {r.etapaPromo === "twoXone" && (
+                              <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-block mt-0.5">
+                                Promo 2x1 ({r.cantidad})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                          <span>Vendedor: <strong className="text-slate-700">{r.vendedor || "Boletería"}</strong></span>
+                        </div>
+
+                        <div className="mt-3">
+                          {r.asistio ? (
+                            <button
+                              type="button"
+                              onClick={() => setAttendanceRevertTarget(r)}
+                              className="w-full py-2 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-800 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                              <span>Desmarcar Asistencia (Error)</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleConfirmAttendance(r)}
+                              disabled={isMarkingAttendance}
+                              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                            >
+                              <UserCheck className="w-4 h-4" />
+                              <span>Marcar Ingreso ({effectiveCount} pers.)</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* VISTA 2: ESCRITORIO (>= md) - Tabla clásica completa */}
+              <div className="hidden md:block overflow-x-auto border border-slate-200 rounded-lg">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] font-bold">
@@ -2515,7 +2801,7 @@ function AdminEntradasPage() {
                       <th className="px-4 py-3">Código Ticket</th>
                       <th className="px-4 py-3">Cliente & DNI</th>
                       <th className="px-4 py-3">Función & Zona</th>
-                      <th className="px-4 py-3 text-center">Entradas</th>
+                      <th className="px-4 py-3 text-center">Entradas / Asientos</th>
                       <th className="px-4 py-3">Vendedor</th>
                       <th className="px-4 py-3 text-center">Estado de Puerta</th>
                       <th className="px-4 py-3 text-right">Acción</th>
@@ -2531,6 +2817,7 @@ function AdminEntradasPage() {
                     ) : (
                       attendanceFilteredList.map((r) => {
                         const meta = ZONAS_CONFIG[r.zonaKey];
+                        const effectiveCount = getEffectiveTicketsCount(r);
                         return (
                           <tr
                             key={r.id}
@@ -2579,9 +2866,14 @@ function AdminEntradasPage() {
                             </td>
 
                             <td className="px-4 py-3.5 text-center">
-                              <span className="bg-slate-100 border border-slate-200 px-2.5 py-1 font-bold text-slate-800 rounded-md text-xs">
-                                {r.cantidad} {r.cantidad === 1 ? "pers." : "pers."}
-                              </span>
+                              <div className="inline-block bg-slate-100 border border-slate-200 px-2.5 py-1 font-bold text-slate-800 rounded-md text-xs">
+                                {effectiveCount} pers.
+                              </div>
+                              {r.etapaPromo === "twoXone" && (
+                                <div className="text-[10px] text-amber-700 font-bold mt-0.5">
+                                  Promo 2x1 ({r.cantidad})
+                                </div>
+                              )}
                             </td>
 
                             <td className="px-4 py-3.5 text-slate-600 text-xs">

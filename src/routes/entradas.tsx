@@ -208,7 +208,7 @@ function EntradasPage() {
             funcion: func as any,
             zonaKey: zKey as any,
             cantidad: count,
-            etapaPromo: "twoXone",
+            etapaPromo: "regular",
             totalPagado: 0,
             vendedor: "Harold López",
             estado: "confirmado",
@@ -261,30 +261,30 @@ function EntradasPage() {
   return (
     <div className="bg-negro text-blanco overflow-x-hidden">
       <header className="border-b border-gris-textura sticky top-0 z-20 bg-negro/90 backdrop-blur-md">
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 py-4 flex items-center">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-12 py-3.5 sm:py-4 flex items-center">
           <Link to="/entradas" className="flex items-center group" aria-label="Chaplin Grupo Cultural">
             <img
               src="/logo-chaplin.png"
               alt="Chaplin Grupo Cultural"
-              className="h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              className="h-9 sm:h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               style={{ filter: "invert(1) hue-rotate(180deg)" }}
             />
           </Link>
         </div>
       </header>
 
-      <section className="relative pt-16 pb-16 lg:pt-20 lg:pb-20 overflow-hidden bg-negro grain">
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 relative z-10">
-          <p className="font-body uppercase tracking-[0.4em] text-rojo text-xs mb-6">Temporada 2026 · Preventa</p>
-          <h1 className="font-display text-blanco text-[56px] md:text-[80px] lg:text-[108px] leading-[0.9] mb-6">
+      <section className="relative pt-12 pb-14 sm:pt-16 sm:pb-16 lg:pt-20 lg:pb-20 overflow-hidden bg-negro grain">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-12 relative z-10">
+          <p className="font-body uppercase tracking-[0.3em] sm:tracking-[0.4em] text-rojo text-[11px] sm:text-xs mb-4 sm:mb-6">Temporada 2026 · Preventa</p>
+          <h1 className="font-display text-blanco text-[40px] sm:text-[64px] md:text-[80px] lg:text-[108px] leading-[0.92] mb-4 sm:mb-6">
             JESUCRISTO
             <br />
             <span className="text-rojo">ROCKSTAR</span>
           </h1>
-          <p className="font-body text-blanco/60 text-base md:text-lg max-w-2xl leading-[1.8]">
+          <p className="font-body text-blanco/60 text-sm sm:text-base md:text-lg max-w-2xl leading-[1.7] sm:leading-[1.8]">
             Domingo 18 de octubre · Funciones 4:00 pm y 7:00 pm · Auditorio del Colegio de Ingenieros de Ica · Dirección general: Harold López
           </p>
-          <div className="linea-roja mt-8" style={{ transformOrigin: "left center" }} />
+          <div className="linea-roja mt-6 sm:mt-8" style={{ transformOrigin: "left center" }} />
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-rojo/20" />
       </section>

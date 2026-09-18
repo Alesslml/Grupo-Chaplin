@@ -68,6 +68,11 @@ function TicketPage() {
     ticket?.zonaKey === "cortesia" ||
     Number(ticket?.totalPagado) === 0;
 
+  const effectiveTickets =
+    ticket?.etapaPromo === "twoXone"
+      ? Number(ticket?.cantidad || 0) * 2
+      : Number(ticket?.cantidad || 0);
+
   const meta = ticket ? ZONAS_CONFIG[ticket.zonaKey] || { label: "Zona General", color: "#fe0000", totalSeats: 60 } : null;
   const promoMeta = ticket ? PROMOS_CONFIG[ticket.etapaPromo] || { label: "Precio Regular" } : null;
   const promoLabel = isCortesia ? "Pase de Cortesía (Sin Costo)" : (promoMeta?.label || "Precio Regular");
@@ -217,15 +222,15 @@ function TicketPage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 relative z-30 -mt-2 sm:-mt-4">
         <div className="bg-[#111114] border-2 border-[#d4af37]/50 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_40px_rgba(212,175,55,0.15)] overflow-hidden relative print:border-black print:shadow-none print:bg-white print:text-black">
           {/* Cinta superior del ticket */}
-          <div className="bg-gradient-to-r from-[#99000a] via-rojo to-[#99000a] p-4 text-white flex items-center justify-between border-b border-[#d4af37]/60">
-            <div className="flex items-center gap-2.5">
-              <TicketIcon className="w-5 h-5 text-yellow-300" />
-              <div>
-                <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-yellow-200/90 block leading-none">
+          <div className="bg-gradient-to-r from-[#99000a] via-rojo to-[#99000a] p-3 sm:p-4 text-white flex items-center justify-between border-b border-[#d4af37]/60 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <TicketIcon className="w-5 h-5 text-yellow-300 shrink-0" />
+              <div className="min-w-0">
+                <span className="text-[9px] sm:text-[10px] uppercase tracking-[0.18em] font-bold text-yellow-200/90 block leading-none">
                   Comprobante Oficial de Reserva
                 </span>
-                <span className="font-display text-lg tracking-wider block mt-0.5">
-                  AUDITORIO COLEGIO DE INGENIEROS DE ICA
+                <span className="font-display text-sm sm:text-lg tracking-wider block mt-0.5 truncate">
+                  COLEGIO DE INGENIEROS DE ICA
                 </span>
               </div>
             </div>
@@ -367,9 +372,14 @@ function TicketPage() {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase tracking-wider text-blanco/40 block font-bold">Entradas</span>
-                  <span className="text-xs sm:text-sm font-extrabold text-emerald-300">
-                    {ticket.cantidad} {ticket.cantidad === 1 ? "asiento" : "asientos"}
+                  <span className="text-xs sm:text-sm font-extrabold text-emerald-300 block">
+                    {effectiveTickets} {effectiveTickets === 1 ? "asiento" : "asientos"}
                   </span>
+                  {ticket.etapaPromo === "twoXone" && (
+                    <span className="text-[10px] text-amber-300 font-semibold block">
+                      ({ticket.cantidad} promo 2x1)
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -382,51 +392,58 @@ function TicketPage() {
               </h3>
 
               <div className="border border-gris-textura/60 rounded-xl divide-y divide-gris-textura/50 bg-black/40 text-xs">
-                <div className="p-3 sm:p-3.5 flex justify-between items-center">
-                  <span className="text-blanco/50 font-medium">NOMBRE DEL TITULAR:</span>
+                <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <span className="text-blanco/50 font-medium text-[11px]">TITULAR DE LA RESERVA:</span>
                   <span className="font-bold text-blanco text-sm uppercase tracking-wide">
                     {ticket.clienteNombre}
                   </span>
                 </div>
 
-                <div className="p-3 sm:p-3.5 flex justify-between items-center">
-                  <span className="text-blanco/50 font-medium">DOCUMENTO DE IDENTIDAD (DNI):</span>
-                  <span className="font-mono font-bold text-blanco">
+                <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <span className="text-blanco/50 font-medium text-[11px]">DOCUMENTO (DNI):</span>
+                  <span className="font-mono font-bold text-blanco text-sm">
                     {ticket.clienteDni || "Registrado al canje"}
                   </span>
                 </div>
 
-                <div className="p-3 sm:p-3.5 flex justify-between items-center">
-                  <span className="text-blanco/50 font-medium">PROMOCIÓN / TARIFA:</span>
-                  <span className="font-bold text-amber-300 uppercase">
-                    {promoLabel}
-                  </span>
+                <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <span className="text-blanco/50 font-medium text-[11px]">PROMOCIÓN / TARIFA:</span>
+                  <div className="sm:text-right">
+                    <span className="font-bold text-amber-300 uppercase block">
+                      {promoLabel}
+                    </span>
+                    {ticket.etapaPromo === "twoXone" && (
+                      <span className="text-[10px] text-emerald-300 font-semibold block">
+                        Llevas 2x1 ({effectiveTickets} entradas en total)
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="p-3 sm:p-3.5 flex justify-between items-center">
-                  <span className="text-blanco/50 font-medium">TOTAL PAGADO:</span>
+                <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <span className="text-blanco/50 font-medium text-[11px]">TOTAL PAGADO:</span>
                   <span className={`font-mono font-bold text-sm ${isCortesia ? "text-amber-400" : "text-emerald-400"}`}>
                     {totalLabel}
                   </span>
                 </div>
 
-                <div className="p-3 sm:p-3.5 flex justify-between items-center">
-                  <span className="text-blanco/50 font-medium">MEDIO DE PAGO:</span>
-                  <span className="font-bold text-blanco uppercase">
+                <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <span className="text-blanco/50 font-medium text-[11px]">MEDIO DE PAGO:</span>
+                  <span className="font-bold text-blanco uppercase text-sm">
                     {metodoLabel}
                   </span>
                 </div>
 
-                <div className="p-3 sm:p-3.5 flex justify-between items-center">
-                  <span className="text-blanco/50 font-medium">ASESOR / VENDEDOR:</span>
-                  <span className="text-blanco/80 font-medium">
+                <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <span className="text-blanco/50 font-medium text-[11px]">ASESOR / VENDEDOR:</span>
+                  <span className="text-blanco/80 font-medium text-xs sm:text-sm">
                     {ticket.vendedor || "Boletería Oficial"}
                   </span>
                 </div>
 
-                <div className="p-3 sm:p-3.5 flex justify-between items-center">
-                  <span className="text-blanco/50 font-medium">EMITIDO EL:</span>
-                  <span className="text-blanco/60">
+                <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                  <span className="text-blanco/50 font-medium text-[11px]">EMITIDO EL:</span>
+                  <span className="text-blanco/60 text-xs">
                     {formattedDate}
                   </span>
                 </div>

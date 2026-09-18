@@ -72,12 +72,22 @@ export function buildWhatsAppReservationMessage(
     ? `S/. 0.00 SOLES (PASE DE CORTESÍA)`
     : `S/. ${Number(reservation.totalPagado).toFixed(2)} SOLES (${promoMeta.label.toUpperCase()})`;
 
+  const effectiveTickets =
+    reservation.etapaPromo === "twoXone"
+      ? Number(reservation.cantidad || 0) * 2
+      : Number(reservation.cantidad || 0);
+
+  const cantidadText =
+    reservation.etapaPromo === "twoXone"
+      ? `${reservation.cantidad} promo(s) 2x1 (${effectiveTickets} entradas entregadas)`
+      : `${reservation.cantidad} ${reservation.cantidad === 1 ? "entrada" : "entradas"}`;
+
   return (
     `🎸✝️🤘🔥 🎭\n\n` +
     `RESERVACIÓN "JESUCRISTO ROCKSTAR" (${metodoLabel.toUpperCase()})\n\n` +
     `NOMBRE: ${reservation.clienteNombre.toUpperCase()}\n` +
     `DNI: ${reservation.clienteDni || "Por confirmar"}\n` +
-    `CANTIDAD: ${reservation.cantidad}\n` +
+    `CANTIDAD: ${cantidadText}\n` +
     `ZONA: ${meta.label.toUpperCase()}\n` +
     `HORARIO DE FUNCIÓN: ${reservation.funcion.toUpperCase()} (Domingo 18 de Octubre)\n` +
     `MONTO: ${montoText}\n` +
@@ -145,7 +155,10 @@ export const fetchPublicAvailabilityServer = createServerFn({ method: "POST" }).
   await ensureTicketsSchema();
   const sql = getSql();
   const rows = (await sql`
-    select funcion, zona_key, sum(cantidad)::int as sold
+    select 
+      funcion, 
+      zona_key, 
+      sum(case when etapa_promo = 'twoXone' then cantidad * 2 else cantidad end)::int as sold
     from ticket_reservations
     where estado != 'anulado'
     group by funcion, zona_key
@@ -642,6 +655,16 @@ export interface ZoneAvailability {
   isLowStock: boolean;
 }
 
+/**
+ * Calcula el número efectivo de entradas físicas entregadas / asientos descontados del aforo.
+ * REGLA ESPECIAL: Únicamente en la promoción 2x1 ('twoXone'), cada unidad comprada entrega y descuenta 2 asientos.
+ * En todas las demás promociones (3x2, 20%, regular, cortesía), el conteo es 1 a 1.
+ */
+export function getEffectiveTicketsCount(r: { cantidad: number; etapaPromo?: string }): number {
+  const qty = Number(r.cantidad || 0);
+  return r.etapaPromo === "twoXone" ? qty * 2 : qty;
+}
+
 export function getZoneAvailability(
   reservations: TicketReservation[],
   funcion: string,
@@ -650,7 +673,7 @@ export function getZoneAvailability(
   const meta = ZONAS_CONFIG[zonaKey] || { totalSeats: 50 };
   const sold = reservations
     .filter((r) => r.funcion === funcion && r.zonaKey === zonaKey && r.estado !== "anulado")
-    .reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+    .reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
 
   const available = Math.max(0, meta.totalSeats - sold);
   const percent = Math.min(100, Math.round((sold / meta.totalSeats) * 100));
@@ -669,27 +692,27 @@ export function getZoneAvailability(
 export function getCRMStats(reservations: TicketReservation[]) {
   const active = reservations.filter((r) => r.estado !== "anulado");
   const totalRevenue = active.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
-  const totalTickets = active.reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+  const totalTickets = active.reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
 
   const active4pm = active.filter((r) => r.funcion === "4:00 pm");
   const active7pm = active.filter((r) => r.funcion === "7:00 pm");
 
-  const tickets4pm = active4pm.reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
-  const tickets7pm = active7pm.reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+  const tickets4pm = active4pm.reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
+  const tickets7pm = active7pm.reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
 
   const revenue4pm = active4pm.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
   const revenue7pm = active7pm.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
 
-  // Asistencia en sala / puerta
+  // Asistencia en sala / puerta (contabiliza personas reales que ingresan)
   const attended = active.filter((r) => r.asistio);
-  const totalAttendedTickets = attended.reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+  const totalAttendedTickets = attended.reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
   const attendedOrdersCount = attended.length;
   const attended4pm = attended
     .filter((r) => r.funcion === "4:00 pm")
-    .reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+    .reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
   const attended7pm = attended
     .filter((r) => r.funcion === "7:00 pm")
-    .reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+    .reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
   const percentAttendedTotal = totalTickets > 0 ? Math.round((totalAttendedTickets / totalTickets) * 100) : 0;
   const percentAttended4pm = tickets4pm > 0 ? Math.round((attended4pm / tickets4pm) * 100) : 0;
   const percentAttended7pm = tickets7pm > 0 ? Math.round((attended7pm / tickets7pm) * 100) : 0;
@@ -799,7 +822,7 @@ export interface PromosBreakdown {
 
 export function getPromosBreakdown(reservations: TicketReservation[]): PromosBreakdown {
   const active = reservations.filter((r) => r.estado !== "anulado");
-  const totalTickets = active.reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+  const totalTickets = active.reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
   const totalRevenue = active.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
   const totalOrders = active.length;
   const avgTicketPriceGlobal = totalTickets > 0 ? totalRevenue / totalTickets : 0;
@@ -817,7 +840,7 @@ export function getPromosBreakdown(reservations: TicketReservation[]): PromosBre
 
   const rawItems = promoKeys.map((key) => {
     const list = active.filter((r) => r.etapaPromo === key);
-    const ticketsSold = list.reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+    const ticketsSold = list.reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
     const revenue = list.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
     const ordersCount = list.length;
     const avgTicketPrice = ticketsSold > 0 ? revenue / ticketsSold : 0;
@@ -897,7 +920,8 @@ export function exportTicketsToExcel(
     "DNI",
     "FUNCIÓN",
     "ZONA",
-    "CANTIDAD ENTRADAS",
+    "CANTIDAD COMPRADA",
+    "ENTRADAS ENTREGADAS / ASIENTOS",
     "PROMOCIÓN / TARIFA",
     "TOTAL PAGADO (S/)",
     "MÉTODO DE PAGO",
@@ -932,6 +956,7 @@ export function exportTicketsToExcel(
     const zonaLabel = ZONAS_CONFIG[r.zonaKey]?.label || r.zonaKey;
     const promoLabel = PROMOS_CONFIG[r.etapaPromo]?.label || r.etapaPromo;
     const metodoLabel = METODOS_PAGO_CONFIG[r.metodoPago || "yape"]?.label || r.metodoPago || "Yape";
+    const effectiveTickets = getEffectiveTicketsCount(r);
 
     return [
       r.ticketCode || r.id,
@@ -942,6 +967,7 @@ export function exportTicketsToExcel(
       r.funcion,
       zonaLabel,
       r.cantidad,
+      effectiveTickets,
       promoLabel,
       Number(r.totalPagado).toFixed(2),
       metodoLabel,
