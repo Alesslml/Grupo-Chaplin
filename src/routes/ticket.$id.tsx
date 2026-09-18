@@ -234,15 +234,50 @@ function TicketPage() {
               <span className="text-[9px] uppercase tracking-wider text-yellow-200 block font-medium">
                 Estado
               </span>
-              <div className="inline-flex items-center gap-1 text-xs font-extrabold bg-black/40 px-2 py-0.5 rounded-full border border-yellow-400/40 text-yellow-300">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>CONFIRMADO</span>
-              </div>
+              {ticket.asistio ? (
+                <div className="inline-flex items-center gap-1 text-xs font-extrabold bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-400 text-emerald-300">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>YA CANJEADO</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-1 text-xs font-extrabold bg-black/40 px-2 py-0.5 rounded-full border border-yellow-400/40 text-yellow-300">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>CONFIRMADO</span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Cuerpo del Ticket */}
           <div className="p-6 sm:p-8 space-y-6">
+            {ticket.asistio && (
+              <div className="p-4 bg-emerald-950/50 border-2 border-emerald-500/70 rounded-xl flex items-center justify-between gap-3 text-xs text-emerald-200 shadow-md animate-fade-in">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-300 shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold uppercase tracking-wider text-xs text-emerald-300 block">
+                      ✓ BOLETO YA CANJEADO / ASISTENCIA REGISTRADA EN SALA
+                    </span>
+                    <span className="text-[11px] text-emerald-200/80 block mt-0.5">
+                      Ingreso verificado el{" "}
+                      {ticket.asistioAt
+                        ? new Date(ticket.asistioAt).toLocaleString("es-PE", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "el día de la función"}
+                      . Este código ya no puede utilizarse nuevamente.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {isCortesia && (
               <div className="p-3.5 bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-amber-500/20 border-2 border-amber-400/60 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-200 shadow-sm animate-fade-in">
                 <div className="flex items-center gap-2.5">

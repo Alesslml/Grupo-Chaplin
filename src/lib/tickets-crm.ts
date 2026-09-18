@@ -30,6 +30,9 @@ export interface TicketReservation {
   estado: "confirmado" | "pendiente" | "anulado";
   notas?: string;
   ticketCode?: string;
+  asistio?: boolean;
+  asistioAt?: string; // ISO string
+  asistioNotas?: string;
 }
 
 export function generateTicketCode(funcion: string, zonaKey: string, sequentialNumber: number): string {
@@ -190,7 +193,10 @@ export const fetchAdminReservationsServer = createServerFn({ method: "POST" })
         vendedor, 
         estado, 
         notas,
-        ticket_code
+        ticket_code,
+        asistio,
+        asistio_at,
+        asistio_notas
       from ticket_reservations
       order by created_at desc
     `) as any[];
@@ -211,6 +217,9 @@ export const fetchAdminReservationsServer = createServerFn({ method: "POST" })
       estado: (r.estado || "confirmado") as any,
       notas: r.notas ? String(r.notas) : undefined,
       ticketCode: r.ticket_code ? String(r.ticket_code) : generateTicketCode(String(r.funcion), String(r.zona_key), rows.length - idx),
+      asistio: Boolean(r.asistio),
+      asistioAt: r.asistio_at ? new Date(r.asistio_at).toISOString() : undefined,
+      asistioNotas: r.asistio_notas ? String(r.asistio_notas) : undefined,
     }));
 
     return { ok: true as const, reservations };
@@ -308,7 +317,10 @@ export const fetchTicketByIdServer = createServerFn({ method: "POST" })
         vendedor, 
         estado, 
         notas,
-        ticket_code
+        ticket_code,
+        asistio,
+        asistio_at,
+        asistio_notas
       from ticket_reservations
       where id = ${data.id} or ticket_code = ${data.id}
       limit 1
@@ -335,12 +347,72 @@ export const fetchTicketByIdServer = createServerFn({ method: "POST" })
       estado: (r.estado || "confirmado") as any,
       notas: r.notas ? String(r.notas) : undefined,
       ticketCode: r.ticket_code ? String(r.ticket_code) : undefined,
+      asistio: Boolean(r.asistio),
+      asistioAt: r.asistio_at ? new Date(r.asistio_at).toISOString() : undefined,
+      asistioNotas: r.asistio_notas ? String(r.asistio_notas) : undefined,
     };
 
     return { ok: true as const, ticket };
   });
 
-// 5. Eliminar una venta de Neon PostgreSQL (devuelve los cupos automáticamente)
+// 6. Marcar o desmarcar asistencia en puerta en Neon PostgreSQL
+export const markTicketAttendanceServer = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      auth: { username: string; password: string };
+      id: string;
+      asistio: boolean;
+      asistioNotas?: string;
+    }) => data
+  )
+  .handler(async ({ data }) => {
+    if (!isHaroldAuthenticated(data.auth.username, data.auth.password)) {
+      throw new Error("UNAUTHORIZED");
+    }
+    await ensureTicketsSchema();
+    const sql = getSql();
+    const asistioAt = data.asistio ? new Date().toISOString() : null;
+
+    const rows = (await sql`
+      update ticket_reservations
+      set 
+        asistio = ${data.asistio},
+        asistio_at = ${asistioAt},
+        asistio_notas = ${data.asistioNotas || null}
+      where id = ${data.id} or ticket_code = ${data.id}
+      returning *
+    `) as any[];
+
+    if (!rows || rows.length === 0) {
+      return { ok: false as const, error: "TICKET_NOT_FOUND", ticket: null };
+    }
+
+    const r = rows[0];
+    const ticket: TicketReservation = {
+      id: String(r.id),
+      createdAt: new Date(r.created_at).toISOString(),
+      clienteNombre: String(r.cliente_nombre),
+      clienteTelefono: String(r.cliente_telefono),
+      clienteDni: r.cliente_dni ? String(r.cliente_dni) : undefined,
+      funcion: r.funcion as any,
+      zonaKey: r.zona_key as any,
+      cantidad: Number(r.cantidad || 1),
+      etapaPromo: r.etapa_promo as any,
+      totalPagado: Number(r.total_pagado || 0),
+      metodoPago: (r.metodo_pago || "yape") as any,
+      vendedor: String(r.vendedor || "Boletería"),
+      estado: (r.estado || "confirmado") as any,
+      notas: r.notas ? String(r.notas) : undefined,
+      ticketCode: r.ticket_code ? String(r.ticket_code) : undefined,
+      asistio: Boolean(r.asistio),
+      asistioAt: r.asistio_at ? new Date(r.asistio_at).toISOString() : undefined,
+      asistioNotas: r.asistio_notas ? String(r.asistio_notas) : undefined,
+    };
+
+    return { ok: true as const, ticket };
+  });
+
+// 7. Eliminar una venta de Neon PostgreSQL (devuelve los cupos automáticamente)
 export const deleteAdminReservationServer = createServerFn({ method: "POST" })
   .inputValidator((data: { auth: { username: string; password: string }; id: string }) => data)
   .handler(async ({ data }) => {
@@ -458,6 +530,65 @@ export async function saveReservation(
   return newRes;
 }
 
+export async function markTicketAttendance(
+  idOrCode: string,
+  asistio: boolean,
+  notas?: string
+): Promise<{ ok: boolean; ticket: TicketReservation | null; alreadyUsed?: boolean; previousUsedAt?: string }> {
+  const current = getStoredReservations();
+  const targetIndex = current.findIndex((r) => r.id === idOrCode || r.ticketCode === idOrCode);
+
+  if (targetIndex === -1) {
+    return { ok: false, ticket: null };
+  }
+
+  const existing = current[targetIndex];
+
+  // Si se está intentando marcar como asistido pero YA ESTABA marcado:
+  if (asistio && existing.asistio) {
+    return {
+      ok: false,
+      alreadyUsed: true,
+      previousUsedAt: existing.asistioAt,
+      ticket: existing,
+    };
+  }
+
+  const nowIso = asistio ? new Date().toISOString() : undefined;
+  const updatedTicket: TicketReservation = {
+    ...existing,
+    asistio,
+    asistioAt: nowIso,
+    asistioNotas: notas !== undefined ? notas : existing.asistioNotas,
+  };
+
+  current[targetIndex] = updatedTicket;
+  saveStoredReservationsLocally(current);
+
+  const auth = getStoredHaroldAuth();
+  if (auth) {
+    try {
+      const serverRes = await markTicketAttendanceServer({
+        data: {
+          auth,
+          id: existing.id,
+          asistio,
+          asistioNotas: notas,
+        },
+      });
+      if (serverRes && serverRes.ok && serverRes.ticket) {
+        current[targetIndex] = serverRes.ticket;
+        saveStoredReservationsLocally(current);
+        return { ok: true, ticket: serverRes.ticket };
+      }
+    } catch (err) {
+      console.error("Error sincronizando asistencia en Neon:", err);
+    }
+  }
+
+  return { ok: true, ticket: updatedTicket };
+}
+
 export async function deleteReservation(id: string): Promise<boolean> {
   const auth = getStoredHaroldAuth();
   if (auth) {
@@ -549,6 +680,20 @@ export function getCRMStats(reservations: TicketReservation[]) {
   const revenue4pm = active4pm.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
   const revenue7pm = active7pm.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
 
+  // Asistencia en sala / puerta
+  const attended = active.filter((r) => r.asistio);
+  const totalAttendedTickets = attended.reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+  const attendedOrdersCount = attended.length;
+  const attended4pm = attended
+    .filter((r) => r.funcion === "4:00 pm")
+    .reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+  const attended7pm = attended
+    .filter((r) => r.funcion === "7:00 pm")
+    .reduce((sum, r) => sum + Number(r.cantidad || 0), 0);
+  const percentAttendedTotal = totalTickets > 0 ? Math.round((totalAttendedTickets / totalTickets) * 100) : 0;
+  const percentAttended4pm = tickets4pm > 0 ? Math.round((attended4pm / tickets4pm) * 100) : 0;
+  const percentAttended7pm = tickets7pm > 0 ? Math.round((attended7pm / tickets7pm) * 100) : 0;
+
   const totalCap = 268; // 60 + 14 + 47 + 67 + 80
 
   return {
@@ -561,6 +706,13 @@ export function getCRMStats(reservations: TicketReservation[]) {
     totalCap,
     percent4pm: Math.round((tickets4pm / totalCap) * 100),
     percent7pm: Math.round((tickets7pm / totalCap) * 100),
+    totalAttendedTickets,
+    attendedOrdersCount,
+    attended4pm,
+    attended7pm,
+    percentAttendedTotal,
+    percentAttended4pm,
+    percentAttended7pm,
   };
 }
 
@@ -719,3 +871,103 @@ export function getPromosBreakdown(reservations: TicketReservation[]): PromosBre
     topPromoByRevenue,
   };
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   EXPORTACIÓN A EXCEL (CSV CON FORMATO BOM UTF-8)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+function toCsvCell(v: string | number | null | undefined): string {
+  const s = v === null || v === undefined ? "" : String(v);
+  return /[",\n;\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+export function exportTicketsToExcel(
+  reservations: TicketReservation[],
+  options?: { filename?: string; onlyAttended?: boolean }
+) {
+  if (typeof window === "undefined") return;
+
+  const items = options?.onlyAttended ? reservations.filter((r) => r.asistio) : reservations;
+
+  const headers = [
+    "CÓDIGO DE TICKET",
+    "FECHA Y HORA COMPRA",
+    "CLIENTE",
+    "TELÉFONO / WHATSAPP",
+    "DNI",
+    "FUNCIÓN",
+    "ZONA",
+    "CANTIDAD ENTRADAS",
+    "PROMOCIÓN / TARIFA",
+    "TOTAL PAGADO (S/)",
+    "MÉTODO DE PAGO",
+    "VENDEDOR / CANAL",
+    "ESTADO RESERVA",
+    "ASISTENCIA EN PUERTA",
+    "FECHA Y HORA INGRESO",
+    "NOTAS / COMPROBANTE",
+  ];
+
+  const rows = items.map((r) => {
+    const createdDate = new Date(r.createdAt).toLocaleString("es-PE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const attendedDate =
+      r.asistio && r.asistioAt
+        ? new Date(r.asistioAt).toLocaleString("es-PE", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })
+        : "";
+
+    const zonaLabel = ZONAS_CONFIG[r.zonaKey]?.label || r.zonaKey;
+    const promoLabel = PROMOS_CONFIG[r.etapaPromo]?.label || r.etapaPromo;
+    const metodoLabel = METODOS_PAGO_CONFIG[r.metodoPago || "yape"]?.label || r.metodoPago || "Yape";
+
+    return [
+      r.ticketCode || r.id,
+      createdDate,
+      r.clienteNombre,
+      r.clienteTelefono,
+      r.clienteDni || "",
+      r.funcion,
+      zonaLabel,
+      r.cantidad,
+      promoLabel,
+      Number(r.totalPagado).toFixed(2),
+      metodoLabel,
+      r.vendedor,
+      r.estado.toUpperCase(),
+      r.asistio ? "INGRESADO" : "PENDIENTE",
+      attendedDate,
+      r.notas || "",
+    ]
+      .map(toCsvCell)
+      .join(",");
+  });
+
+  const csvContent = [headers.map(toCsvCell).join(","), ...rows].join("\r\n");
+  // BOM UTF-8 (\uFEFF) para compatibilidad total con Microsoft Excel en español (acentos, ñ, números)
+  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const defaultName = options?.onlyAttended
+    ? `asistencia-jesucristo-rockstar-${new Date().toISOString().slice(0, 10)}.csv`
+    : `crm-reservas-jesucristo-rockstar-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = options?.filename || defaultName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+

@@ -95,6 +95,9 @@ export function ensureTicketsSchema() {
       )
     `
       .then(() => sql`alter table ticket_reservations add column if not exists ticket_code text`)
+      .then(() => sql`alter table ticket_reservations add column if not exists asistio boolean not null default false`)
+      .then(() => sql`alter table ticket_reservations add column if not exists asistio_at timestamptz`)
+      .then(() => sql`alter table ticket_reservations add column if not exists asistio_notas text`)
       .then(() => undefined);
   }
   return _ticketsEnsured;

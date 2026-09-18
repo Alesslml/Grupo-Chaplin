@@ -30,11 +30,21 @@ import {
   Copy,
   ExternalLink,
   Share2,
+  Download,
+  UserCheck,
+  ScanLine,
+  Ban,
+  RotateCcw,
+  FileSpreadsheet,
+  AlertOctagon,
+  Filter,
 } from "lucide-react";
 import {
   getStoredReservations,
   saveReservation,
   deleteReservation,
+  markTicketAttendance,
+  exportTicketsToExcel,
   syncReservationsWithNeon,
   getStoredHaroldAuth,
   setStoredHaroldAuth,
@@ -79,7 +89,7 @@ function AdminEntradasPage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "registro">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "registro" | "asistencia">("dashboard");
   const [reservations, setReservations] = useState<TicketReservation[]>(() => getStoredReservations());
   const [selectedFuncion, setSelectedFuncion] = useState<"4:00 pm" | "7:00 pm">("4:00 pm");
   const [searchTerm, setSearchTerm] = useState("");
@@ -87,6 +97,23 @@ function AdminEntradasPage() {
   const [filtroZona, setFiltroZona] = useState<string>("todas");
   const [filtroMetodo, setFiltroMetodo] = useState<string>("todos");
   const [filtroPromo, setFiltroPromo] = useState<string>("todas");
+  const [filtroVendedor, setFiltroVendedor] = useState<string>("todos");
+  const [filtroAsistencia, setFiltroAsistencia] = useState<string>("todas");
+
+  // Estado del Módulo de Control de Asistencia y Escáner en Puerta
+  const [scanQuery, setScanQuery] = useState("");
+  const [scannedTicket, setScannedTicket] = useState<TicketReservation | null>(null);
+  const [scanAlert, setScanAlert] = useState<{
+    type: "success" | "duplicate" | "not_found";
+    message: string;
+    ticket?: TicketReservation;
+    previousUsedAt?: string;
+  } | null>(null);
+  const [isMarkingAttendance, setIsMarkingAttendance] = useState(false);
+  const [attendanceRevertTarget, setAttendanceRevertTarget] = useState<TicketReservation | null>(null);
+  const [filtroAsistenciaTab, setFiltroAsistenciaTab] = useState<"todos" | "asistidos" | "pendientes">("todos");
+  const [filtroAsistenciaFuncion, setFiltroAsistenciaFuncion] = useState<string>("todas");
+  const [filtroAsistenciaVendedor, setFiltroAsistenciaVendedor] = useState<string>("todos");
 
   // Form state
   const [nombre, setNombre] = useState("");
@@ -281,13 +308,24 @@ function AdminEntradasPage() {
     }
   };
 
-  // Filtrado de reservas para la tabla
+  // Lista dinámica de vendedores registrados
+  const vendedoresList = useMemo(() => {
+    const set = new Set<string>();
+    reservations.forEach((r) => {
+      const v = r.vendedor?.trim();
+      if (v) set.add(v);
+    });
+    return Array.from(set).sort();
+  }, [reservations]);
+
+  // Filtrado de reservas para la tabla principal
   const filteredReservations = useMemo(() => {
     return reservations.filter((r) => {
       const matchSearch =
         r.clienteNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.clienteTelefono.includes(searchTerm) ||
         (r.clienteDni && r.clienteDni.includes(searchTerm)) ||
+        (r.ticketCode && r.ticketCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (r.metodoPago && r.metodoPago.toLowerCase().includes(searchTerm.toLowerCase())) ||
         r.vendedor.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -295,10 +333,149 @@ function AdminEntradasPage() {
       const matchZona = filtroZona === "todas" || r.zonaKey === filtroZona;
       const matchMetodo = filtroMetodo === "todos" || r.metodoPago === filtroMetodo;
       const matchPromo = filtroPromo === "todas" || r.etapaPromo === filtroPromo;
+      const matchVendedor =
+        filtroVendedor === "todos" || r.vendedor?.trim().toLowerCase() === filtroVendedor.toLowerCase();
+      const matchAsistencia =
+        filtroAsistencia === "todas"
+          ? true
+          : filtroAsistencia === "solo_ingresados"
+          ? Boolean(r.asistio)
+          : !r.asistio;
 
-      return matchSearch && matchFuncion && matchZona && matchMetodo && matchPromo;
+      return matchSearch && matchFuncion && matchZona && matchMetodo && matchPromo && matchVendedor && matchAsistencia;
     });
-  }, [reservations, searchTerm, filtroFuncion, filtroZona, filtroMetodo, filtroPromo]);
+  }, [reservations, searchTerm, filtroFuncion, filtroZona, filtroMetodo, filtroPromo, filtroVendedor, filtroAsistencia]);
+
+  // Filtrado específico para la pestaña de Control de Asistencia en Puerta
+  const attendanceFilteredList = useMemo(() => {
+    return reservations.filter((r) => {
+      if (r.estado === "anulado") return false;
+
+      const matchTab =
+        filtroAsistenciaTab === "todos"
+          ? true
+          : filtroAsistenciaTab === "asistidos"
+          ? Boolean(r.asistio)
+          : !r.asistio;
+
+      const matchFuncion =
+        filtroAsistenciaFuncion === "todas" || r.funcion === filtroAsistenciaFuncion;
+
+      const matchVendedor =
+        filtroAsistenciaVendedor === "todos" ||
+        r.vendedor?.trim().toLowerCase() === filtroAsistenciaVendedor.toLowerCase();
+
+      return matchTab && matchFuncion && matchVendedor;
+    });
+  }, [reservations, filtroAsistenciaTab, filtroAsistenciaFuncion, filtroAsistenciaVendedor]);
+
+  // Validador rápido de boletos en puerta (por código, DNI o nombre)
+  const handleValidateScan = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const query = scanQuery.trim();
+    if (!query) return;
+
+    const found =
+      reservations.find(
+        (r) =>
+          (r.ticketCode && r.ticketCode.toLowerCase() === query.toLowerCase()) ||
+          r.id.toLowerCase() === query.toLowerCase() ||
+          (r.clienteDni && r.clienteDni.trim() === query)
+      ) ||
+      reservations.find(
+        (r) =>
+          (r.ticketCode && r.ticketCode.toLowerCase().includes(query.toLowerCase())) ||
+          r.clienteNombre.toLowerCase().includes(query.toLowerCase())
+      );
+
+    if (!found) {
+      setScanAlert({
+        type: "not_found",
+        message: `No se encontró ningún boleto con el término "${query}". Verifica el código o DNI en boletería.`,
+      });
+      setScannedTicket(null);
+      return;
+    }
+
+    setScannedTicket(found);
+
+    if (found.asistio) {
+      setScanAlert({
+        type: "duplicate",
+        message: "¡ALERTA DE DUPLICADO! Este boleto YA fue utilizado para ingresar.",
+        ticket: found,
+        previousUsedAt: found.asistioAt,
+      });
+    } else {
+      setScanAlert({
+        type: "success",
+        message: `Boleto VÁLIDO. Listo para autorizar el ingreso de ${found.cantidad} persona(s).`,
+        ticket: found,
+      });
+    }
+  };
+
+  // Confirmar ingreso de un ticket
+  const handleConfirmAttendance = async (target: TicketReservation) => {
+    if (target.asistio) {
+      setScanAlert({
+        type: "duplicate",
+        message: "¡ALERTA DE DUPLICADO! Este boleto YA fue ingresado previamente.",
+        ticket: target,
+        previousUsedAt: target.asistioAt,
+      });
+      return;
+    }
+
+    setIsMarkingAttendance(true);
+    try {
+      const result = await markTicketAttendance(target.id, true);
+      if (result.alreadyUsed) {
+        setScanAlert({
+          type: "duplicate",
+          message: "¡ALERTA DE SEGURIDAD! El boleto fue marcado como usado hace instantes.",
+          ticket: result.ticket || target,
+          previousUsedAt: result.previousUsedAt,
+        });
+      } else if (result.ok && result.ticket) {
+        setScanAlert({
+          type: "success",
+          message: `¡INGRESO EXITOSO! Se autorizó el acceso a ${result.ticket.clienteNombre} (${result.ticket.cantidad} entradas).`,
+          ticket: result.ticket,
+        });
+        setScannedTicket(result.ticket);
+        setReservations(getStoredReservations());
+      }
+    } catch (err) {
+      console.error("Error al registrar asistencia:", err);
+    } finally {
+      setIsMarkingAttendance(false);
+    }
+  };
+
+  // Revertir asistencia si hubo error de dedo
+  const handleRevertAttendance = async (target: TicketReservation) => {
+    setIsMarkingAttendance(true);
+    try {
+      const result = await markTicketAttendance(target.id, false);
+      if (result.ok && result.ticket) {
+        setReservations(getStoredReservations());
+        if (scannedTicket && scannedTicket.id === target.id) {
+          setScannedTicket(result.ticket);
+          setScanAlert({
+            type: "success",
+            message: `Se restableció el boleto #${result.ticket.ticketCode} a PENDIENTE de ingreso.`,
+            ticket: result.ticket,
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error al desmarcar asistencia:", err);
+    } finally {
+      setIsMarkingAttendance(false);
+      setAttendanceRevertTarget(null);
+    }
+  };
 
   // Pantalla de Inicio de Sesión si Harold no está autenticado
   if (!auth) {
@@ -468,17 +645,17 @@ function AdminEntradasPage() {
           </div>
         </div>
 
-        {/* NAVEGACIÓN PRINCIPAL: 1. DASHBOARD & CRM vs 2. REGISTRAR VENTA */}
+        {/* NAVEGACIÓN PRINCIPAL: 1. DASHBOARD & CRM vs 2. REGISTRAR VENTA vs 3. ASISTENCIA */}
         <div className="border-t border-slate-200 bg-slate-100/70">
-          <div className="max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-            <div className="flex gap-2 py-2">
+          <div className="max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-1.5 py-2">
               <button
                 type="button"
                 onClick={() => {
                   setActiveTab("dashboard");
                   setLastRegistered(null);
                 }}
-                className={`inline-flex items-center gap-2 px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all ${
+                className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer ${
                   activeTab === "dashboard"
                     ? "bg-white text-slate-900 border-slate-300 shadow-sm"
                     : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60"
@@ -497,30 +674,63 @@ function AdminEntradasPage() {
                   setActiveTab("registro");
                   setLastRegistered(null);
                 }}
-                className={`inline-flex items-center gap-2 px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all ${
+                className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer ${
                   activeTab === "registro"
                     ? "bg-white text-slate-900 border-slate-300 shadow-sm"
                     : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60"
                 }`}
               >
                 <UserPlus className={`w-4 h-4 ${activeTab === "registro" ? "text-red-600" : "text-slate-500"}`} />
-                <span>2. Registrar Nueva Venta</span>
+                <span>2. Registrar Venta</span>
               </button>
-            </div>
 
-            {activeTab === "dashboard" && (
               <button
                 type="button"
                 onClick={() => {
-                  setActiveTab("registro");
+                  setActiveTab("asistencia");
                   setLastRegistered(null);
                 }}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 rounded-md transition-colors shadow-xs"
+                className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer ${
+                  activeTab === "asistencia"
+                    ? "bg-white text-slate-900 border-slate-300 shadow-sm"
+                    : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                }`}
               >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>+ Registrar Venta</span>
+                <UserCheck className={`w-4 h-4 ${activeTab === "asistencia" ? "text-emerald-600" : "text-slate-500"}`} />
+                <span>3. Control de Asistencia (Puerta)</span>
+                <span className={`ml-1 px-1.5 py-0.2 text-[10px] font-bold rounded-full ${
+                  stats.totalAttendedTickets > 0 ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"
+                }`}>
+                  {stats.totalAttendedTickets} en sala
+                </span>
               </button>
-            )}
+            </div>
+
+            <div className="flex items-center gap-2 py-2">
+              <button
+                type="button"
+                onClick={() => exportTicketsToExcel(filteredReservations)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-white text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 border border-slate-300 rounded-md transition-colors shadow-2xs cursor-pointer"
+                title="Descargar base de datos del CRM a Excel (.csv con formato UTF-8 BOM)"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Exportar a Excel</span>
+              </button>
+
+              {activeTab === "dashboard" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("registro");
+                    setLastRegistered(null);
+                  }}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 rounded-md transition-colors shadow-xs cursor-pointer"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>+ Registrar Venta</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -942,11 +1152,21 @@ function AdminEntradasPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3 self-start">
+                <div className="flex items-center gap-2 self-start flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => exportTicketsToExcel(filteredReservations)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 text-xs font-bold uppercase tracking-wider border border-slate-300 hover:border-emerald-400 rounded-md transition-all shadow-2xs cursor-pointer"
+                    title="Exportar registros filtrados a Excel (.csv UTF-8 BOM)"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Exportar ({filteredReservations.length})</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => setActiveTab("registro")}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white text-xs font-bold uppercase tracking-wider hover:bg-red-700 rounded-md transition-colors shadow-xs"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white text-xs font-bold uppercase tracking-wider hover:bg-red-700 rounded-md transition-colors shadow-xs cursor-pointer"
                   >
                     <PlusCircle className="w-3.5 h-3.5" />
                     + Registrar Nueva Venta
@@ -954,13 +1174,13 @@ function AdminEntradasPage() {
                 </div>
               </div>
 
-              {/* Filtros */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {/* Filtros Completos: Búsqueda, Función, Zona, Promoción, Método, Vendedor y Asistencia */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5">
                 <div className="relative">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
                     type="text"
-                    placeholder="Buscar cliente, DNI, método..."
+                    placeholder="Buscar cliente, DNI, código..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 rounded-md pl-9 pr-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-red-600 focus:bg-white"
@@ -1023,6 +1243,33 @@ function AdminEntradasPage() {
                     <option value="cortesia">🎁 Solo Cortesía</option>
                   </select>
                 </div>
+
+                <div>
+                  <select
+                    value={filtroVendedor}
+                    onChange={(e) => setFiltroVendedor(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600 font-medium"
+                  >
+                    <option value="todos">👤 Todos los vendedores ({vendedoresList.length})</option>
+                    {vendedoresList.map((vend) => (
+                      <option key={vend} value={vend}>
+                        👤 {vend}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <select
+                    value={filtroAsistencia}
+                    onChange={(e) => setFiltroAsistencia(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600 font-medium"
+                  >
+                    <option value="todas">🎟️ Todas las asistencias</option>
+                    <option value="solo_ingresados">🟢 Solo Ingresados a Sala</option>
+                    <option value="solo_pendientes">⚪ Solo Pendientes</option>
+                  </select>
+                </div>
               </div>
 
               {/* Tabla Cómoda y Espaciosa */}
@@ -1036,13 +1283,14 @@ function AdminEntradasPage() {
                       <th className="px-4 py-3 text-center">Entradas</th>
                       <th className="px-4 py-3">Total & Método</th>
                       <th className="px-4 py-3">Vendedor</th>
+                      <th className="px-4 py-3 text-center">Asistencia Puerta</th>
                       <th className="px-4 py-3 text-right">Acción</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredReservations.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="text-center py-10 text-slate-400 text-sm">
+                        <td colSpan={8} className="text-center py-10 text-slate-400 text-sm">
                           No se encontraron registros con los filtros actuales.
                         </td>
                       </tr>
@@ -1155,12 +1403,42 @@ function AdminEntradasPage() {
                               {r.vendedor}
                             </td>
 
+                            <td className="px-4 py-3.5 text-center">
+                              {r.asistio ? (
+                                <div className="inline-flex flex-col items-center">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>INGRESADO</span>
+                                  </span>
+                                  {r.asistioAt && (
+                                    <span className="text-[10px] text-slate-500 mt-0.5 font-mono">
+                                      {new Date(r.asistioAt).toLocaleTimeString("es-PE", {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleConfirmAttendance(r)}
+                                  disabled={isMarkingAttendance}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 transition-all cursor-pointer shadow-2xs"
+                                  title="Marcar ingreso en puerta"
+                                >
+                                  <UserCheck className="w-3 h-3 text-slate-500" />
+                                  <span>Marcar Ingreso</span>
+                                </button>
+                              )}
+                            </td>
+
                             <td className="px-4 py-3.5 text-right">
                               <div className="flex items-center justify-end gap-1">
                                 <button
                                   type="button"
                                   onClick={() => handleSendWhatsApp(r)}
-                                  className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-colors"
+                                  className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-colors cursor-pointer"
                                   title="Enviar ticket por WhatsApp al cliente"
                                 >
                                   <MessageCircle className="w-4 h-4" />
@@ -1179,7 +1457,7 @@ function AdminEntradasPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleCopyTicketLink(r)}
-                                  className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors"
+                                  className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
                                   title="Copiar enlace del boleto"
                                 >
                                   {copiedId === r.id ? (
@@ -1188,6 +1466,17 @@ function AdminEntradasPage() {
                                     <Copy className="w-4 h-4" />
                                   )}
                                 </button>
+
+                                {r.asistio && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setAttendanceRevertTarget(r)}
+                                    className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors cursor-pointer"
+                                    title="Desmarcar asistencia / Restablecer a pendiente"
+                                  >
+                                    <RotateCcw className="w-4 h-4" />
+                                  </button>
+                                )}
 
                                 <button
                                   type="button"
@@ -1740,7 +2029,656 @@ function AdminEntradasPage() {
             </div>
           </div>
         )}
+
+        {/* ==================================================================== */}
+        {/* PARTE 3: CONTROL DE ASISTENCIA EN PUERTA & PREVENCIÓN DE DUPLICADOS */}
+        {/* ==================================================================== */}
+        {activeTab === "asistencia" && (
+          <div className="space-y-8 animate-fade-in">
+            {/* Cabecera del Módulo de Asistencia */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2">
+                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Control de Acceso en Puerta · Jesucristo Rockstar</span>
+                </div>
+                <h2 className="font-display text-2xl sm:text-3xl text-slate-900 tracking-wide font-bold">
+                  Validador de Boletos & Lista de Asistencia
+                </h2>
+                <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+                  Registra la llegada de los asistentes en el Auditorio del Colegio de Ingenieros. Si un asistente intenta ingresar con un boleto ya presentado, el sistema lo bloqueará automáticamente para impedir el reingreso duplicado.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => exportTicketsToExcel(reservations, { onlyAttended: true })}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-300 hover:border-emerald-400 text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-xs cursor-pointer"
+                  title="Descargar solo los asistentes ingresados a Excel"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  <span>Exportar Asistentes ({stats.totalAttendedTickets})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => exportTicketsToExcel(reservations)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-xs cursor-pointer"
+                  title="Descargar base completa de boletos a Excel"
+                >
+                  <Download className="w-4 h-4 text-white" />
+                  <span>Exportar Todo</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Tarjetas de Aforo y Asistencia en Vivo */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="border border-emerald-200 bg-emerald-50/50 p-5 rounded-xl shadow-xs">
+                <div className="flex items-center justify-between text-emerald-800 text-xs font-bold uppercase tracking-wider mb-2">
+                  <span>Asistentes en Sala</span>
+                  <div className="w-7 h-7 rounded-full bg-emerald-200/70 flex items-center justify-center">
+                    <UserCheck className="w-4 h-4 text-emerald-800" />
+                  </div>
+                </div>
+                <div className="font-display text-3xl md:text-4xl text-emerald-950 font-bold tracking-tight">
+                  {stats.totalAttendedTickets}{" "}
+                  <span className="text-base text-emerald-700 font-normal font-body">/ {stats.totalTickets}</span>
+                </div>
+                <div className="w-full bg-emerald-200 h-2 mt-2.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-emerald-600 h-full transition-all"
+                    style={{ width: `${stats.percentAttendedTotal}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[11px] text-emerald-800 mt-1.5 font-bold">
+                  <span>{stats.percentAttendedTotal}% del público en sala</span>
+                  <span>{Math.max(0, stats.totalTickets - stats.totalAttendedTickets)} pendientes</span>
+                </div>
+              </div>
+
+              <div className="border border-slate-200 bg-white p-5 rounded-xl shadow-xs">
+                <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
+                  <span>Función 4:00 PM (Puerta)</span>
+                  <div className="w-7 h-7 rounded-full bg-amber-50 flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-amber-600" />
+                  </div>
+                </div>
+                <div className="font-display text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
+                  {stats.attended4pm}{" "}
+                  <span className="text-base text-slate-400 font-normal font-body">/ {stats.tickets4pm}</span>
+                </div>
+                <div className="w-full bg-slate-100 h-2 mt-2.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-amber-500 h-full transition-all"
+                    style={{ width: `${stats.percentAttended4pm}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[11px] text-slate-500 mt-1.5 font-medium">
+                  <span>{stats.percentAttended4pm}% ingresados</span>
+                  <span>{Math.max(0, stats.tickets4pm - stats.attended4pm)} por llegar</span>
+                </div>
+              </div>
+
+              <div className="border border-slate-200 bg-white p-5 rounded-xl shadow-xs">
+                <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
+                  <span>Función 7:00 PM (Puerta)</span>
+                  <div className="w-7 h-7 rounded-full bg-sky-50 flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-sky-600" />
+                  </div>
+                </div>
+                <div className="font-display text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
+                  {stats.attended7pm}{" "}
+                  <span className="text-base text-slate-400 font-normal font-body">/ {stats.tickets7pm}</span>
+                </div>
+                <div className="w-full bg-slate-100 h-2 mt-2.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-sky-500 h-full transition-all"
+                    style={{ width: `${stats.percentAttended7pm}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[11px] text-slate-500 mt-1.5 font-medium">
+                  <span>{stats.percentAttended7pm}% ingresados</span>
+                  <span>{Math.max(0, stats.tickets7pm - stats.attended7pm)} por llegar</span>
+                </div>
+              </div>
+
+              <div className="border border-slate-200 bg-white p-5 rounded-xl shadow-xs">
+                <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
+                  <span>Grupos / Canjes</span>
+                  <div className="w-7 h-7 rounded-full bg-purple-50 flex items-center justify-center">
+                    <Ticket className="w-4 h-4 text-purple-600" />
+                  </div>
+                </div>
+                <div className="font-display text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
+                  {stats.attendedOrdersCount}{" "}
+                  <span className="text-base text-slate-400 font-normal font-body">
+                    / {reservations.filter((r) => r.estado !== "anulado").length}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-500 mt-2.5 font-medium">
+                  Boletos / órdenes validadas en boletería
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN VALIDADOR RÁPIDO EN PUERTA (ESCANEAR / DIGITAR) */}
+            <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white rounded-2xl p-6 sm:p-8 border border-slate-800 shadow-xl space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400">
+                    <ScanLine className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-xl sm:text-2xl text-white font-bold tracking-wide">
+                      Escanear o Validar Entrada
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Ingresa el código oficial (ej. <strong className="text-white">JR-4PM-SUP-001</strong>), el número de <strong className="text-white">DNI</strong> o el nombre del titular.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-xs text-slate-400 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Detección de duplicados activa</span>
+                </div>
+              </div>
+
+              {/* Formulario de Escaneo */}
+              <form onSubmit={handleValidateScan} className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <ScanLine className="w-5 h-5 text-slate-400 absolute left-4 top-3.5" />
+                  <input
+                    type="text"
+                    value={scanQuery}
+                    onChange={(e) => setScanQuery(e.target.value)}
+                    placeholder="Código de ticket (ej. JR-4PM-SUP-001) o DNI del cliente..."
+                    className="w-full bg-slate-800/80 border-2 border-slate-700 rounded-xl pl-12 pr-4 py-3 text-sm text-white placeholder:text-slate-400 focus:outline-hidden focus:border-red-500 focus:bg-slate-800 font-mono tracking-wide uppercase"
+                    autoFocus
+                  />
+                  {scanQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScanQuery("");
+                        setScanAlert(null);
+                        setScannedTicket(null);
+                      }}
+                      className="absolute right-3 top-3 text-slate-400 hover:text-white text-xs px-2 py-1 rounded bg-slate-700/50 cursor-pointer"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold uppercase tracking-wider text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                >
+                  <Search className="w-4 h-4" />
+                  <span>Validar Boleto</span>
+                </button>
+              </form>
+
+              {/* RESULTADOS DEL VALIDADOR */}
+              {/* CASO 1: 🚨 TICKET YA USADO (DUPLICADO - NO PROCEDE) */}
+              {scanAlert && scanAlert.type === "duplicate" && (
+                <div className="p-6 bg-red-950/90 border-2 border-red-500 rounded-2xl shadow-2xl text-white animate-fade-in space-y-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-red-600 flex items-center justify-center text-white shrink-0 shadow-lg animate-pulse">
+                      <AlertOctagon className="w-8 h-8" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-800 border border-red-400 text-xs font-black uppercase tracking-wider text-red-100 mb-2 shadow-xs">
+                        <Ban className="w-4 h-4 text-red-300" />
+                        <span>ACCESO DENEGADO · NO PROCEDE</span>
+                      </div>
+                      <h3 className="font-display text-2xl sm:text-3xl text-white font-extrabold tracking-tight leading-tight">
+                        ¡ALERTA DE SEGURIDAD! ESTE TICKET YA FUE UTILIZADO
+                      </h3>
+                      <p className="text-sm text-red-200 mt-1 font-medium">
+                        El boleto ya fue registrado en puerta anteriormente. Queda terminantemente prohibido autorizar el reingreso con el mismo boleto.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Detalle del canje previo */}
+                  <div className="bg-red-900/60 border border-red-700/80 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                    <div>
+                      <span className="text-red-300 font-bold block uppercase text-[10px]">Primer Ingreso Registrado</span>
+                      <span className="text-white font-extrabold text-sm block mt-0.5">
+                        {scanAlert.previousUsedAt
+                          ? new Date(scanAlert.previousUsedAt).toLocaleString("es-PE", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              second: "2-digit",
+                            })
+                          : "Previamente registrado"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-red-300 font-bold block uppercase text-[10px]">Titular Registrado</span>
+                      <span className="text-white font-bold text-sm block mt-0.5">
+                        {scanAlert.ticket?.clienteNombre}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-red-300 font-bold block uppercase text-[10px]">Código & DNI</span>
+                      <span className="font-mono text-amber-300 font-bold text-sm block mt-0.5">
+                        #{scanAlert.ticket?.ticketCode || scanAlert.ticket?.id} · DNI: {scanAlert.ticket?.clienteDni || "No reg."}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-red-300 font-bold block uppercase text-[10px]">Función & Zona</span>
+                      <span className="text-white font-bold text-sm block mt-0.5">
+                        {scanAlert.ticket?.funcion} ({scanAlert.ticket?.cantidad} pers.) · {ZONAS_CONFIG[scanAlert.ticket?.zonaKey || ""]?.label || scanAlert.ticket?.zonaKey}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-red-800/80 text-xs">
+                    <span className="text-red-300">
+                      ⚠️ Se recomienda verificar el DNI físico del portador para comprobar si es el titular original o una captura duplicada.
+                    </span>
+                    {scanAlert.ticket && (
+                      <button
+                        type="button"
+                        onClick={() => setAttendanceRevertTarget(scanAlert.ticket!)}
+                        className="text-red-200 hover:text-white underline font-semibold cursor-pointer shrink-0"
+                      >
+                        Desmarcar en caso de error administrativo
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* CASO 2: 🟢 TICKET VÁLIDO - LISTO PARA INGRESAR (PENDIENTE) */}
+              {scanAlert && scanAlert.type === "success" && scannedTicket && !scannedTicket.asistio && (
+                <div className="p-6 bg-emerald-950/90 border-2 border-emerald-500 rounded-2xl shadow-2xl text-white animate-fade-in space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shrink-0 shadow-lg">
+                        <UserCheck className="w-8 h-8" />
+                      </div>
+                      <div>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800 border border-emerald-400 text-xs font-black uppercase tracking-wider text-emerald-100 mb-1.5 shadow-xs">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                          <span>BOLETO VÁLIDO · LISTO PARA INGRESAR</span>
+                        </div>
+                        <h3 className="font-display text-2xl sm:text-3xl text-white font-extrabold tracking-tight">
+                          {scannedTicket.clienteNombre}
+                        </h3>
+                        <p className="text-sm text-emerald-200 mt-0.5">
+                          DNI: <strong className="text-white">{scannedTicket.clienteDni || "Registrado al canje"}</strong> · Teléfono: {scannedTicket.clienteTelefono} · Vendedor: {scannedTicket.vendedor}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="font-mono text-xs font-extrabold px-3 py-1.5 rounded-lg bg-black/40 border border-emerald-400/50 text-emerald-300 block w-fit sm:ml-auto">
+                        #{scannedTicket.ticketCode || scannedTicket.id}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Resumen de entradas */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-emerald-900/60 border border-emerald-700/60 rounded-xl p-4 text-xs">
+                    <div>
+                      <span className="text-emerald-300 font-bold block uppercase text-[10px]">Función</span>
+                      <span className="text-white font-extrabold text-base block mt-0.5">
+                        {scannedTicket.funcion}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-emerald-300 font-bold block uppercase text-[10px]">Zona en Sala</span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: ZONAS_CONFIG[scannedTicket.zonaKey]?.color }}
+                        />
+                        <span className="text-white font-extrabold text-base">
+                          {ZONAS_CONFIG[scannedTicket.zonaKey]?.label || scannedTicket.zonaKey}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-emerald-300 font-bold block uppercase text-[10px]">Cantidad de Asistentes</span>
+                      <span className="text-yellow-300 font-black text-2xl block mt-0.5">
+                        {scannedTicket.cantidad} {scannedTicket.cantidad === 1 ? "PERSONA" : "PERSONAS"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Botón Gigante de Confirmación de Ingreso */}
+                  <button
+                    type="button"
+                    onClick={() => handleConfirmAttendance(scannedTicket)}
+                    disabled={isMarkingAttendance}
+                    className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black uppercase tracking-wider text-base rounded-xl transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-6 h-6 text-slate-950" />
+                    <span>
+                      {isMarkingAttendance
+                        ? "Registrando Ingreso en el Sistema..."
+                        : `✅ CONFIRMAR INGRESO · ADMITIR A ${scannedTicket.cantidad} PERSONA(S)`}
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {/* CASO 3: 🎉 INGRESO RECIÉN CONFIRMADO */}
+              {scanAlert && scanAlert.type === "success" && scannedTicket?.asistio && (
+                <div className="p-6 bg-emerald-900/80 border-2 border-emerald-400 rounded-2xl shadow-xl text-white animate-fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center shrink-0 font-black text-xl shadow-lg">
+                      ✓
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-lg sm:text-xl text-emerald-100">
+                        ¡Ingreso Registrado con Éxito!
+                      </div>
+                      <p className="text-xs text-emerald-200 mt-0.5">
+                        {scannedTicket.clienteNombre} · {scannedTicket.cantidad} persona(s) en {ZONAS_CONFIG[scannedTicket.zonaKey]?.label} ({scannedTicket.funcion}).
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScannedTicket(null);
+                      setScanAlert(null);
+                      setScanQuery("");
+                    }}
+                    className="px-4 py-2 bg-white/15 hover:bg-white/25 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors shrink-0 cursor-pointer"
+                  >
+                    Validar Siguiente Boleto →
+                  </button>
+                </div>
+              )}
+
+              {/* CASO 4: ❌ TICKET NO ENCONTRADO */}
+              {scanAlert && scanAlert.type === "not_found" && (
+                <div className="p-5 bg-amber-950/90 border border-amber-500/80 rounded-2xl text-amber-200 animate-fade-in flex items-start gap-3">
+                  <AlertCircle className="w-6 h-6 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-amber-100 text-sm">Boleto no localizado</div>
+                    <p className="text-xs text-amber-300/90 mt-0.5">{scanAlert.message}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* TABLA: LISTA DE ASISTENCIA EN PUERTA (CANJES Y CONTROL) */}
+            <div className="border border-slate-200 bg-white p-6 rounded-2xl shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+                <div>
+                  <h3 className="font-display text-2xl text-slate-900 tracking-wide font-bold">
+                    Lista de Asistencia en Puerta
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Historial en vivo de boletos canjeados en puerta y público pendiente de ingresar.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => exportTicketsToExcel(attendanceFilteredList, { onlyAttended: filtroAsistenciaTab === "asistidos" })}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold uppercase tracking-wider rounded-md transition-all shadow-2xs cursor-pointer"
+                    title="Exportar esta vista filtrada de asistencia a Excel"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Descargar Lista ({attendanceFilteredList.length})</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Filtros de la Lista de Asistencia */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap">
+                {/* Pestañas de Asistencia */}
+                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200/80">
+                  <button
+                    type="button"
+                    onClick={() => setFiltroAsistenciaTab("todos")}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                      filtroAsistenciaTab === "todos"
+                        ? "bg-white text-slate-900 shadow-2xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    Todos ({reservations.filter((r) => r.estado !== "anulado").length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFiltroAsistenciaTab("asistidos")}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                      filtroAsistenciaTab === "asistidos"
+                        ? "bg-emerald-600 text-white shadow-2xs"
+                        : "text-slate-600 hover:text-emerald-700"
+                    }`}
+                  >
+                    🟢 Ingresados a Sala ({stats.totalAttendedTickets})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFiltroAsistenciaTab("pendientes")}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                      filtroAsistenciaTab === "pendientes"
+                        ? "bg-slate-800 text-white shadow-2xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    ⚪ Pendientes ({Math.max(0, stats.totalTickets - stats.totalAttendedTickets)})
+                  </button>
+                </div>
+
+                {/* Filtros secundarios: Función y Vendedor */}
+                <div className="flex items-center gap-2">
+                  <select
+                    value={filtroAsistenciaFuncion}
+                    onChange={(e) => setFiltroAsistenciaFuncion(e.target.value)}
+                    className="bg-white border border-slate-300 rounded-md px-3 py-1.5 text-xs text-slate-900 font-medium focus:outline-hidden focus:border-red-600"
+                  >
+                    <option value="todas">Todas las funciones</option>
+                    <option value="4:00 pm">Función 4:00 PM</option>
+                    <option value="7:00 pm">Función 7:00 PM</option>
+                  </select>
+
+                  <select
+                    value={filtroAsistenciaVendedor}
+                    onChange={(e) => setFiltroAsistenciaVendedor(e.target.value)}
+                    className="bg-white border border-slate-300 rounded-md px-3 py-1.5 text-xs text-slate-900 font-medium focus:outline-hidden focus:border-red-600"
+                  >
+                    <option value="todos">Todos los vendedores</option>
+                    {vendedoresList.map((v) => (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Tabla de Asistencia */}
+              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] font-bold">
+                      <th className="px-4 py-3">Hora de Ingreso</th>
+                      <th className="px-4 py-3">Código Ticket</th>
+                      <th className="px-4 py-3">Cliente & DNI</th>
+                      <th className="px-4 py-3">Función & Zona</th>
+                      <th className="px-4 py-3 text-center">Entradas</th>
+                      <th className="px-4 py-3">Vendedor</th>
+                      <th className="px-4 py-3 text-center">Estado de Puerta</th>
+                      <th className="px-4 py-3 text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attendanceFilteredList.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="text-center py-10 text-slate-400 text-sm">
+                          No hay asistentes registrados con los filtros seleccionados.
+                        </td>
+                      </tr>
+                    ) : (
+                      attendanceFilteredList.map((r) => {
+                        const meta = ZONAS_CONFIG[r.zonaKey];
+                        return (
+                          <tr
+                            key={r.id}
+                            className={`border-b border-slate-100 last:border-0 transition-colors ${
+                              r.asistio ? "bg-emerald-50/30 hover:bg-emerald-50/60" : "hover:bg-slate-50"
+                            }`}
+                          >
+                            <td className="px-4 py-3.5">
+                              {r.asistio && r.asistioAt ? (
+                                <div className="font-mono text-emerald-900 font-bold text-xs">
+                                  {new Date(r.asistioAt).toLocaleTimeString("es-PE", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    second: "2-digit",
+                                  })}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 font-medium italic text-[11px]">
+                                  Pendiente
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="px-4 py-3.5">
+                              <span className="font-mono font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded text-[11px]">
+                                #{r.ticketCode || r.id}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-3.5">
+                              <div className="font-bold text-slate-900 text-sm">{r.clienteNombre}</div>
+                              <div className="text-[11px] text-slate-500 mt-0.5">
+                                DNI: {r.clienteDni || "Sin DNI"} · Tel: {r.clienteTelefono}
+                              </div>
+                            </td>
+
+                            <td className="px-4 py-3.5">
+                              <div className="font-bold text-slate-900">{r.funcion}</div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                                  style={{ backgroundColor: meta?.color }}
+                                />
+                                <span className="text-slate-700 text-[11px] font-medium">{meta?.label}</span>
+                              </div>
+                            </td>
+
+                            <td className="px-4 py-3.5 text-center">
+                              <span className="bg-slate-100 border border-slate-200 px-2.5 py-1 font-bold text-slate-800 rounded-md text-xs">
+                                {r.cantidad} {r.cantidad === 1 ? "pers." : "pers."}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-3.5 text-slate-600 text-xs">
+                              {r.vendedor}
+                            </td>
+
+                            <td className="px-4 py-3.5 text-center">
+                              {r.asistio ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>INGRESADO</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                                  <span>PENDIENTE</span>
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="px-4 py-3.5 text-right">
+                              {r.asistio ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setAttendanceRevertTarget(r)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold text-slate-500 hover:text-amber-700 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
+                                  title="Desmarcar asistencia de este boleto"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                  <span>Desmarcar</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleConfirmAttendance(r)}
+                                  disabled={isMarkingAttendance}
+                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-2xs cursor-pointer"
+                                  title="Confirmar ingreso de este boleto"
+                                >
+                                  <UserCheck className="w-3.5 h-3.5" />
+                                  <span>Marcar Ingreso</span>
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
+
+      {/* Modal de Confirmación para Desmarcar Asistencia */}
+      {attendanceRevertTarget && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-3 text-amber-600">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                <RotateCcw className="w-5 h-5" />
+              </div>
+              <h4 className="font-display text-lg font-bold text-slate-900">
+                ¿Desmarcar Asistencia?
+              </h4>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Estás a punto de restablecer el estado del boleto{" "}
+              <strong className="text-slate-900 font-mono">#{attendanceRevertTarget.ticketCode || attendanceRevertTarget.id}</strong> perteneciente a{" "}
+              <strong className="text-slate-900">{attendanceRevertTarget.clienteNombre}</strong>.
+            </p>
+            <p className="text-xs text-amber-800 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+              ⚠️ El boleto volverá al estado <strong>PENDIENTE DE INGRESO</strong> y podrá ser canjeado nuevamente.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setAttendanceRevertTarget(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRevertAttendance(attendanceRevertTarget)}
+                disabled={isMarkingAttendance}
+                className="px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors shadow-xs cursor-pointer"
+              >
+                {isMarkingAttendance ? "Restableciendo..." : "Sí, restablecer a Pendiente"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
