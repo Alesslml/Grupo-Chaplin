@@ -60,7 +60,6 @@ const obras: Obra[] = [
     year: "2026",
     tipo: "Musical",
     img: heathersCard,
-    tag: "ESTRENO",
     autores: "Kevin Murphy y Laurence O'Keefe",
     director: "Harold López Segovia",
     sinopsis:
@@ -87,7 +86,6 @@ const obras: Obra[] = [
     year: "2026",
     tipo: "Musical",
     img: sing,
-    tag: "PRÓXIMA",
     autores: "Chaplin Grupo Cultural",
     director: "Gerson Juaze y Harold López",
     sinopsis:
