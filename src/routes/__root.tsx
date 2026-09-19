@@ -76,7 +76,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 // Activar este switch para redirigir todo el tráfico a la ticketera de entradas
 // mientras el resto de la web principal sigue en desarrollo.
 // Cambiar a `false` cuando el sitio general esté listo para su lanzamiento.
-const MODO_SOLO_ENTRADAS = true;
+const MODO_SOLO_ENTRADAS = false;
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: ({ location }) => {
