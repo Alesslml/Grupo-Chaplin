@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { ensureTicketsSchema, getSql } from "@/lib/db.server";
+import { ensureTicketsSchema, ensureEventSettingsSchema, getSql } from "@/lib/db.server";
 
 export type MetodoPago = "efectivo" | "yape" | "plin" | "transferencia" | "cortesia";
 
@@ -14,16 +14,119 @@ export const METODOS_PAGO_CONFIG: Record<
   cortesia: { label: "Pase de Cortesía", bg: "bg-amber-50", text: "text-amber-800", border: "border-amber-300" },
 };
 
+export interface EventZoneSetting {
+  key: string;
+  label: string;
+  color: string;
+  seats: number;
+  prices: { twoXone: number; threeXtwo: number; twentyPct: number; regular: number };
+}
+
+export interface EventPromoSetting {
+  key: string;
+  label: string;
+  tag: string;
+  detalle: string;
+  from: string;
+  to: string;
+  entradasPorPrecio: number;
+}
+
+export interface EventSettings {
+  zonas: EventZoneSetting[];
+  funciones: string[];
+  promos: EventPromoSetting[];
+}
+
+export const DEFAULT_EVENT_SETTINGS: EventSettings = {
+  zonas: [
+    {
+      key: "superstar",
+      label: "Zona Superstar",
+      color: "#fe0000",
+      seats: 60,
+      prices: { twoXone: 80, threeXtwo: 160, twentyPct: 64, regular: 80 },
+    },
+    {
+      key: "cortesia",
+      label: "Zona Cortesía",
+      color: "#c59a58",
+      seats: 14,
+      prices: { twoXone: 0, threeXtwo: 0, twentyPct: 0, regular: 0 },
+    },
+    {
+      key: "getsemani",
+      label: "Zona Getsemaní",
+      color: "#f2d675",
+      seats: 47,
+      prices: { twoXone: 60, threeXtwo: 120, twentyPct: 48, regular: 60 },
+    },
+    {
+      key: "hosanna",
+      label: "Zona Hosanna",
+      color: "#7dd3e8",
+      seats: 67,
+      prices: { twoXone: 40, threeXtwo: 80, twentyPct: 32, regular: 40 },
+    },
+    {
+      key: "pueblo",
+      label: "Zona Pueblo (2do piso)",
+      color: "#2b3a8f",
+      seats: 80,
+      prices: { twoXone: 20, threeXtwo: 40, twentyPct: 16, regular: 20 },
+    },
+  ],
+  funciones: ["4:00 pm", "7:00 pm"],
+  promos: [
+    {
+      key: "twoXone",
+      label: "Preventa 2x1",
+      tag: "2x1",
+      detalle: "Del 16 al 22 de setiembre · Llevas 2 entradas por este precio",
+      from: "2026-09-16",
+      to: "2026-09-22",
+      entradasPorPrecio: 2,
+    },
+    {
+      key: "threeXtwo",
+      label: "Preventa 3x2",
+      tag: "3x2",
+      detalle: "Del 23 de setiembre al 2 de octubre · Llevas 3 entradas por este precio",
+      from: "2026-09-23",
+      to: "2026-10-02",
+      entradasPorPrecio: 3,
+    },
+    {
+      key: "twentyPct",
+      label: "Preventa 20% dto.",
+      tag: "20% dto",
+      detalle: "Del 3 al 11 de octubre · Precio por entrada",
+      from: "2026-10-03",
+      to: "2026-10-11",
+      entradasPorPrecio: 1,
+    },
+    {
+      key: "regular",
+      label: "Precio regular",
+      tag: "Regular",
+      detalle: "Del 12 al 18 de octubre · Precio por entrada",
+      from: "2026-10-12",
+      to: "2026-10-18",
+      entradasPorPrecio: 1,
+    },
+  ],
+};
+
 export interface TicketReservation {
   id: string;
   createdAt: string; // ISO string
   clienteNombre: string;
   clienteTelefono: string;
   clienteDni?: string;
-  funcion: "4:00 pm" | "7:00 pm";
-  zonaKey: "superstar" | "cortesia" | "getsemani" | "hosanna" | "pueblo";
+  funcion: string;
+  zonaKey: string;
   cantidad: number;
-  etapaPromo: "twoXone" | "threeXtwo" | "twentyPct" | "regular" | "cortesia";
+  etapaPromo: string;
   totalPagado: number;
   metodoPago?: MetodoPago;
   vendedor: string;
@@ -173,9 +276,10 @@ export const fetchPublicAvailabilityServer = createServerFn({ method: "POST" }).
     const f = String(row.funcion);
     const z = String(row.zona_key);
     const count = Number(row.sold || 0);
-    if (soldMap[f]) {
-      soldMap[f][z] = count;
+    if (!soldMap[f]) {
+      soldMap[f] = {};
     }
+    soldMap[f][z] = count;
   }
 
   return { ok: true as const, soldMap };
@@ -438,6 +542,111 @@ export const deleteAdminReservationServer = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+// 8. Actualizar una venta existente en Neon PostgreSQL (Edición directa por Harold)
+export const updateAdminReservationServer = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      auth: { username: string; password: string };
+      reservation: Partial<TicketReservation> & { id: string };
+    }) => data
+  )
+  .handler(async ({ data }) => {
+    if (!isHaroldAuthenticated(data.auth.username, data.auth.password)) {
+      throw new Error("UNAUTHORIZED");
+    }
+    await ensureTicketsSchema();
+    const sql = getSql();
+    const r = data.reservation;
+
+    const rows = (await sql`
+      update ticket_reservations
+      set
+        cliente_nombre = coalesce(${r.clienteNombre !== undefined ? r.clienteNombre : null}, cliente_nombre),
+        cliente_telefono = coalesce(${r.clienteTelefono !== undefined ? r.clienteTelefono : null}, cliente_telefono),
+        cliente_dni = ${r.clienteDni !== undefined ? r.clienteDni : sql`cliente_dni`},
+        funcion = coalesce(${r.funcion !== undefined ? r.funcion : null}, funcion),
+        zona_key = coalesce(${r.zonaKey !== undefined ? r.zonaKey : null}, zona_key),
+        cantidad = coalesce(${r.cantidad !== undefined ? r.cantidad : null}, cantidad),
+        etapa_promo = coalesce(${r.etapaPromo !== undefined ? r.etapaPromo : null}, etapa_promo),
+        total_pagado = coalesce(${r.totalPagado !== undefined ? Number(r.totalPagado) : null}, total_pagado),
+        metodo_pago = coalesce(${r.metodoPago !== undefined ? r.metodoPago : null}, metodo_pago),
+        vendedor = coalesce(${r.vendedor !== undefined ? r.vendedor : null}, vendedor),
+        estado = coalesce(${r.estado !== undefined ? r.estado : null}, estado),
+        notas = ${r.notas !== undefined ? r.notas : sql`notas`}
+      where id = ${r.id} or ticket_code = ${r.id}
+      returning *
+    `) as any[];
+
+    if (!rows || rows.length === 0) {
+      return { ok: false as const, error: "TICKET_NOT_FOUND", ticket: null };
+    }
+
+    const row = rows[0];
+    const ticket: TicketReservation = {
+      id: String(row.id),
+      createdAt: new Date(row.created_at).toISOString(),
+      clienteNombre: String(row.cliente_nombre),
+      clienteTelefono: String(row.cliente_telefono),
+      clienteDni: row.cliente_dni ? String(row.cliente_dni) : undefined,
+      funcion: String(row.funcion),
+      zonaKey: String(row.zona_key),
+      cantidad: Number(row.cantidad || 1),
+      etapaPromo: String(row.etapa_promo),
+      totalPagado: Number(row.total_pagado || 0),
+      metodoPago: (row.metodo_pago || "yape") as any,
+      vendedor: String(row.vendedor || "Boletería"),
+      estado: (row.estado || "confirmado") as any,
+      notas: row.notas ? String(row.notas) : undefined,
+      ticketCode: row.ticket_code ? String(row.ticket_code) : undefined,
+      asistio: Boolean(row.asistio),
+      asistioAt: row.asistio_at ? new Date(row.asistio_at).toISOString() : undefined,
+      asistioNotas: row.asistio_notas ? String(row.asistio_notas) : undefined,
+    };
+
+    return { ok: true as const, ticket };
+  });
+
+// 9. Consulta pública de la configuración activa del evento (precios, horarios, promos, aforo)
+export const fetchPublicEventSettingsServer = createServerFn({ method: "POST" }).handler(async () => {
+  try {
+    await ensureEventSettingsSchema();
+    const sql = getSql();
+    const rows = (await sql`
+      select value from event_settings where key = 'jesucristo_rockstar_settings' limit 1
+    `) as any[];
+
+    if (rows && rows.length > 0 && rows[0]?.value) {
+      return { ok: true as const, settings: rows[0].value as EventSettings };
+    }
+  } catch (err) {
+    console.error("Error fetching event settings from Neon:", err);
+  }
+  return { ok: true as const, settings: DEFAULT_EVENT_SETTINGS };
+});
+
+// 10. Guardar configuración activa del evento en Neon (solo Harold)
+export const saveAdminEventSettingsServer = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      auth: { username: string; password: string };
+      settings: EventSettings;
+    }) => data
+  )
+  .handler(async ({ data }) => {
+    if (!isHaroldAuthenticated(data.auth.username, data.auth.password)) {
+      throw new Error("UNAUTHORIZED");
+    }
+    await ensureEventSettingsSchema();
+    const sql = getSql();
+    await sql`
+      insert into event_settings (key, value, updated_at)
+      values ('jesucristo_rockstar_settings', ${JSON.stringify(data.settings)}, now())
+      on conflict (key) do update
+      set value = excluded.value, updated_at = now()
+    `;
+    return { ok: true as const, settings: data.settings };
+  });
+
 /* ─────────────────────────────────────────────────────────────────────────────
    CLIENT-SIDE STORAGE & LIVE EVENT SYNC
    ───────────────────────────────────────────────────────────────────────────── */
@@ -623,6 +832,98 @@ export async function deleteReservation(id: string): Promise<boolean> {
   return true;
 }
 
+export async function updateReservation(
+  id: string,
+  reservationData: Partial<TicketReservation>
+): Promise<TicketReservation | null> {
+  const current = getStoredReservations();
+  const targetIndex = current.findIndex((r) => r.id === id || r.ticketCode === id);
+
+  let updatedTicket: TicketReservation;
+  if (targetIndex !== -1) {
+    updatedTicket = { ...current[targetIndex], ...reservationData };
+    current[targetIndex] = updatedTicket;
+    saveStoredReservationsLocally(current);
+  }
+
+  const auth = getStoredHaroldAuth();
+  if (auth) {
+    try {
+      const res = await updateAdminReservationServer({
+        data: {
+          auth,
+          reservation: { ...reservationData, id },
+        },
+      });
+      if (res && res.ok && res.ticket) {
+        if (targetIndex !== -1) {
+          current[targetIndex] = res.ticket;
+          saveStoredReservationsLocally(current);
+        }
+        return res.ticket;
+      }
+    } catch (err) {
+      console.error("Error actualizando en Neon:", err);
+    }
+  }
+
+  return targetIndex !== -1 ? updatedTicket! : null;
+}
+
+const SETTINGS_STORAGE_KEY = "chaplin_crm_event_settings_v1";
+
+export function getStoredEventSettings(): EventSettings {
+  if (typeof window === "undefined") return DEFAULT_EVENT_SETTINGS;
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!raw) return DEFAULT_EVENT_SETTINGS;
+    return JSON.parse(raw);
+  } catch {
+    return DEFAULT_EVENT_SETTINGS;
+  }
+}
+
+export function saveStoredEventSettingsLocally(settings: EventSettings) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    window.dispatchEvent(new CustomEvent(EVENT_NAME));
+  }
+}
+
+export async function saveEventSettings(settings: EventSettings): Promise<boolean> {
+  saveStoredEventSettingsLocally(settings);
+  const auth = getStoredHaroldAuth();
+  if (auth) {
+    try {
+      const res = await saveAdminEventSettingsServer({
+        data: {
+          auth,
+          settings,
+        },
+      });
+      if (res && res.ok) {
+        return true;
+      }
+    } catch (err) {
+      console.error("Error guardando settings en Neon:", err);
+    }
+  }
+  return true;
+}
+
+export async function syncEventSettingsWithNeon(): Promise<EventSettings> {
+  try {
+    const res = await fetchPublicEventSettingsServer();
+    if (res && res.ok && res.settings) {
+      saveStoredEventSettingsLocally(res.settings);
+      return res.settings;
+    }
+  } catch (err) {
+    console.error("Error sincronizando settings:", err);
+  }
+  return getStoredEventSettings();
+}
+
 export async function syncReservationsWithNeon(): Promise<TicketReservation[]> {
   const auth = getStoredHaroldAuth();
   if (!auth) return getStoredReservations();
@@ -668,19 +969,21 @@ export function getEffectiveTicketsCount(r: { cantidad: number; etapaPromo?: str
 export function getZoneAvailability(
   reservations: TicketReservation[],
   funcion: string,
-  zonaKey: string
+  zonaKey: string,
+  customSeats?: number
 ): ZoneAvailability {
   const meta = ZONAS_CONFIG[zonaKey] || { totalSeats: 50 };
+  const totalSeats = typeof customSeats === "number" && customSeats > 0 ? customSeats : meta.totalSeats;
   const sold = reservations
     .filter((r) => r.funcion === funcion && r.zonaKey === zonaKey && r.estado !== "anulado")
     .reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
 
-  const available = Math.max(0, meta.totalSeats - sold);
-  const percent = Math.min(100, Math.round((sold / meta.totalSeats) * 100));
+  const available = Math.max(0, totalSeats - sold);
+  const percent = totalSeats > 0 ? Math.min(100, Math.round((sold / totalSeats) * 100)) : 0;
 
   return {
     zonaKey,
-    totalSeats: meta.totalSeats,
+    totalSeats,
     soldSeats: sold,
     availableSeats: available,
     percentSold: percent,
@@ -689,7 +992,7 @@ export function getZoneAvailability(
   };
 }
 
-export function getCRMStats(reservations: TicketReservation[]) {
+export function getCRMStats(reservations: TicketReservation[], customCap?: number, customFunciones?: string[]) {
   const active = reservations.filter((r) => r.estado !== "anulado");
   const totalRevenue = active.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
   const totalTickets = active.reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
@@ -717,7 +1020,23 @@ export function getCRMStats(reservations: TicketReservation[]) {
   const percentAttended4pm = tickets4pm > 0 ? Math.round((attended4pm / tickets4pm) * 100) : 0;
   const percentAttended7pm = tickets7pm > 0 ? Math.round((attended7pm / tickets7pm) * 100) : 0;
 
-  const totalCap = 268; // 60 + 14 + 47 + 67 + 80
+  const totalCap = customCap && customCap > 0 ? customCap : 268; // 60 + 14 + 47 + 67 + 80 por defecto
+
+  const funcionesList = customFunciones && customFunciones.length > 0 ? customFunciones : ["4:00 pm", "7:00 pm"];
+  const funcionStats = funcionesList.map((func) => {
+    const list = active.filter((r) => r.funcion === func);
+    const tickets = list.reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
+    const rev = list.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
+    const attList = list.filter((r) => r.asistio);
+    const attTickets = attList.reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
+    return {
+      funcion: func,
+      tickets,
+      revenue: rev,
+      attendedTickets: attTickets,
+      percent: Math.round((tickets / totalCap) * 100),
+    };
+  });
 
   return {
     totalRevenue,
@@ -736,6 +1055,7 @@ export function getCRMStats(reservations: TicketReservation[]) {
     percentAttendedTotal,
     percentAttended4pm,
     percentAttended7pm,
+    funcionStats,
   };
 }
 

@@ -38,10 +38,17 @@ import {
   FileSpreadsheet,
   AlertOctagon,
   Filter,
+  Pencil,
+  SlidersHorizontal,
+  Save,
+  Plus,
+  X,
+  Sliders,
 } from "lucide-react";
 import {
   getStoredReservations,
   saveReservation,
+  updateReservation,
   deleteReservation,
   markTicketAttendance,
   exportTicketsToExcel,
@@ -55,11 +62,17 @@ import {
   getCRMStats,
   getPromosBreakdown,
   buildWhatsAppReservationMessage,
+  getStoredEventSettings,
+  saveEventSettings,
+  syncEventSettingsWithNeon,
   ZONAS_CONFIG,
   METODOS_PAGO_CONFIG,
   PROMOS_CONFIG,
   type TicketReservation,
   type MetodoPago,
+  type EventSettings,
+  type EventZoneSetting,
+  DEFAULT_EVENT_SETTINGS,
 } from "@/lib/tickets-crm";
 
 export const Route = createFileRoute("/admin/entradas")({
@@ -90,9 +103,31 @@ function AdminEntradasPage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "registro" | "asistencia">("dashboard");
+  // Configuración en vivo del evento (Precios, Promos, Horarios, Aforo)
+  const [eventSettings, setEventSettings] = useState<EventSettings>(() => getStoredEventSettings());
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [settingsSuccessMsg, setSettingsSuccessMsg] = useState<string | null>(null);
+
+  // Modal de Edición de Reserva
+  const [editingReservation, setEditingReservation] = useState<TicketReservation | null>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editTelefono, setEditTelefono] = useState("");
+  const [editDni, setEditDni] = useState("");
+  const [editFuncion, setEditFuncion] = useState("");
+  const [editZona, setEditZona] = useState("");
+  const [editCantidad, setEditCantidad] = useState(1);
+  const [editPromo, setEditPromo] = useState("twoXone");
+  const [editTotal, setEditTotal] = useState<number>(80);
+  const [editMetodo, setEditMetodo] = useState<MetodoPago>("yape");
+  const [editVendedor, setEditVendedor] = useState("");
+  const [editEstado, setEditEstado] = useState<"confirmado" | "pendiente" | "anulado">("confirmado");
+  const [editNotas, setEditNotas] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editSuccessMsg, setEditSuccessMsg] = useState<string | null>(null);
+
+  const [activeTab, setActiveTab] = useState<"dashboard" | "registro" | "asistencia" | "configuracion">("dashboard");
   const [reservations, setReservations] = useState<TicketReservation[]>(() => getStoredReservations());
-  const [selectedFuncion, setSelectedFuncion] = useState<"4:00 pm" | "7:00 pm">("4:00 pm");
+  const [selectedFuncion, setSelectedFuncion] = useState<string>("4:00 pm");
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroFuncion, setFiltroFuncion] = useState<string>("todas");
   const [filtroZona, setFiltroZona] = useState<string>("todas");
@@ -120,11 +155,11 @@ function AdminEntradasPage() {
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [dni, setDni] = useState("");
-  const [formFuncion, setFormFuncion] = useState<"4:00 pm" | "7:00 pm">("4:00 pm");
+  const [formFuncion, setFormFuncion] = useState<string>("4:00 pm");
   // La zona inicia en null para que RECIÉN al seleccionarla se muestre el aforo disponible
   const [formZona, setFormZona] = useState<string | null>(null);
-  const [cantidad, setCantidad] = useState(2);
-  const [promo, setPromo] = useState<"twoXone" | "threeXtwo" | "twentyPct" | "regular" | "cortesia">("twoXone");
+  const [cantidad, setCantidad] = useState(1);
+  const [promo, setPromo] = useState<string>("twoXone");
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("yape");
   const [vendedor, setVendedor] = useState("");
   const [notas, setNotas] = useState("");
@@ -153,10 +188,14 @@ function AdminEntradasPage() {
   // Cargar y sincronizar datos
   const reload = () => {
     setReservations(getStoredReservations());
+    setEventSettings(getStoredEventSettings());
   };
 
   useEffect(() => {
     reload();
+    syncEventSettingsWithNeon().then((s) => {
+      if (s) setEventSettings(s);
+    });
     if (auth) {
       syncReservationsWithNeon().then((res) => {
         if (res) setReservations(res);
@@ -166,6 +205,9 @@ function AdminEntradasPage() {
     const unsubscribe = onCRMUpdate(reload);
     // Auto sync cada 15 segundos para mantener aforo en vivo
     const interval = setInterval(() => {
+      syncEventSettingsWithNeon().then((s) => {
+        if (s) setEventSettings(s);
+      });
       if (getStoredHaroldAuth()) {
         syncReservationsWithNeon().then((res) => {
           if (res) setReservations(res);
@@ -197,8 +239,12 @@ function AdminEntradasPage() {
     setAuth(creds);
     setIsSyncing(true);
     try {
-      const synced = await syncReservationsWithNeon();
-      setReservations(synced);
+      const [syncedRes, syncedSettings] = await Promise.all([
+        syncReservationsWithNeon(),
+        syncEventSettingsWithNeon(),
+      ]);
+      setReservations(syncedRes);
+      if (syncedSettings) setEventSettings(syncedSettings);
     } catch {
       // Ignorar
     } finally {
@@ -220,29 +266,43 @@ function AdminEntradasPage() {
   const handleManualSync = async () => {
     setIsSyncing(true);
     try {
-      const synced = await syncReservationsWithNeon();
-      setReservations(synced);
+      const [syncedRes, syncedSettings] = await Promise.all([
+        syncReservationsWithNeon(),
+        syncEventSettingsWithNeon(),
+      ]);
+      setReservations(syncedRes);
+      if (syncedSettings) setEventSettings(syncedSettings);
     } finally {
       setIsSyncing(false);
     }
   };
 
-  // Stats
-  const stats = useMemo(() => getCRMStats(reservations), [reservations]);
+  // Capacidad total y Stats
+  const totalCapacity = useMemo(() => {
+    return eventSettings.zonas
+      .filter((z) => z.key !== "cortesia")
+      .reduce((sum, z) => sum + Number(z.seats || 0), 0);
+  }, [eventSettings.zonas]);
+
+  const stats = useMemo(
+    () => getCRMStats(reservations, totalCapacity, eventSettings.funciones),
+    [reservations, totalCapacity, eventSettings.funciones]
+  );
   const promosBreakdown = useMemo(() => getPromosBreakdown(reservations), [reservations]);
 
   // Disponibilidad de la función seleccionada en el monitor
   const zonasMonitor = useMemo(() => {
-    return Object.keys(ZONAS_CONFIG).map((key) =>
-      getZoneAvailability(reservations, selectedFuncion, key)
+    return eventSettings.zonas.map((z) =>
+      getZoneAvailability(reservations, selectedFuncion, z.key, z.seats)
     );
-  }, [reservations, selectedFuncion]);
+  }, [reservations, selectedFuncion, eventSettings.zonas]);
 
   // Disponibilidad en vivo de la zona seleccionada en el formulario según el horario elegido
   const formZoneAvail = useMemo(() => {
     if (!formZona) return null;
-    return getZoneAvailability(reservations, formFuncion, formZona);
-  }, [reservations, formFuncion, formZona]);
+    const z = eventSettings.zonas.find((item) => item.key === formZona);
+    return getZoneAvailability(reservations, formFuncion, formZona, z?.seats);
+  }, [reservations, formFuncion, formZona, eventSettings.zonas]);
 
   // Detección de Pase de Cortesía activo en el formulario
   const isCortesiaSelected = formZona === "cortesia" || promo === "cortesia";
@@ -251,7 +311,8 @@ function AdminEntradasPage() {
   const precioSugerido = useMemo(() => {
     if (!formZona) return 0;
     if (formZona === "cortesia" || promo === "cortesia") return 0;
-    const base = PRECIOS_POR_DEFECTO[formZona]?.[promo] || 80;
+    const z = eventSettings.zonas.find((item) => item.key === formZona);
+    const base = z?.prices[promo as keyof EventZoneSetting["prices"]] ?? (PRECIOS_POR_DEFECTO[formZona]?.[promo] || 80);
     if (promo === "twoXone") {
       // En Preventa 2x1, cada unidad comprada entrega 2 entradas por el precio base listado
       return cantidad * base;
@@ -261,10 +322,159 @@ function AdminEntradasPage() {
       return grupos * base;
     }
     return cantidad * base;
-  }, [formZona, promo, cantidad]);
+  }, [formZona, promo, cantidad, eventSettings.zonas]);
 
   const [totalManual, setTotalManual] = useState<number | null>(null);
   const totalFinal = isCortesiaSelected ? 0 : (totalManual !== null ? totalManual : precioSugerido);
+
+  // Manejo de Edición de Reservas
+  const handleOpenEdit = (r: TicketReservation) => {
+    setEditingReservation(r);
+    setEditNombre(r.clienteNombre);
+    setEditTelefono(r.clienteTelefono);
+    setEditDni(r.clienteDni || "");
+    setEditFuncion(r.funcion);
+    setEditZona(r.zonaKey);
+    setEditCantidad(r.cantidad);
+    setEditPromo(r.etapaPromo);
+    setEditTotal(Number(r.totalPagado));
+    setEditMetodo((r.metodoPago || "yape") as MetodoPago);
+    setEditVendedor(r.vendedor);
+    setEditEstado(r.estado);
+    setEditNotas(r.notas || "");
+    setEditSuccessMsg(null);
+  };
+
+  const suggestedEditPrice = useMemo(() => {
+    if (!editZona || editZona === "cortesia" || editPromo === "cortesia") return 0;
+    const z = eventSettings.zonas.find((item) => item.key === editZona);
+    const base = z?.prices[editPromo as keyof EventZoneSetting["prices"]] ?? (PRECIOS_POR_DEFECTO[editZona]?.[editPromo] || 80);
+    if (editPromo === "twoXone") {
+      return editCantidad * base;
+    }
+    if (editPromo === "threeXtwo") {
+      const grupos = Math.ceil(editCantidad / 3);
+      return grupos * base;
+    }
+    return editCantidad * base;
+  }, [editZona, editPromo, editCantidad, eventSettings.zonas]);
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingReservation || isSavingEdit) return;
+
+    setIsSavingEdit(true);
+    try {
+      const isCortesiaEntry = editZona === "cortesia" || editPromo === "cortesia";
+      const finalPromo = isCortesiaEntry ? "cortesia" : editPromo;
+      const finalMetodo = isCortesiaEntry ? "cortesia" : editMetodo;
+      const finalTotal = isCortesiaEntry ? 0 : Number(editTotal || 0);
+
+      const updated = await updateReservation(editingReservation.id, {
+        clienteNombre: editNombre.trim(),
+        clienteTelefono: editTelefono.trim(),
+        clienteDni: editDni.trim() || undefined,
+        funcion: editFuncion,
+        zonaKey: editZona,
+        cantidad: Number(editCantidad) || 1,
+        etapaPromo: finalPromo,
+        totalPagado: finalTotal,
+        metodoPago: finalMetodo,
+        vendedor: editVendedor.trim() || (isCortesiaEntry ? "Dirección" : "Boletería"),
+        estado: editEstado,
+        notas: editNotas.trim() || undefined,
+      });
+
+      if (updated) {
+        setReservations((prev) =>
+          prev.map((item) => (item.id === updated.id ? updated : item))
+        );
+        setEditSuccessMsg("¡Boleto actualizado correctamente en Neon PostgreSQL!");
+        setTimeout(() => {
+          setEditingReservation(null);
+          setEditSuccessMsg(null);
+        }, 1200);
+      }
+    } catch (err) {
+      console.error("Error guardando edición de reserva:", err);
+      alert("Hubo un error al guardar los cambios. Intenta nuevamente.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // Manejo de Configuración del Evento (Precios, Promos, Horarios, Aforo)
+  const handleSaveConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSavingSettings) return;
+
+    setIsSavingSettings(true);
+    setSettingsSuccessMsg(null);
+    try {
+      await saveEventSettings(eventSettings);
+      setSettingsSuccessMsg("✅ ¡Configuración del evento guardada en vivo! Precios, horarios y aforos actualizados en la web pública.");
+      setTimeout(() => setSettingsSuccessMsg(null), 4000);
+    } catch (err) {
+      console.error("Error guardando configuración:", err);
+      alert("Error al guardar la configuración del evento.");
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const handleZonePriceChange = (zoneKey: string, promoKey: string, value: number) => {
+    setEventSettings((prev) => ({
+      ...prev,
+      zonas: prev.zonas.map((z) =>
+        z.key === zoneKey
+          ? {
+              ...z,
+              prices: {
+                ...z.prices,
+                [promoKey]: Math.max(0, value),
+              },
+            }
+          : z
+      ),
+    }));
+  };
+
+  const handleZoneSeatsChange = (zoneKey: string, seats: number) => {
+    setEventSettings((prev) => ({
+      ...prev,
+      zonas: prev.zonas.map((z) =>
+        z.key === zoneKey
+          ? {
+              ...z,
+              seats: Math.max(1, seats),
+            }
+          : z
+      ),
+    }));
+  };
+
+  const [newFuncionInput, setNewFuncionInput] = useState("");
+
+  const handleAddFuncion = () => {
+    const trimmed = newFuncionInput.trim();
+    if (!trimmed || eventSettings.funciones.includes(trimmed)) return;
+    setEventSettings((prev) => ({
+      ...prev,
+      funciones: [...prev.funciones, trimmed],
+    }));
+    setNewFuncionInput("");
+  };
+
+  const handleRemoveFuncion = (funcToRemove: string) => {
+    if (eventSettings.funciones.length <= 1) {
+      alert("Debe haber al menos 1 horario de función.");
+      return;
+    }
+    setEventSettings((prev) => ({
+      ...prev,
+      funciones: prev.funciones.filter((f) => f !== funcToRemove),
+    }));
+  };
 
   // Manejar creación
   const handleSubmit = async (e: React.FormEvent) => {
@@ -729,6 +939,22 @@ function AdminEntradasPage() {
                   {stats.totalAttendedTickets} en sala
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("configuracion");
+                  setLastRegistered(null);
+                }}
+                className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === "configuracion"
+                    ? "bg-white text-slate-900 border-slate-300 shadow-xs"
+                    : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                }`}
+              >
+                <SlidersHorizontal className={`w-3.5 h-3.5 ${activeTab === "configuracion" ? "text-red-600" : "text-slate-500"}`} />
+                <span>4. Configurar Precios & Show</span>
+              </button>
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
@@ -802,64 +1028,55 @@ function AdminEntradasPage() {
                   <span className="text-xs sm:text-sm font-normal text-slate-400 font-body">asientos</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-500 mt-1.5 sm:mt-2 font-medium flex-wrap">
-                  <span className="text-amber-800 font-bold bg-amber-50 px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded border border-amber-200">
-                    4pm: {stats.tickets4pm}
-                  </span>
-                  <span className="text-sky-800 font-bold bg-sky-50 px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded border border-sky-200">
-                    7pm: {stats.tickets7pm}
-                  </span>
+                  {stats.funcionStats?.map((fs) => (
+                    <span
+                      key={fs.funcion}
+                      className="font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200"
+                    >
+                      {fs.funcion}: {fs.tickets} ent.
+                    </span>
+                  ))}
                 </div>
               </div>
 
-              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors">
-                <div className="flex items-center justify-between text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 sm:mb-2">
-                  <span>Función 4:00 PM</span>
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-amber-50 flex items-center justify-center">
-                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600" />
+              {stats.funcionStats?.map((fs, idx) => {
+                const colors = [
+                  { bg: "bg-amber-50", text: "text-amber-600", bar: "bg-amber-500", rev: "text-amber-700" },
+                  { bg: "bg-sky-50", text: "text-sky-600", bar: "bg-sky-500", rev: "text-sky-700" },
+                  { bg: "bg-purple-50", text: "text-purple-600", bar: "bg-purple-500", rev: "text-purple-700" },
+                  { bg: "bg-emerald-50", text: "text-emerald-600", bar: "bg-emerald-500", rev: "text-emerald-700" },
+                ];
+                const c = colors[idx % colors.length];
+                return (
+                  <div
+                    key={fs.funcion}
+                    className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors"
+                  >
+                    <div className="flex items-center justify-between text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 sm:mb-2">
+                      <span>Función {fs.funcion}</span>
+                      <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full ${c.bg} flex items-center justify-center`}>
+                        <Clock className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${c.text}`} />
+                      </div>
+                    </div>
+                    <div className="flex items-baseline justify-between flex-wrap gap-1">
+                      <div className="font-display text-xl sm:text-3xl text-slate-900 font-bold tracking-tight">
+                        {fs.tickets}{" "}
+                        <span className="text-xs sm:text-sm text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
+                      </div>
+                      <span className={`text-[11px] sm:text-xs font-bold ${c.rev}`}>
+                        S/ {fs.revenue.toFixed(0)}
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-1.5 sm:h-2 mt-2 rounded-full overflow-hidden">
+                      <div className={`${c.bar} h-full transition-all`} style={{ width: `${fs.percent}%` }} />
+                    </div>
+                    <div className="flex justify-between text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium">
+                      <span>{fs.percent}% aforo</span>
+                      <span>{Math.max(0, stats.totalCap - fs.tickets)} libres</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-baseline justify-between flex-wrap gap-1">
-                  <div className="font-display text-xl sm:text-3xl text-slate-900 font-bold tracking-tight">
-                    {stats.tickets4pm}{" "}
-                    <span className="text-xs sm:text-sm text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
-                  </div>
-                  <span className="text-[11px] sm:text-xs font-bold text-amber-700">
-                    S/ {stats.revenue4pm.toFixed(0)}
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 h-1.5 sm:h-2 mt-2 rounded-full overflow-hidden">
-                  <div className="bg-amber-500 h-full transition-all" style={{ width: `${stats.percent4pm}%` }} />
-                </div>
-                <div className="flex justify-between text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium">
-                  <span>{stats.percent4pm}% aforo</span>
-                  <span>{stats.totalCap - stats.tickets4pm} libres</span>
-                </div>
-              </div>
-
-              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors">
-                <div className="flex items-center justify-between text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 sm:mb-2">
-                  <span>Función 7:00 PM</span>
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-sky-50 flex items-center justify-center">
-                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600" />
-                  </div>
-                </div>
-                <div className="flex items-baseline justify-between flex-wrap gap-1">
-                  <div className="font-display text-xl sm:text-3xl text-slate-900 font-bold tracking-tight">
-                    {stats.tickets7pm}{" "}
-                    <span className="text-xs sm:text-sm text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
-                  </div>
-                  <span className="text-[11px] sm:text-xs font-bold text-sky-700">
-                    S/ {stats.revenue7pm.toFixed(0)}
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 h-1.5 sm:h-2 mt-2 rounded-full overflow-hidden">
-                  <div className="bg-sky-500 h-full transition-all" style={{ width: `${stats.percent7pm}%` }} />
-                </div>
-                <div className="flex justify-between text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium">
-                  <span>{stats.percent7pm}% aforo</span>
-                  <span>{stats.totalCap - stats.tickets7pm} libres</span>
-                </div>
-              </div>
+                );
+              })}
             </div>
 
             {/* 2. Métricas de Promociones & Rendimiento General */}
@@ -1059,29 +1276,21 @@ function AdminEntradasPage() {
                 </div>
 
                 {/* Selector de Función */}
-                <div className="inline-flex p-1 bg-slate-100 border border-slate-200 rounded-lg self-start">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedFuncion("4:00 pm")}
-                    className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${
-                      selectedFuncion === "4:00 pm"
-                        ? "bg-white text-slate-900 shadow-xs border border-slate-200"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    Función 4:00 PM
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedFuncion("7:00 pm")}
-                    className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${
-                      selectedFuncion === "7:00 pm"
-                        ? "bg-white text-slate-900 shadow-xs border border-slate-200"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    Función 7:00 PM
-                  </button>
+                <div className="inline-flex p-1 bg-slate-100 border border-slate-200 rounded-lg self-start flex-wrap gap-1">
+                  {eventSettings.funciones.map((func) => (
+                    <button
+                      key={func}
+                      type="button"
+                      onClick={() => setSelectedFuncion(func)}
+                      className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${
+                        selectedFuncion === func
+                          ? "bg-white text-slate-900 shadow-xs border border-slate-200"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Función {func.toUpperCase()}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -1203,8 +1412,11 @@ function AdminEntradasPage() {
                       className="w-full bg-white border border-slate-300 rounded-md px-2.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600"
                     >
                       <option value="todas">Horario (Todas)</option>
-                      <option value="4:00 pm">Solo 4:00 PM</option>
-                      <option value="7:00 pm">Solo 7:00 PM</option>
+                      {eventSettings.funciones.map((f) => (
+                        <option key={f} value={f}>
+                          Solo {f}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1215,11 +1427,11 @@ function AdminEntradasPage() {
                       className="w-full bg-white border border-slate-300 rounded-md px-2.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600"
                     >
                       <option value="todas">Zonas (Todas)</option>
-                      <option value="superstar">Superstar</option>
-                      <option value="cortesia">Cortesía</option>
-                      <option value="getsemani">Getsemaní</option>
-                      <option value="hosanna">Hosanna</option>
-                      <option value="pueblo">Pueblo</option>
+                      {eventSettings.zonas.map((z) => (
+                        <option key={z.key} value={z.key}>
+                          {z.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1400,6 +1612,15 @@ function AdminEntradasPage() {
                             >
                               <ArrowUpRight className="w-3.5 h-3.5" />
                             </a>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(r)}
+                              className="p-1 text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md border border-blue-200 transition-colors cursor-pointer"
+                              title="Editar entrada"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
 
                             <button
                               type="button"
@@ -1627,6 +1848,15 @@ function AdminEntradasPage() {
                                   ) : (
                                     <Copy className="w-4 h-4" />
                                   )}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEdit(r)}
+                                  className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
+                                  title="Editar precio, horario, promo o cantidad de esta entrada"
+                                >
+                                  <Pencil className="w-4 h-4" />
                                 </button>
 
                                 {r.asistio && (
@@ -1867,34 +2097,26 @@ function AdminEntradasPage() {
                   <label className="block text-xs uppercase tracking-wider text-slate-700 font-bold mb-2">
                     1. Selecciona el Horario de Función *
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setFormFuncion("4:00 pm")}
-                      className={`py-3 text-xs font-bold uppercase tracking-wider rounded-lg border transition-all flex items-center justify-center gap-2 ${
-                        formFuncion === "4:00 pm"
-                          ? "bg-red-600 text-white border-red-600 shadow-xs"
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300"
-                      }`}
-                    >
-                      <Clock className="w-4 h-4" />
-                      <span>Función 4:00 PM</span>
-                      {formFuncion === "4:00 pm" && <Check className="w-4 h-4 text-white" />}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setFormFuncion("7:00 pm")}
-                      className={`py-3 text-xs font-bold uppercase tracking-wider rounded-lg border transition-all flex items-center justify-center gap-2 ${
-                        formFuncion === "7:00 pm"
-                          ? "bg-red-600 text-white border-red-600 shadow-xs"
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300"
-                      }`}
-                    >
-                      <Clock className="w-4 h-4" />
-                      <span>Función 7:00 PM</span>
-                      {formFuncion === "7:00 pm" && <Check className="w-4 h-4 text-white" />}
-                    </button>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {eventSettings.funciones.map((func) => {
+                      const isSelected = formFuncion === func;
+                      return (
+                        <button
+                          key={func}
+                          type="button"
+                          onClick={() => setFormFuncion(func)}
+                          className={`py-3 text-xs font-bold uppercase tracking-wider rounded-lg border transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            isSelected
+                              ? "bg-red-600 text-white border-red-600 shadow-xs"
+                              : "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300"
+                          }`}
+                        >
+                          <Clock className="w-4 h-4" />
+                          <span>Función {func.toUpperCase()}</span>
+                          {isSelected && <Check className="w-4 h-4 text-white" />}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1904,8 +2126,8 @@ function AdminEntradasPage() {
                     2. Selecciona la Zona Comprada *
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-                    {Object.values(ZONAS_CONFIG).map((meta) => {
-                      const avail = getZoneAvailability(reservations, formFuncion, meta.key);
+                    {eventSettings.zonas.map((meta) => {
+                      const avail = getZoneAvailability(reservations, formFuncion, meta.key, meta.seats);
                       const isSelected = formZona === meta.key;
                       return (
                         <button
@@ -1923,7 +2145,7 @@ function AdminEntradasPage() {
                               setTotalManual(null);
                             }
                           }}
-                          className={`p-3 rounded-lg border text-left transition-all relative ${
+                          className={`p-3 rounded-lg border text-left transition-all relative cursor-pointer ${
                             isSelected
                               ? "border-red-600 bg-red-50/80 ring-2 ring-red-600/30 shadow-xs"
                               : "border-slate-200 bg-slate-50/80 hover:border-slate-300 hover:bg-slate-100"
@@ -1950,11 +2172,11 @@ function AdminEntradasPage() {
                     <div className="flex items-center gap-3">
                       <span
                         className="w-3.5 h-3.5 rounded-full ring-2 ring-white/20"
-                        style={{ backgroundColor: ZONAS_CONFIG[formZona]?.color }}
+                        style={{ backgroundColor: eventSettings.zonas.find((z) => z.key === formZona)?.color || "#fe0000" }}
                       />
                       <div>
                         <div className="font-bold text-sm text-white">
-                          {ZONAS_CONFIG[formZona]?.label} · {formFuncion}
+                          {eventSettings.zonas.find((z) => z.key === formZona)?.label || formZona} · {formFuncion}
                         </div>
                         <span className="text-slate-400 text-xs">
                           Auditorio del Colegio de Ingenieros
@@ -1963,37 +2185,34 @@ function AdminEntradasPage() {
                     </div>
 
                     <div className="text-right">
-                      <div className="font-extrabold text-emerald-400 text-base">
-                        {formZoneAvail.availableSeats} asientos disponibles
+                      <div className="text-2xl font-bold text-white leading-none">
+                        {formZoneAvail.availableSeats}
                       </div>
-                      <span className="text-slate-400 text-xs">
-                        {promo === "twoXone"
-                          ? `equivale a máx ${Math.floor(formZoneAvail.availableSeats / 2)} promos 2x1`
-                          : `de ${formZoneAvail.totalSeats} totales`}
+                      <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mt-0.5">
+                        Asientos Libres
                       </span>
                     </div>
                   </div>
                 )}
 
-                {/* 3. Datos del Cliente */}
-                <div className="pt-2 border-t border-slate-200">
-                  <label className="block text-xs uppercase tracking-wider text-slate-700 font-bold mb-1.5">
-                    Nombre Completo del Cliente *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej. Rosa Alvarado"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-red-600 focus:ring-1 focus:ring-red-600"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* 3. Datos del Comprador */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs uppercase tracking-wider text-slate-700 font-bold mb-1.5">
-                      Celular / WhatsApp *
+                      Nombre Completo *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej: Carlos Mendoza"
+                      value={nombre}
+                      onChange={(e) => setNombre(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-red-600 focus:ring-1 focus:ring-red-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-slate-700 font-bold mb-1.5">
+                      Teléfono / WhatsApp *
                     </label>
                     <input
                       type="tel"
@@ -2037,10 +2256,12 @@ function AdminEntradasPage() {
                       <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
                         <div className="font-bold flex items-center gap-1.5 text-amber-800">
                           <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                          <span>Promo 2x1: {cantidad} comprada(s) = {cantidad * 2} entradas entregadas</span>
+                          <span>Promo 2x1: {cantidad} paquete(s) = {cantidad * 2} asientos a entregar</span>
                         </div>
-                        <p className="mt-0.5 text-[11px] text-amber-700">
-                          Se descontarán <strong>{cantidad * 2} asientos</strong> del aforo disponible en sala.
+                        <p className="mt-1 text-[11px] text-amber-800">
+                          📌 Si el cliente pagó por <strong>2 asientos</strong>, coloca <strong>Cantidad = 1</strong> (1 promo 2x1).
+                          <br />
+                          📌 Si pagó por <strong>4 asientos</strong>, coloca <strong>Cantidad = 2</strong> (2 promos 2x1).
                         </p>
                       </div>
                     )}
@@ -2927,7 +3148,588 @@ function AdminEntradasPage() {
             </div>
           </div>
         )}
+
+        {/* PESTAÑA 4: CONFIGURAR PRECIOS, HORARIOS Y SHOW */}
+        {activeTab === "configuracion" && (
+          <div className="space-y-6 animate-fade-in pb-12">
+            {/* Header de Configuración */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-red-50 text-red-700 border border-red-200 mb-2">
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  Control Maestro del Evento
+                </div>
+                <h2 className="font-display text-2xl text-slate-900 tracking-tight font-bold">
+                  Configuración de Precios, Promociones, Horarios y Aforo
+                </h2>
+                <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+                  Modifica las tarifas por zona, las etapas promocionales, las funciones del show y la capacidad de sala. Todos los cambios se guardan en la base de datos de Neon y se actualizan al instante en la ticketera pública (<strong className="text-slate-700">/entradas</strong>), en el link de las entradas generadas y en el CRM.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleSaveConfig}
+                  disabled={isSavingSettings}
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-md shadow-red-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSavingSettings ? "Guardando en Neon..." : "Guardar Configuración en Vivo"}</span>
+                </button>
+              </div>
+            </div>
+
+            {settingsSuccessMsg && (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3 text-sm text-emerald-800 animate-fade-in shadow-xs">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span className="font-semibold">{settingsSuccessMsg}</span>
+              </div>
+            )}
+
+            {/* SECCIÓN 1: HORARIOS DE FUNCIONES */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-slate-100 text-slate-700 rounded-lg">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">Horarios de Funciones del Show</h3>
+                    <p className="text-xs text-slate-500">Agrega o retira funciones. Se actualizarán inmediatamente en la web pública y en el CRM.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {eventSettings.funciones.map((func) => (
+                  <div
+                    key={func}
+                    className="flex items-center gap-2 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl shadow-2xs text-xs font-bold text-slate-800"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-red-600" />
+                    <span>{func}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFuncion(func)}
+                      className="ml-1 text-slate-400 hover:text-red-600 cursor-pointer p-0.5 rounded-full hover:bg-red-50 transition-colors"
+                      title="Eliminar este horario"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+
+                {/* Input para nuevo horario */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newFuncionInput}
+                    onChange={(e) => setNewFuncionInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddFuncion();
+                      }
+                    }}
+                    placeholder="Ej: 9:30 pm"
+                    className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 font-medium focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:border-red-500 w-32"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddFuncion}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Agregar</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 2: PRECIOS Y AFORO POR ZONA */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-red-50 text-red-600 rounded-lg">
+                    <DollarSign className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">Tarifas y Capacidad por Zona</h3>
+                    <p className="text-xs text-slate-500">
+                      Configura el precio en Soles (S/) de cada zona para cada promoción y la capacidad máxima de asientos.
+                    </p>
+                  </div>
+                </div>
+                <div className="text-[11px] font-semibold text-slate-500 bg-slate-50 px-3 py-1 rounded-md border border-slate-200">
+                  Capacidad Total del Teatro: <strong className="text-slate-900 font-bold">{totalCapacity} butacas</strong>
+                </div>
+              </div>
+
+              {/* Guía explicativa para Harold */}
+              <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 leading-relaxed">
+                💡 <strong>Regla de cálculo:</strong> Recuerda que el precio oficial por entrada es <strong>S/ 80.00</strong>.
+                <ul className="list-disc pl-5 mt-1 space-y-0.5 text-blue-800 text-[11px]">
+                  <li><strong>Preventa 2x1:</strong> El cliente paga por 1 boleto (ej: S/ 80.00) y recibe 2 asientos autorizados.</li>
+                  <li><strong>Preventa 3x2:</strong> El cliente paga por 2 boletos (ej: S/ 160.00) y recibe 3 asientos autorizados.</li>
+                  <li><strong>Preventa 20% Desc:</strong> Cada asiento cuesta S/ 64.00 (20% de descuento sobre S/ 80).</li>
+                  <li><strong>Tarifa Regular:</strong> Cada asiento cuesta S/ 80.00.</li>
+                </ul>
+              </div>
+
+              {/* Grid de Zonas */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {eventSettings.zonas
+                  .filter((z) => z.key !== "cortesia")
+                  .map((z) => {
+                    return (
+                      <div
+                        key={z.key}
+                        className="border border-slate-200 rounded-xl p-4 bg-slate-50/60 hover:bg-slate-50 transition-all space-y-3"
+                      >
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="w-3.5 h-3.5 rounded-full shrink-0 shadow-2xs"
+                              style={{ backgroundColor: z.color }}
+                            />
+                            <div>
+                              <span className="font-bold text-slate-900 text-sm block leading-tight">
+                                {z.label}
+                              </span>
+                              <span className="text-[10px] text-slate-500">{z.subtitle}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 text-xs">
+                            <label className="text-[11px] font-bold text-slate-500 uppercase">Aforo:</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={z.seats}
+                              onChange={(e) => handleZoneSeatsChange(z.key, Number(e.target.value) || 0)}
+                              className="w-16 px-2 py-1 bg-white border border-slate-300 rounded text-center text-xs font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Precios por promo */}
+                        <div className="space-y-2 text-xs">
+                          <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200">
+                            <div>
+                              <span className="font-semibold text-slate-800 block text-[11px]">Preventa 2x1</span>
+                              <span className="text-[10px] text-slate-400">Paga 1, lleva 2 asientos</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-400 font-bold text-xs">S/</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={z.prices.twoXone}
+                                onChange={(e) => handleZonePriceChange(z.key, "twoXone", Number(e.target.value) || 0)}
+                                className="w-18 px-2 py-1 bg-slate-50 border border-slate-300 rounded text-right text-xs font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200">
+                            <div>
+                              <span className="font-semibold text-slate-800 block text-[11px]">Preventa 3x2</span>
+                              <span className="text-[10px] text-slate-400">Paga 2, lleva 3 asientos</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-400 font-bold text-xs">S/</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={z.prices.threeXtwo}
+                                onChange={(e) => handleZonePriceChange(z.key, "threeXtwo", Number(e.target.value) || 0)}
+                                className="w-18 px-2 py-1 bg-slate-50 border border-slate-300 rounded text-right text-xs font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200">
+                            <div>
+                              <span className="font-semibold text-slate-800 block text-[11px]">Preventa -20%</span>
+                              <span className="text-[10px] text-slate-400">Precio por entrada individual</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-400 font-bold text-xs">S/</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={z.prices.twentyPct}
+                                onChange={(e) => handleZonePriceChange(z.key, "twentyPct", Number(e.target.value) || 0)}
+                                className="w-18 px-2 py-1 bg-slate-50 border border-slate-300 rounded text-right text-xs font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200">
+                            <div>
+                              <span className="font-semibold text-slate-800 block text-[11px]">Tarifa Regular</span>
+                              <span className="text-[10px] text-slate-400">Precio estándar por asiento</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-400 font-bold text-xs">S/</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={z.prices.regular}
+                                onChange={(e) => handleZonePriceChange(z.key, "regular", Number(e.target.value) || 0)}
+                                className="w-18 px-2 py-1 bg-slate-50 border border-slate-300 rounded text-right text-xs font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* SECCIÓN 3: CONTROL DE ACTIVACIÓN DE PROMOCIONES */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
+              <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Etapas Promocionales Activas</h3>
+                  <p className="text-xs text-slate-500">Activa o desactiva las promociones visibles para el público y para el equipo de ventas.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {eventSettings.promos.map((promoItem) => (
+                  <div
+                    key={promoItem.key}
+                    className={`p-3.5 rounded-xl border transition-all flex items-center justify-between ${
+                      promoItem.active
+                        ? "bg-emerald-50/40 border-emerald-300"
+                        : "bg-slate-50 border-slate-200 opacity-60"
+                    }`}
+                  >
+                    <div>
+                      <span className="font-bold text-slate-900 text-xs block">{promoItem.label}</span>
+                      <span className="text-[10px] text-slate-500">Multiplicador: {promoItem.multiplier} asientos</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEventSettings((prev) => ({
+                          ...prev,
+                          promos: prev.promos.map((p) =>
+                            p.key === promoItem.key ? { ...p, active: !p.active } : p
+                          ),
+                        }));
+                      }}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg cursor-pointer transition-colors ${
+                        promoItem.active
+                          ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                          : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                      }`}
+                    >
+                      {promoItem.active ? "Activa" : "Inactiva"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* BOTÓN FINAL DE GUARDAR */}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleSaveConfig}
+                disabled={isSavingSettings}
+                className="w-full sm:w-auto px-8 py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-red-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Save className="w-5 h-5" />
+                <span>{isSavingSettings ? "Guardando en Neon..." : "Guardar Todos los Cambios en Vivo"}</span>
+              </button>
+            </div>
+          </div>
+        )}
       </main>
+
+      {/* Modal de Edición de Reservas (Harold Admin) */}
+      {editingReservation && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200 space-y-4 my-8 max-h-[90vh] overflow-y-auto">
+            {/* Header del Modal */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3.5">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-700 border border-red-200 mb-1">
+                  <Pencil className="w-3 h-3" />
+                  Modo Corrección de Boleto
+                </div>
+                <h3 className="font-display text-xl text-slate-900 font-bold">
+                  Editar Reserva #{editingReservation.ticketCode || editingReservation.id}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Modifica los datos del cliente, la función, la zona, la cantidad de asientos o el monto cobrado. Al guardar se actualizará la base de datos Neon y el link digital del cliente.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setEditingReservation(null)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {editSuccessMsg && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2 text-xs text-emerald-800 font-semibold animate-fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{editSuccessMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              {/* Bloque 1: Datos del Cliente */}
+              <div className="space-y-2">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  1. Información del Titular
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="sm:col-span-1">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre Completo</label>
+                    <input
+                      type="text"
+                      value={editNombre}
+                      onChange={(e) => setEditNombre(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp / Teléfono</label>
+                    <input
+                      type="tel"
+                      value={editTelefono}
+                      onChange={(e) => setEditTelefono(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">DNI (Para Canje)</label>
+                    <input
+                      type="text"
+                      value={editDni}
+                      onChange={(e) => setEditDni(e.target.value)}
+                      placeholder="Opcional"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloque 2: Función y Zona */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  2. Ubicación y Horario
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Función / Horario</label>
+                    <select
+                      value={editFuncion}
+                      onChange={(e) => setEditFuncion(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                    >
+                      {eventSettings.funciones.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Zona en Sala</label>
+                    <select
+                      value={editZona}
+                      onChange={(e) => setEditZona(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                    >
+                      {eventSettings.zonas.map((z) => (
+                        <option key={z.key} value={z.key}>
+                          {z.label} ({z.subtitle})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloque 3: Promoción, Cantidad y Monto */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  3. Tarifa, Cantidad y Monto Cobrado
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Promoción / Etapa</label>
+                    <select
+                      value={editPromo}
+                      onChange={(e) => setEditPromo(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                    >
+                      <option value="twoXone">Preventa 2x1 (Paga 1, entran 2)</option>
+                      <option value="threeXtwo">Preventa 3x2 (Paga 2, entran 3)</option>
+                      <option value="twentyPct">Preventa -20% Desc</option>
+                      <option value="regular">Tarifa Regular</option>
+                      <option value="cortesia">Pase de Cortesía (S/ 0)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Cantidad Comprada
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editCantidad}
+                      onChange={(e) => setEditCantidad(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                      required
+                    />
+                    <div className="text-[10px] text-amber-700 font-semibold mt-1">
+                      {editPromo === "twoXone" && (
+                        <span>En 2x1: {editCantidad} compra(s) = <strong>{editCantidad * 2} asientos</strong>.</span>
+                      )}
+                      {editPromo === "threeXtwo" && (
+                        <span>En 3x2: {editCantidad} compra(s) = <strong>{editCantidad * 3} asientos</strong>.</span>
+                      )}
+                      {editPromo !== "twoXone" && editPromo !== "threeXtwo" && (
+                        <span>Total de asientos: <strong>{editCantidad}</strong>.</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-semibold text-slate-700">Total Pagado (S/)</label>
+                      <button
+                        type="button"
+                        onClick={() => setEditTotal(suggestedEditPrice)}
+                        className="text-[10px] text-red-600 hover:text-red-800 font-bold underline cursor-pointer"
+                        title="Aplicar precio sugerido oficial según tarifa"
+                      >
+                        Sugerir S/ {suggestedEditPrice}
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">S/</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={editTotal}
+                        onChange={(e) => setEditTotal(Number(e.target.value) || 0)}
+                        className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                        required
+                      />
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1">
+                      Precio oficial estimado: S/ {suggestedEditPrice}.00
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloque 4: Método, Vendedor y Estado */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  4. Control Administrativo
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Método de Pago</label>
+                    <select
+                      value={editMetodo}
+                      onChange={(e) => setEditMetodo(e.target.value as MetodoPago)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                    >
+                      <option value="yape">Yape</option>
+                      <option value="plin">Plin</option>
+                      <option value="transferencia">Transferencia BCP</option>
+                      <option value="efectivo">Efectivo</option>
+                      <option value="tarjeta">Tarjeta</option>
+                      <option value="cortesia">Pase de Cortesía</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Vendedor</label>
+                    <input
+                      type="text"
+                      value={editVendedor}
+                      onChange={(e) => setEditVendedor(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Estado</label>
+                    <select
+                      value={editEstado}
+                      onChange={(e) => setEditEstado(e.target.value as TicketReservation["estado"])}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                    >
+                      <option value="confirmado">Confirmado</option>
+                      <option value="pendiente">Pendiente</option>
+                      <option value="anulado">Anulado</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Notas / Observaciones</label>
+                  <textarea
+                    rows={2}
+                    value={editNotas}
+                    onChange={(e) => setEditNotas(e.target.value)}
+                    placeholder="Detalles sobre el pago, cortesía o motivo de corrección..."
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+              </div>
+
+              {/* Botones de Acción */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setEditingReservation(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-md shadow-red-600/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSavingEdit ? "Guardando en Neon..." : "Guardar Cambios en Vivo"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Confirmación para Desmarcar Asistencia */}
       {attendanceRevertTarget && (

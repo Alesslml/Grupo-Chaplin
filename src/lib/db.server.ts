@@ -102,3 +102,19 @@ export function ensureTicketsSchema() {
   }
   return _ticketsEnsured;
 }
+
+let _settingsEnsured: Promise<void> | null = null;
+
+export function ensureEventSettingsSchema() {
+  if (!_settingsEnsured) {
+    const sql = getSql();
+    _settingsEnsured = sql`
+      create table if not exists event_settings (
+        key text primary key,
+        value jsonb not null,
+        updated_at timestamptz not null default now()
+      )
+    `.then(() => undefined);
+  }
+  return _settingsEnsured;
+}

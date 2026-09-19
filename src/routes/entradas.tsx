@@ -6,8 +6,12 @@ import {
   getZoneAvailability,
   onCRMUpdate,
   fetchPublicAvailabilityServer,
+  fetchPublicEventSettingsServer,
+  getStoredEventSettings,
+  saveStoredEventSettingsLocally,
   type TicketReservation,
   type ZoneAvailability,
+  type EventSettings,
 } from "@/lib/tickets-crm";
 import flyerOficial from "@/assets/jesucristo-rockstar-flyer.jpg";
 import mapaZonas from "@/assets/jesucristo-rockstar-mapa.jpeg";
@@ -156,6 +160,7 @@ function getActiveTier(today: Date): Tier {
 
 function EntradasPage() {
   const activeTier = useMemo(() => getActiveTier(new Date()), []);
+  const [eventSettings, setEventSettings] = useState<EventSettings>(getStoredEventSettings);
   const [funcion, setFuncion] = useState<string | null>(null);
   const [zonaKey, setZonaKey] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState(1);
@@ -166,6 +171,20 @@ function EntradasPage() {
   // CRM Live State (Conectado a Neon PostgreSQL en Tiempo Real)
   const [crmReservations, setCrmReservations] = useState<TicketReservation[]>([]);
   const [neonSoldMap, setNeonSoldMap] = useState<Record<string, Record<string, number>> | null>(null);
+
+  const activeFunciones = eventSettings.funciones;
+  const activeZonasVenta: Zone[] = useMemo(() => {
+    return eventSettings.zonas
+      .filter((z) => z.key !== "cortesia")
+      .map((z) => ({
+        key: z.key,
+        label: z.label,
+        color: z.color,
+        seats: z.seats,
+        prices: z.prices,
+        sellable: true,
+      }));
+  }, [eventSettings.zonas]);
 
   const syncNeonStock = async () => {
     try {
@@ -178,14 +197,33 @@ function EntradasPage() {
     }
   };
 
+  const syncNeonSettings = async () => {
+    try {
+      const res = await fetchPublicEventSettingsServer();
+      if (res && res.ok && res.settings) {
+        setEventSettings(res.settings);
+        saveStoredEventSettingsLocally(res.settings);
+      }
+    } catch {
+      // Fallback a almacenamiento local si no hay conexión
+    }
+  };
+
   useEffect(() => {
     setCrmReservations(getStoredReservations());
+    setEventSettings(getStoredEventSettings());
     syncNeonStock();
-    const interval = setInterval(syncNeonStock, 10000); // Polling cada 10 segundos
+    syncNeonSettings();
+    const interval = setInterval(() => {
+      syncNeonStock();
+      syncNeonSettings();
+    }, 10000); // Polling cada 10 segundos
 
     const unsubscribe = onCRMUpdate(() => {
       setCrmReservations(getStoredReservations());
+      setEventSettings(getStoredEventSettings());
       syncNeonStock();
+      syncNeonSettings();
     });
 
     return () => {
@@ -222,10 +260,11 @@ function EntradasPage() {
 
   const currentZoneAvail = useMemo(() => {
     if (!zonaKey || !funcion) return null;
-    return getZoneAvailability(liveReservations, funcion, zonaKey);
-  }, [liveReservations, funcion, zonaKey]);
+    const targetZ = activeZonasVenta.find((item) => item.key === zonaKey);
+    return getZoneAvailability(liveReservations, funcion, zonaKey, targetZ?.seats);
+  }, [liveReservations, funcion, zonaKey, activeZonasVenta]);
 
-  const zona = zonasVenta.find((z) => z.key === zonaKey) ?? null;
+  const zona = activeZonasVenta.find((z) => z.key === zonaKey) ?? null;
   const precioPorUnidad = zona ? zona.prices[activeTier.key] : null;
   const total = precioPorUnidad != null ? precioPorUnidad * cantidad : null;
   const entradasTotales = cantidad * activeTier.entradasPorPrecio;
@@ -282,7 +321,7 @@ function EntradasPage() {
             <span className="text-rojo">ROCKSTAR</span>
           </h1>
           <p className="font-body text-blanco/60 text-sm sm:text-base md:text-lg max-w-2xl leading-[1.7] sm:leading-[1.8]">
-            Domingo 18 de octubre · Funciones 4:00 pm y 7:00 pm · Auditorio del Colegio de Ingenieros de Ica · Dirección general: Harold López
+            Domingo 18 de octubre · Funciones {activeFunciones.join(" y ")} · Auditorio del Colegio de Ingenieros de Ica · Dirección general: Harold López
           </p>
           <div className="linea-roja mt-6 sm:mt-8" style={{ transformOrigin: "left center" }} />
         </div>
@@ -296,7 +335,7 @@ function EntradasPage() {
             <div className="absolute -inset-4 bg-rojo/25 blur-3xl rounded-full pointer-events-none" />
             <img
               src={flyerOficial}
-              alt="Jesucristo Rockstar — Chaplin Grupo Cultural — Dom 18 de octubre, funciones 4:00 pm y 7:00 pm, Auditorio del Colegio de Ingenieros de Ica"
+              alt={`Jesucristo Rockstar — Chaplin Grupo Cultural — Dom 18 de octubre, funciones ${activeFunciones.join(" y ")}, Auditorio del Colegio de Ingenieros de Ica`}
               className="relative w-full border-2 border-rojo shadow-[0_30px_80px_-20px_rgba(254,0,0,0.45)] transition-transform duration-500 group-hover:scale-[1.02]"
             />
           </div>
@@ -388,7 +427,7 @@ function EntradasPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {zonasVenta.map((z) => {
+                    {activeZonasVenta.map((z) => {
                       const isSelected = zonaKey === z.key;
                       return (
                         <tr
@@ -489,7 +528,7 @@ function EntradasPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {zonasVenta.map((z) => {
+                  {activeZonasVenta.map((z) => {
                     const isSelected = zonaKey === z.key;
                     return (
                       <tr
@@ -593,8 +632,8 @@ function EntradasPage() {
                 className="w-full border border-gris-textura mb-6"
               />
               <div className="border border-gris-textura">
-                {zonasVenta.slice(0, 1).map((z) => {
-                  const avail = funcion ? getZoneAvailability(liveReservations, funcion, z.key) : undefined;
+                {activeZonasVenta.slice(0, 1).map((z) => {
+                  const avail = funcion ? getZoneAvailability(liveReservations, funcion, z.key, z.seats) : undefined;
                   return (
                     <ZoneRow
                       key={z.key}
@@ -625,8 +664,8 @@ function EntradasPage() {
                     <span className="font-body text-blanco/40 text-[10px]">por función</span>
                   </div>
                 </div>
-                {zonasVenta.slice(1).map((z) => {
-                  const avail = funcion ? getZoneAvailability(liveReservations, funcion, z.key) : undefined;
+                {activeZonasVenta.slice(1).map((z) => {
+                  const avail = funcion ? getZoneAvailability(liveReservations, funcion, z.key, z.seats) : undefined;
                   return (
                     <ZoneRow
                       key={z.key}
@@ -646,8 +685,8 @@ function EntradasPage() {
               <div className="space-y-8">
                 <div>
                   <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-3">Función</p>
-                  <div className="flex gap-3">
-                    {funciones.map((f) => (
+                  <div className="flex flex-wrap gap-3">
+                    {activeFunciones.map((f) => (
                       <button
                         key={f}
                         type="button"
@@ -674,8 +713,8 @@ function EntradasPage() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    {zonasVenta.map((z) => {
-                      const avail = funcion ? getZoneAvailability(liveReservations, funcion, z.key) : undefined;
+                    {activeZonasVenta.map((z) => {
+                      const avail = funcion ? getZoneAvailability(liveReservations, funcion, z.key, z.seats) : undefined;
                       const isSoldOut = Boolean(avail?.isSoldOut);
                       return (
                         <button

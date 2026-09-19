@@ -24,6 +24,8 @@ import {
   PROMOS_CONFIG,
   METODOS_PAGO_CONFIG,
   buildWhatsAppReservationMessage,
+  getEffectiveTicketsCount,
+  onCRMUpdate,
 } from "@/lib/tickets-crm";
 
 export const Route = createFileRoute("/ticket/$id")({
@@ -54,24 +56,40 @@ function TicketPage() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  // Fallback a almacenamiento local si el servidor no devolvió el ticket
+  // Sincronización en vivo: si Harold edita el boleto en el CRM, se actualiza automáticamente
   useEffect(() => {
-    if (!ticket && typeof window !== "undefined") {
-      const localList = getStoredReservations();
-      const found = localList.find((r) => r.id === ticketId || r.ticketCode === ticketId);
-      if (found) setTicket(found);
+    const refreshTicket = async () => {
+      try {
+        const res = await fetchTicketByIdServer({ data: { id: ticketId } });
+        if (res.ok && res.ticket) {
+          setTicket(res.ticket);
+        }
+      } catch {
+        const localList = getStoredReservations();
+        const found = localList.find((r) => r.id === ticketId || r.ticketCode === ticketId);
+        if (found) setTicket(found);
+      }
+    };
+
+    if (!ticket) {
+      refreshTicket();
     }
-  }, [ticket, ticketId]);
+
+    const unsubscribe = onCRMUpdate(() => {
+      refreshTicket();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [ticketId, ticket]);
 
   const isCortesia =
     ticket?.etapaPromo === "cortesia" ||
     ticket?.zonaKey === "cortesia" ||
     Number(ticket?.totalPagado) === 0;
 
-  const effectiveTickets =
-    ticket?.etapaPromo === "twoXone"
-      ? Number(ticket?.cantidad || 0) * 2
-      : Number(ticket?.cantidad || 0);
+  const effectiveTickets = ticket ? getEffectiveTicketsCount(ticket) : 0;
 
   const meta = ticket ? ZONAS_CONFIG[ticket.zonaKey] || { label: "Zona General", color: "#fe0000", totalSeats: 60 } : null;
   const promoMeta = ticket ? PROMOS_CONFIG[ticket.etapaPromo] || { label: "Precio Regular" } : null;
