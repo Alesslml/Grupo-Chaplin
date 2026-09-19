@@ -2025,20 +2025,6 @@ function AdminEntradasPage() {
                       <span>{copiedId === lastRegistered.id ? "¡Link Copiado!" : "Copiar Link del Boleto"}</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const msg = buildWhatsAppReservationMessage(lastRegistered);
-                        navigator.clipboard.writeText(msg);
-                        setCopiedId("msg-" + lastRegistered.id);
-                        setTimeout(() => setCopiedId(null), 2500);
-                      }}
-                      className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5"
-                    >
-                      {copiedId === "msg-" + lastRegistered.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                      <span>{copiedId === "msg-" + lastRegistered.id ? "¡Mensaje Copiado!" : "Copiar Texto Completo"}</span>
-                    </button>
-
                     <a
                       href={`/ticket/${lastRegistered.ticketCode || lastRegistered.id}`}
                       target="_blank"
