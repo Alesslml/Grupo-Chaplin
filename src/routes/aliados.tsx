@@ -5,7 +5,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { PageLayout } from "@/components/chaplin/PageLayout";
 import { PageHero } from "@/components/chaplin/PageHero";
 import { Aliados as AliadosGrid } from "@/components/chaplin/Aliados";
-import ensemble from "@/assets/ensemble.jpg";
+import ensemble from "@/assets/prod-rey-leon.jpg";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import ensemble from "@/assets/ensemble.jpg";
+import ensemble from "@/assets/prod-heathers-card.jpg";
 
 const stats = [
   { value: 20, suffix: "+", label: "Producciones" },

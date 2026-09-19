@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "@tanstack/react-router";
-import heroPoster from "@/assets/hero-poster.jpg";
+import heroPoster from "@/assets/prod-heathers-hero.jpg";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);

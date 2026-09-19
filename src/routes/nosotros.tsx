@@ -5,7 +5,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { PageLayout } from "@/components/chaplin/PageLayout";
 import { PageHero } from "@/components/chaplin/PageHero";
 import { Harold } from "@/components/chaplin/Harold";
-import ensemble from "@/assets/ensemble.jpg";
+import ensemble from "@/assets/team-gala.jpg";
 import f1 from "@/assets/family-1.jpg";
 import f2 from "@/assets/family-2.jpg";
 import f3 from "@/assets/family-3.jpg";

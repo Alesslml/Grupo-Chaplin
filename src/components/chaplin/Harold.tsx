@@ -3,7 +3,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "@tanstack/react-router";
 import haroldImg from "@/assets/harold-lopez.png";
-import ensembleImg from "@/assets/ensemble.jpg";
+import ensembleImg from "@/assets/team-gala.jpg";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);

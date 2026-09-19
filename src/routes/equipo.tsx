@@ -4,7 +4,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { PageLayout } from "@/components/chaplin/PageLayout";
 import { PageHero } from "@/components/chaplin/PageHero";
-import ensemble from "@/assets/ensemble.jpg";
+import ensemble from "@/assets/team-gala.jpg";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);

@@ -4,7 +4,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import f1 from "@/assets/family-1.jpg";
 import f2 from "@/assets/family-2.jpg";
 import f3 from "@/assets/family-3.jpg";
-import ensemble from "@/assets/ensemble.jpg";
+import ensemble from "@/assets/team-gala.jpg";
 
 const testimonios = [
   { cita: "Llegué buscando un taller. Encontré una segunda familia y un escenario para toda la vida.", nombre: "Lucía Mendoza" },

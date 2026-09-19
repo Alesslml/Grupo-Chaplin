@@ -8,8 +8,16 @@ import musical from "@/assets/show-musical.jpg";
 import drama from "@/assets/show-drama.jpg";
 import family from "@/assets/show-family.jpg";
 import comedy from "@/assets/show-comedy.jpg";
-import king from "@/assets/show-king.jpg";
-import sing from "@/assets/show-sing.jpg";
+import jesucristoFlyer from "@/assets/jesucristo-rockstar-flyer.jpg";
+import heathersCard from "@/assets/prod-heathers-card.jpg";
+import sing from "@/assets/prod-sing.jpg";
+import grease from "@/assets/prod-grease.jpg";
+import reyLeon from "@/assets/prod-rey-leon.jpg";
+import granShowman from "@/assets/prod-gran-showman.jpg";
+import caminoOz from "@/assets/prod-camino-oz.jpg";
+import hercules from "@/assets/prod-hercules.jpg";
+import encanto from "@/assets/prod-encanto.jpg";
+import mammaMia from "@/assets/prod-mamma-mia.jpg";
 import { X, ChevronDown } from "lucide-react";
 
 if (typeof window !== "undefined") {
@@ -51,7 +59,7 @@ const obras: Obra[] = [
     title: "Heathers · El Musical",
     year: "2026",
     tipo: "Musical",
-    img: musical,
+    img: heathersCard,
     tag: "ESTRENO",
     autores: "Kevin Murphy y Laurence O'Keefe",
     director: "Harold López Segovia",
@@ -89,7 +97,7 @@ const obras: Obra[] = [
     title: "Jesucristo Rockstar",
     year: "2026",
     tipo: "Musical",
-    img: king,
+    img: jesucristoFlyer,
     tag: "PRÓXIMA",
     autores: "Andrew Lloyd Webber y Tim Rice",
     director: "Harold López Segovia",
@@ -113,7 +121,7 @@ const obras: Obra[] = [
     title: "GREASE, El musical",
     year: "2025",
     tipo: "Musical",
-    img: musical,
+    img: grease,
     autores: "Jim Jacobs y Warren Casey",
     director: "Yerson Luján",
     sinopsis:
@@ -123,7 +131,7 @@ const obras: Obra[] = [
     title: "El Rey León",
     year: "2025",
     tipo: "Musical",
-    img: king,
+    img: reyLeon,
     autores: "Elton John y Tim Rice",
     director: "Harold López Segovia",
     sinopsis:
@@ -148,7 +156,7 @@ const obras: Obra[] = [
     title: "Hércules",
     year: "2024",
     tipo: "Musical",
-    img: musical,
+    img: hercules,
     autores: "Alan Menken · Disney",
     director: "Carlos Espino",
     sinopsis:
@@ -158,7 +166,7 @@ const obras: Obra[] = [
     title: "El Gran Showman",
     year: "2024",
     tipo: "Musical",
-    img: sing,
+    img: granShowman,
     autores: "Benj Pasek y Justin Paul",
     director: "Harold López Segovia",
     sinopsis:
@@ -172,7 +180,7 @@ const obras: Obra[] = [
     title: "Camino a OZ",
     year: "2024",
     tipo: "Familiar",
-    img: family,
+    img: caminoOz,
     autores: "Basado en El Mago de Oz",
     director: "Daniela Lengua",
     sinopsis: "Sinopsis próximamente.",
@@ -203,7 +211,7 @@ const obras: Obra[] = [
     title: "Encanto",
     year: "2023",
     tipo: "Familiar",
-    img: family,
+    img: encanto,
     autores: "Lin-Manuel Miranda · Disney",
     director: "Harold López Segovia",
     sinopsis:
@@ -217,7 +225,7 @@ const obras: Obra[] = [
     title: "Mamma Mia",
     year: "2023",
     tipo: "Musical",
-    img: musical,
+    img: mammaMia,
     autores: "Catherine Johnson · Música: ABBA",
     director: "Harold López Segovia",
     sinopsis:
@@ -508,7 +516,7 @@ function ProduccionesPage() {
         eyebrow="Nuestro repertorio"
         title={<>CADA OBRA,<br />UN UNIVERSO.</>}
         subtitle="Más de veinte producciones llevadas al escenario desde 2019. Cada una, una promesa al público de Ica."
-        bg={musical}
+        bg={heathersCard}
       />
 
       <section className="bg-negro-suave grain py-28 lg:py-40">
