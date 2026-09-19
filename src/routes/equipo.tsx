@@ -25,12 +25,9 @@ export const Route = createFileRoute("/equipo")({
 });
 
 const equipo = [
-  { nombre: "Jonathan López", cargo: "Gerente general" },
   { nombre: "Harold López", cargo: "Director general" },
+  { nombre: "Jonathan López", cargo: "Gerente general" },
   { nombre: "Yenny Huamani", cargo: "Directora de producción" },
-  { nombre: "Daniela Lengua", cargo: "Directora de talleres" },
-  { nombre: "Francia Reategui", cargo: "Diseñadora gráfica" },
-  { nombre: "Gerson Juaze", cargo: "Realizador audiovisual" },
 ];
 
 function iniciales(nombre: string) {
