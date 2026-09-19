@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "@tanstack/react-router";
-import musical from "@/assets/show-musical.jpg";
+import jesucristoFlyer from "@/assets/jesucristo-rockstar-flyer.jpg";
 import drama from "@/assets/show-drama.jpg";
 import { Calendar } from "lucide-react";
 
@@ -15,7 +15,7 @@ const temporada = [
     title: "JESUCRISTO",
     subtitle: "Rockstar",
     fecha: "Domingo 18 de octubre · 4:00 pm y 7:00 pm",
-    img: musical,
+    img: jesucristoFlyer,
   },
   {
     title: "SHREK",
