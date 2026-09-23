@@ -122,6 +122,7 @@ function AdminEntradasPage() {
   const [editVendedor, setEditVendedor] = useState("");
   const [editEstado, setEditEstado] = useState<"confirmado" | "pendiente" | "anulado">("confirmado");
   const [editNotas, setEditNotas] = useState("");
+  const [editTicketCode, setEditTicketCode] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editSuccessMsg, setEditSuccessMsg] = useState<string | null>(null);
 
@@ -342,6 +343,7 @@ function AdminEntradasPage() {
     setEditVendedor(r.vendedor);
     setEditEstado(r.estado);
     setEditNotas(r.notas || "");
+    setEditTicketCode(r.ticketCode || "");
     setEditSuccessMsg(null);
   };
 
@@ -383,6 +385,7 @@ function AdminEntradasPage() {
         vendedor: editVendedor.trim() || (isCortesiaEntry ? "Dirección" : "Boletería"),
         estado: editEstado,
         notas: editNotas.trim() || undefined,
+        ticketCode: editTicketCode.trim() || undefined,
       });
 
       if (updated) {
@@ -3679,6 +3682,17 @@ function AdminEntradasPage() {
                       <option value="pendiente">Pendiente</option>
                       <option value="anulado">Anulado</option>
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Código de Ticket / N.° de serie</label>
+                    <input
+                      type="text"
+                      value={editTicketCode}
+                      onChange={(e) => setEditTicketCode(e.target.value.toUpperCase())}
+                      placeholder="Ej: JR-4PM-SUP-001"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                    />
                   </div>
                 </div>
 

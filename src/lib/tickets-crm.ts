@@ -572,7 +572,8 @@ export const updateAdminReservationServer = createServerFn({ method: "POST" })
         metodo_pago = coalesce(${r.metodoPago !== undefined ? r.metodoPago : null}, metodo_pago),
         vendedor = coalesce(${r.vendedor !== undefined ? r.vendedor : null}, vendedor),
         estado = coalesce(${r.estado !== undefined ? r.estado : null}, estado),
-        notas = ${r.notas !== undefined ? r.notas : sql`notas`}
+        notas = ${r.notas !== undefined ? r.notas : sql`notas`},
+        ticket_code = coalesce(${r.ticketCode !== undefined ? r.ticketCode : null}, ticket_code)
       where id = ${r.id} or ticket_code = ${r.id}
       returning *
     `) as any[];
