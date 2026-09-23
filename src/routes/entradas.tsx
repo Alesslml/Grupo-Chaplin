@@ -151,8 +151,21 @@ const tiers: Tier[] = [
   },
 ];
 
+// La fecha se calcula en horario de Perú (America/Lima, UTC-5), no en UTC:
+// con el servidor en UTC, cualquier hora desde las 7pm hora Peru en adelante
+// ya cuenta como "el día siguiente" en UTC, lo que adelantaba la promo antes
+// de tiempo.
+function getPeruISODate(today: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Lima",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(today);
+}
+
 function getActiveTier(today: Date): Tier {
-  const iso = today.toISOString().slice(0, 10);
+  const iso = getPeruISODate(today);
   const found = tiers.find((t) => iso >= t.from && iso <= t.to);
   if (found) return found;
   return iso < tiers[0].from ? tiers[0] : tiers[tiers.length - 1];
