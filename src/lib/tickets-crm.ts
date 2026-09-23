@@ -317,7 +317,7 @@ async function cachedPublicQuery<T>(name: string, loader: () => Promise<{ value:
 }
 
 // 2. Consulta de aforo en vivo para la ticketera pública y el CRM (Disponible para todos)
-export const fetchPublicAvailabilityServer = createServerFn({ method: "POST" }).handler(async () =>
+export const fetchPublicAvailabilityV2Server = createServerFn({ method: "POST" }).handler(async () =>
   cachedPublicQuery("fetchPublicAvailability", async () => {
     await ensureTicketsSchema();
     const sql = getSql();
@@ -673,7 +673,7 @@ export const updateAdminReservationServer = createServerFn({ method: "POST" })
   });
 
 // 9. Consulta pública de la configuración activa del evento (precios, horarios, promos, aforo)
-export const fetchPublicEventSettingsServer = createServerFn({ method: "POST" }).handler(async () =>
+export const fetchPublicEventSettingsV2Server = createServerFn({ method: "POST" }).handler(async () =>
   cachedPublicQuery("fetchPublicEventSettings", async () => {
     try {
       await ensureEventSettingsSchema();
@@ -1046,7 +1046,7 @@ export async function saveEventSettings(settings: EventSettings): Promise<boolea
 
 export async function syncEventSettingsWithNeon(): Promise<EventSettings> {
   try {
-    const res = await fetchPublicEventSettingsServer();
+    const res = await fetchPublicEventSettingsV2Server();
     if (res && res.ok && res.settings) {
       saveStoredEventSettingsLocally(res.settings);
       return res.settings;

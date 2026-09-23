@@ -7,8 +7,8 @@ import {
   onCRMUpdate,
   startVisiblePolling,
   getActivePromoKey,
-  fetchPublicAvailabilityServer,
-  fetchPublicEventSettingsServer,
+  fetchPublicAvailabilityV2Server,
+  fetchPublicEventSettingsV2Server,
   getStoredEventSettings,
   saveStoredEventSettingsLocally,
   type TicketReservation,
@@ -207,7 +207,7 @@ function EntradasPage() {
 
   const syncNeonStock = async () => {
     try {
-      const res = await fetchPublicAvailabilityServer();
+      const res = await fetchPublicAvailabilityV2Server();
       if (res && res.ok && res.soldMap) {
         setNeonSoldMap(res.soldMap);
       }
@@ -218,7 +218,7 @@ function EntradasPage() {
 
   const syncNeonSettings = async () => {
     try {
-      const res = await fetchPublicEventSettingsServer();
+      const res = await fetchPublicEventSettingsV2Server();
       if (res && res.ok && res.settings) {
         setEventSettings(res.settings);
         saveStoredEventSettingsLocally(res.settings);
