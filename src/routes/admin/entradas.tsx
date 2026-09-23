@@ -58,6 +58,7 @@ import {
   isHaroldAuthenticated,
   onCRMUpdate,
   startVisiblePolling,
+  getActivePromoKey,
   getZoneAvailability,
   getEffectiveTicketsCount,
   getCRMStats,
@@ -106,6 +107,7 @@ function AdminEntradasPage() {
 
   // Configuración en vivo del evento (Precios, Promos, Horarios, Aforo)
   const [eventSettings, setEventSettings] = useState<EventSettings>(() => getStoredEventSettings());
+  const activePromoKey = getActivePromoKey(eventSettings.promos);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState<string | null>(null);
 
@@ -117,7 +119,7 @@ function AdminEntradasPage() {
   const [editFuncion, setEditFuncion] = useState("");
   const [editZona, setEditZona] = useState("");
   const [editCantidad, setEditCantidad] = useState(1);
-  const [editPromo, setEditPromo] = useState("twoXone");
+  const [editPromo, setEditPromo] = useState<string>(() => getActivePromoKey());
   const [editTotal, setEditTotal] = useState<number>(80);
   const [editMetodo, setEditMetodo] = useState<MetodoPago>("yape");
   const [editVendedor, setEditVendedor] = useState("");
@@ -161,7 +163,7 @@ function AdminEntradasPage() {
   // La zona inicia en null para que RECIÉN al seleccionarla se muestre el aforo disponible
   const [formZona, setFormZona] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState(1);
-  const [promo, setPromo] = useState<string>("twoXone");
+  const [promo, setPromo] = useState<string>(() => getActivePromoKey());
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("yape");
   const [vendedor, setVendedor] = useState("");
   const [notas, setNotas] = useState("");
@@ -512,7 +514,7 @@ function AdminEntradasPage() {
       setVendedor("");
       setNotas("");
       setFormZona(null); // Resetea la zona para el siguiente registro
-      setPromo("twoXone");
+      setPromo(activePromoKey);
       setMetodoPago("yape");
       setTotalManual(null);
       setReservations(getStoredReservations());
@@ -1444,10 +1446,10 @@ function AdminEntradasPage() {
                       className="w-full bg-white border border-slate-300 rounded-md px-2.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600"
                     >
                       <option value="todas">Promos (Todas)</option>
-                      <option value="twoXone">Preventa 2x1</option>
-                      <option value="threeXtwo">Preventa 3x2</option>
-                      <option value="twentyPct">Preventa 20%</option>
-                      <option value="regular">Precio Regular</option>
+                      <option value="twoXone">Preventa 2x1{activePromoKey === "twoXone" ? " (Hoy)" : ""}</option>
+                      <option value="threeXtwo">Preventa 3x2{activePromoKey === "threeXtwo" ? " (Hoy)" : ""}</option>
+                      <option value="twentyPct">Preventa 20%{activePromoKey === "twentyPct" ? " (Hoy)" : ""}</option>
+                      <option value="regular">Precio Regular{activePromoKey === "regular" ? " (Hoy)" : ""}</option>
                       <option value="cortesia">🎁 Cortesía</option>
                     </select>
                   </div>
@@ -2128,7 +2130,7 @@ function AdminEntradasPage() {
                               setMetodoPago("cortesia");
                               setTotalManual(0);
                             } else if (promo === "cortesia") {
-                              setPromo("twoXone");
+                              setPromo(activePromoKey);
                               setMetodoPago("yape");
                               setTotalManual(null);
                             }
@@ -2280,10 +2282,10 @@ function AdminEntradasPage() {
                         }}
                         className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 focus:outline-hidden focus:border-red-600 font-medium"
                       >
-                        <option value="twoXone">Preventa 2x1 (Hoy)</option>
-                        <option value="threeXtwo">Preventa 3x2</option>
-                        <option value="twentyPct">Preventa 20%</option>
-                        <option value="regular">Precio Regular</option>
+                        <option value="twoXone">Preventa 2x1{activePromoKey === "twoXone" ? " (Hoy)" : ""}</option>
+                        <option value="threeXtwo">Preventa 3x2{activePromoKey === "threeXtwo" ? " (Hoy)" : ""}</option>
+                        <option value="twentyPct">Preventa 20%{activePromoKey === "twentyPct" ? " (Hoy)" : ""}</option>
+                        <option value="regular">Precio Regular{activePromoKey === "regular" ? " (Hoy)" : ""}</option>
                         <option value="cortesia">🎁 Pase de Cortesía (Costo S/ 0.00)</option>
                       </select>
                     )}
@@ -3573,8 +3575,8 @@ function AdminEntradasPage() {
                       onChange={(e) => setEditPromo(e.target.value)}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
                     >
-                      <option value="twoXone">Preventa 2x1 (Paga 1, entran 2)</option>
-                      <option value="threeXtwo">Preventa 3x2 (Paga 2, entran 3)</option>
+                      <option value="twoXone">Preventa 2x1 (Paga 1, entran 2){activePromoKey === "twoXone" ? " · Hoy" : ""}</option>
+                      <option value="threeXtwo">Preventa 3x2 (Paga 2, entran 3){activePromoKey === "threeXtwo" ? " · Hoy" : ""}</option>
                       <option value="twentyPct">Preventa -20% Desc</option>
                       <option value="regular">Tarifa Regular</option>
                       <option value="cortesia">Pase de Cortesía (S/ 0)</option>

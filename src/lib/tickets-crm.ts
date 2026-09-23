@@ -991,6 +991,29 @@ export function getStoredEventSettings(): EventSettings {
   }
 }
 
+// Fecha de hoy en horario de Perú (America/Lima), formato YYYY-MM-DD.
+export function getPeruToday(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Lima",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+// Promoción vigente hoy según las fechas configuradas (misma regla que usa la
+// página pública de entradas y el CRM, para que siempre coincidan).
+export function getActivePromoKey(
+  promos: EventPromoSetting[] = getStoredEventSettings().promos,
+  now: Date = new Date()
+): string {
+  const today = getPeruToday(now);
+  const found = promos.find((p) => today >= p.from && today <= p.to);
+  if (found) return found.key;
+  if (promos.length === 0) return "regular";
+  return today < promos[0].from ? promos[0].key : promos[promos.length - 1].key;
+}
+
 export function saveStoredEventSettingsLocally(settings: EventSettings) {
   if (typeof window !== "undefined") {
     const next = JSON.stringify(settings);

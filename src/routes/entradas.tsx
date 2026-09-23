@@ -6,6 +6,7 @@ import {
   getZoneAvailability,
   onCRMUpdate,
   startVisiblePolling,
+  getActivePromoKey,
   fetchPublicAvailabilityServer,
   fetchPublicEventSettingsServer,
   getStoredEventSettings,
@@ -173,8 +174,12 @@ function getActiveTier(today: Date): Tier {
 }
 
 function EntradasPage() {
-  const activeTier = useMemo(() => getActiveTier(new Date()), []);
   const [eventSettings, setEventSettings] = useState<EventSettings>(getStoredEventSettings);
+  // Misma regla que el CRM: la promo vigente sale de las fechas configuradas
+  const activeTier = useMemo(
+    () => tiers.find((t) => t.key === getActivePromoKey(eventSettings.promos)) ?? getActiveTier(new Date()),
+    [eventSettings.promos]
+  );
   const [funcion, setFuncion] = useState<string | null>(null);
   const [zonaKey, setZonaKey] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState(1);
