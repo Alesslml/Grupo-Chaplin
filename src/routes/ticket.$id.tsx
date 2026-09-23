@@ -71,18 +71,20 @@ function TicketPage() {
       }
     };
 
-    if (!ticket) {
+    if (!initialTicket) {
       refreshTicket();
     }
 
+    // Solo relee del almacenamiento local (sin nueva llamada al servidor)
     const unsubscribe = onCRMUpdate(() => {
-      refreshTicket();
+      const found = getStoredReservations().find((r) => r.id === ticketId || r.ticketCode === ticketId);
+      if (found) setTicket(found);
     });
 
     return () => {
       unsubscribe();
     };
-  }, [ticketId, ticket]);
+  }, [ticketId]);
 
   const isCortesia =
     ticket?.etapaPromo === "cortesia" ||

@@ -253,37 +253,102 @@ export const verifyHaroldLoginServer = createServerFn({ method: "POST" })
     return { ok, user: ok ? "Harold López" : null };
   });
 
-// 2. Consulta de aforo en vivo para la ticketera pública y el CRM (Disponible para todos)
-export const fetchPublicAvailabilityServer = createServerFn({ method: "POST" }).handler(async () => {
-  await ensureTicketsSchema();
-  const sql = getSql();
-  const rows = (await sql`
-    select 
-      funcion, 
-      zona_key, 
-      sum(case when etapa_promo = 'twoXone' then cantidad * 2 else cantidad end)::int as sold
-    from ticket_reservations
-    where estado != 'anulado'
-    group by funcion, zona_key
-  `) as any[];
+// Caché corta en memoria (por instancia) para las consultas públicas: aunque un
+// cliente defectuoso llame muchas veces, Neon se consulta como máximo una vez
+// cada PUBLIC_CACHE_TTL_MS por instancia. Además registra (sin datos personales)
+// nombre, duración, filas y si fue servido desde caché.
+const PUBLIC_CACHE_TTL_MS = 5000;
+const publicCache = new Map<string, { at: number; value: unknown }>();
+const publicInflight = new Map<string, Promise<unknown>>();
 
-  const soldMap: Record<string, Record<string, number>> = {
-    "4:00 pm": { superstar: 0, cortesia: 0, getsemani: 0, hosanna: 0, pueblo: 0 },
-    "7:00 pm": { superstar: 0, cortesia: 0, getsemani: 0, hosanna: 0, pueblo: 0 },
-  };
+// Freno por IP: un cliente que supere RATE_MAX llamadas por minuto recibe la
+// respuesta con un retraso, lo que frena cualquier bucle secuencial del
+// navegador (por ejemplo pestañas abiertas con una versión antigua del sitio).
+const RATE_WINDOW_MS = 60000;
+const RATE_MAX = 60;
+const RATE_DELAY_MS = 4000;
+const rateBuckets = new Map<string, { start: number; count: number }>();
 
-  for (const row of rows) {
-    const f = String(row.funcion);
-    const z = String(row.zona_key);
-    const count = Number(row.sold || 0);
-    if (!soldMap[f]) {
-      soldMap[f] = {};
-    }
-    soldMap[f][z] = count;
+async function throttleAbusiveClient(name: string) {
+  let ip = "unknown";
+  try {
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    ip = (getRequestHeader("x-forwarded-for") || "unknown").split(",")[0].trim();
+  } catch {
+    return;
   }
+  const now = Date.now();
+  const key = ip;
+  const b = rateBuckets.get(key);
+  if (!b || now - b.start > RATE_WINDOW_MS) {
+    rateBuckets.set(key, { start: now, count: 1 });
+    if (rateBuckets.size > 5000) rateBuckets.clear();
+    return;
+  }
+  b.count++;
+  if (b.count > RATE_MAX) {
+    console.log(`[perf] ${name} rate-limited count=${b.count}`);
+    await new Promise((r) => setTimeout(r, RATE_DELAY_MS));
+  }
+}
 
-  return { ok: true as const, soldMap };
-});
+async function cachedPublicQuery<T>(name: string, loader: () => Promise<{ value: T; rows: number }>): Promise<T> {
+  await throttleAbusiveClient(name);
+  const hit = publicCache.get(name);
+  if (hit && Date.now() - hit.at < PUBLIC_CACHE_TTL_MS) {
+    console.log(`[perf] ${name} cache=hit`);
+    return hit.value as T;
+  }
+  const pending = publicInflight.get(name);
+  if (pending) {
+    console.log(`[perf] ${name} cache=dedupe`);
+    return pending as Promise<T>;
+  }
+  const started = Date.now();
+  const p = loader()
+    .then(({ value, rows }) => {
+      publicCache.set(name, { at: Date.now(), value });
+      console.log(`[perf] ${name} cache=miss ms=${Date.now() - started} rows=${rows}`);
+      return value;
+    })
+    .finally(() => publicInflight.delete(name));
+  publicInflight.set(name, p);
+  return p;
+}
+
+// 2. Consulta de aforo en vivo para la ticketera pública y el CRM (Disponible para todos)
+export const fetchPublicAvailabilityServer = createServerFn({ method: "POST" }).handler(async () =>
+  cachedPublicQuery("fetchPublicAvailability", async () => {
+    await ensureTicketsSchema();
+    const sql = getSql();
+    const rows = (await sql`
+      select 
+        funcion, 
+        zona_key, 
+        sum(case when etapa_promo = 'twoXone' then cantidad * 2 else cantidad end)::int as sold
+      from ticket_reservations
+      where estado != 'anulado'
+      group by funcion, zona_key
+    `) as any[];
+
+    const soldMap: Record<string, Record<string, number>> = {
+      "4:00 pm": { superstar: 0, cortesia: 0, getsemani: 0, hosanna: 0, pueblo: 0 },
+      "7:00 pm": { superstar: 0, cortesia: 0, getsemani: 0, hosanna: 0, pueblo: 0 },
+    };
+
+    for (const row of rows) {
+      const f = String(row.funcion);
+      const z = String(row.zona_key);
+      const count = Number(row.sold || 0);
+      if (!soldMap[f]) {
+        soldMap[f] = {};
+      }
+      soldMap[f][z] = count;
+    }
+
+    return { value: { ok: true as const, soldMap }, rows: rows.length };
+  })
+);
 
 // 3. Obtener listado completo de compras en Neon (Requiere login de Harold)
 export const fetchAdminReservationsServer = createServerFn({ method: "POST" })
@@ -608,22 +673,24 @@ export const updateAdminReservationServer = createServerFn({ method: "POST" })
   });
 
 // 9. Consulta pública de la configuración activa del evento (precios, horarios, promos, aforo)
-export const fetchPublicEventSettingsServer = createServerFn({ method: "POST" }).handler(async () => {
-  try {
-    await ensureEventSettingsSchema();
-    const sql = getSql();
-    const rows = (await sql`
-      select value from event_settings where key = 'jesucristo_rockstar_settings' limit 1
-    `) as any[];
+export const fetchPublicEventSettingsServer = createServerFn({ method: "POST" }).handler(async () =>
+  cachedPublicQuery("fetchPublicEventSettings", async () => {
+    try {
+      await ensureEventSettingsSchema();
+      const sql = getSql();
+      const rows = (await sql`
+        select value from event_settings where key = 'jesucristo_rockstar_settings' limit 1
+      `) as any[];
 
-    if (rows && rows.length > 0 && rows[0]?.value) {
-      return { ok: true as const, settings: rows[0].value as EventSettings };
+      if (rows && rows.length > 0 && rows[0]?.value) {
+        return { value: { ok: true as const, settings: rows[0].value as EventSettings }, rows: rows.length };
+      }
+    } catch (err) {
+      console.error("Error fetching event settings from Neon:", err);
     }
-  } catch (err) {
-    console.error("Error fetching event settings from Neon:", err);
-  }
-  return { ok: true as const, settings: DEFAULT_EVENT_SETTINGS };
-});
+    return { value: { ok: true as const, settings: DEFAULT_EVENT_SETTINGS }, rows: 0 };
+  })
+);
 
 // 10. Guardar configuración activa del evento en Neon (solo Harold)
 export const saveAdminEventSettingsServer = createServerFn({ method: "POST" })
@@ -645,6 +712,7 @@ export const saveAdminEventSettingsServer = createServerFn({ method: "POST" })
       on conflict (key) do update
       set value = excluded.value, updated_at = now()
     `;
+    publicCache.delete("fetchPublicEventSettings");
     return { ok: true as const, settings: data.settings };
   });
 
@@ -692,11 +760,50 @@ export function getStoredReservations(): TicketReservation[] {
   }
 }
 
+// Solo emite el evento si el contenido realmente cambió. Si emitiera siempre,
+// cualquier listener que vuelva a sincronizar con el servidor generaba un bucle
+// infinito de llamadas (sync -> guardar -> evento -> sync ...).
 export function saveStoredReservationsLocally(reservations: TicketReservation[]) {
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(reservations));
+    const next = JSON.stringify(reservations);
+    if (localStorage.getItem(STORAGE_KEY) === next) return;
+    localStorage.setItem(STORAGE_KEY, next);
     window.dispatchEvent(new CustomEvent(EVENT_NAME));
   }
+}
+
+/**
+ * Polling seguro: no corre con la pestaña oculta, no solapa ejecuciones,
+ * respeta un intervalo mínimo y se limpia al desmontar. Al volver a la
+ * pestaña refresca una vez (con throttle).
+ */
+export function startVisiblePolling(task: () => Promise<unknown> | void, intervalMs: number): () => void {
+  if (typeof window === "undefined") return () => {};
+  const minGap = Math.max(intervalMs, 15000);
+  let running = false;
+  let lastRun = 0;
+  const run = async () => {
+    if (running || document.hidden) return;
+    if (Date.now() - lastRun < minGap - 1000) return;
+    running = true;
+    lastRun = Date.now();
+    try {
+      await task();
+    } catch {
+      // se ignora: el siguiente ciclo reintenta
+    } finally {
+      running = false;
+    }
+  };
+  const timer = setInterval(run, minGap);
+  const onVisible = () => {
+    if (!document.hidden) run();
+  };
+  document.addEventListener("visibilitychange", onVisible);
+  return () => {
+    clearInterval(timer);
+    document.removeEventListener("visibilitychange", onVisible);
+  };
 }
 
 export function onCRMUpdate(callback: () => void): () => void {
@@ -886,7 +993,9 @@ export function getStoredEventSettings(): EventSettings {
 
 export function saveStoredEventSettingsLocally(settings: EventSettings) {
   if (typeof window !== "undefined") {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    const next = JSON.stringify(settings);
+    if (localStorage.getItem(SETTINGS_STORAGE_KEY) === next) return;
+    localStorage.setItem(SETTINGS_STORAGE_KEY, next);
     window.dispatchEvent(new CustomEvent(EVENT_NAME));
   }
 }

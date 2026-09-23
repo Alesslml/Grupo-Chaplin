@@ -57,6 +57,7 @@ import {
   setStoredHaroldAuth,
   isHaroldAuthenticated,
   onCRMUpdate,
+  startVisiblePolling,
   getZoneAvailability,
   getEffectiveTicketsCount,
   getCRMStats,
@@ -204,21 +205,19 @@ function AdminEntradasPage() {
     }
 
     const unsubscribe = onCRMUpdate(reload);
-    // Auto sync cada 15 segundos para mantener aforo en vivo
-    const interval = setInterval(() => {
-      syncEventSettingsWithNeon().then((s) => {
-        if (s) setEventSettings(s);
-      });
+    // Auto sync cada 30s, solo con la pestaña visible y sin solapamiento
+    const stopPolling = startVisiblePolling(async () => {
+      const s = await syncEventSettingsWithNeon();
+      if (s) setEventSettings(s);
       if (getStoredHaroldAuth()) {
-        syncReservationsWithNeon().then((res) => {
-          if (res) setReservations(res);
-        });
+        const res = await syncReservationsWithNeon();
+        if (res) setReservations(res);
       }
-    }, 15000);
+    }, 30000);
 
     return () => {
       unsubscribe();
-      clearInterval(interval);
+      stopPolling();
     };
   }, [auth]);
 

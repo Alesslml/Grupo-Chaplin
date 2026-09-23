@@ -5,6 +5,7 @@ import {
   getStoredReservations,
   getZoneAvailability,
   onCRMUpdate,
+  startVisiblePolling,
   fetchPublicAvailabilityServer,
   fetchPublicEventSettingsServer,
   getStoredEventSettings,
@@ -227,20 +228,22 @@ function EntradasPage() {
     setEventSettings(getStoredEventSettings());
     syncNeonStock();
     syncNeonSettings();
-    const interval = setInterval(() => {
-      syncNeonStock();
-      syncNeonSettings();
-    }, 10000); // Polling cada 10 segundos
 
+    // Polling cada 30s, solo con la pestaña visible, sin solapamiento
+    const stopPolling = startVisiblePolling(
+      () => Promise.all([syncNeonStock(), syncNeonSettings()]),
+      30000
+    );
+
+    // El listener SOLO relee almacenamiento local: nunca vuelve a llamar al
+    // servidor (antes hacía sync -> guardar -> evento -> sync en bucle).
     const unsubscribe = onCRMUpdate(() => {
       setCrmReservations(getStoredReservations());
       setEventSettings(getStoredEventSettings());
-      syncNeonStock();
-      syncNeonSettings();
     });
 
     return () => {
-      clearInterval(interval);
+      stopPolling();
       unsubscribe();
     };
   }, []);
