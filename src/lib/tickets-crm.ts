@@ -1091,12 +1091,18 @@ export interface ZoneAvailability {
 
 /**
  * Calcula el número efectivo de entradas físicas entregadas / asientos descontados del aforo.
- * REGLA ESPECIAL: Únicamente en la promoción 2x1 ('twoXone'), cada unidad comprada entrega y descuenta 2 asientos.
- * En todas las demás promociones (3x2, 20%, regular, cortesía), el conteo es 1 a 1.
+ * REGLA: "cantidad" siempre es el número de PROMOCIONES compradas (igual que en 2x1), y cada
+ * promoción entrega/descuenta `entradasPorPrecio` asientos según la etapa (2 en 2x1, 3 en 3x2,
+ * 1 en 20% y precio regular). Ese multiplicador sale de la configuración del evento para que
+ * coincida siempre con la página pública y con lo que se cobra.
  */
-export function getEffectiveTicketsCount(r: { cantidad: number; etapaPromo?: string }): number {
+export function getEffectiveTicketsCount(
+  r: { cantidad: number; etapaPromo?: string },
+  promos: EventPromoSetting[] = getStoredEventSettings().promos
+): number {
   const qty = Number(r.cantidad || 0);
-  return r.etapaPromo === "twoXone" ? qty * 2 : qty;
+  const entradasPorPrecio = promos.find((p) => p.key === r.etapaPromo)?.entradasPorPrecio ?? 1;
+  return qty * entradasPorPrecio;
 }
 
 export function getZoneAvailability(

@@ -309,20 +309,21 @@ function AdminEntradasPage() {
   // Detección de Pase de Cortesía activo en el formulario
   const isCortesiaSelected = formZona === "cortesia" || promo === "cortesia";
 
-  // Precio sugerido en el formulario
+  // Cuántos asientos entrega cada unidad de "cantidad" según la etapa elegida
+  // (2 en 2x1, 3 en 3x2, 1 en 20% y precio regular), tomado de la configuración
+  // del evento para que siempre coincida con la página pública.
+  const activePromoSettingForm = eventSettings.promos.find((p) => p.key === promo);
+  const entradasPorPromoForm = activePromoSettingForm?.entradasPorPrecio ?? 1;
+  const promoTagForm = activePromoSettingForm?.tag || activePromoSettingForm?.label || promo;
+
+  // Precio sugerido en el formulario. "Cantidad" es siempre el número de
+  // PROMOCIONES compradas (igual en 2x1 y 3x2): cada unidad cuesta el precio
+  // base listado para esa etapa, sin importar cuántos asientos entregue.
   const precioSugerido = useMemo(() => {
     if (!formZona) return 0;
     if (formZona === "cortesia" || promo === "cortesia") return 0;
     const z = eventSettings.zonas.find((item) => item.key === formZona);
     const base = z?.prices[promo as keyof EventZoneSetting["prices"]] ?? (PRECIOS_POR_DEFECTO[formZona]?.[promo] || 80);
-    if (promo === "twoXone") {
-      // En Preventa 2x1, cada unidad comprada entrega 2 entradas por el precio base listado
-      return cantidad * base;
-    }
-    if (promo === "threeXtwo") {
-      const grupos = Math.ceil(cantidad / 3);
-      return grupos * base;
-    }
     return cantidad * base;
   }, [formZona, promo, cantidad, eventSettings.zonas]);
 
@@ -348,17 +349,11 @@ function AdminEntradasPage() {
     setEditSuccessMsg(null);
   };
 
+  // Igual que precioSugerido: "cantidad" es el número de promociones compradas.
   const suggestedEditPrice = useMemo(() => {
     if (!editZona || editZona === "cortesia" || editPromo === "cortesia") return 0;
     const z = eventSettings.zonas.find((item) => item.key === editZona);
     const base = z?.prices[editPromo as keyof EventZoneSetting["prices"]] ?? (PRECIOS_POR_DEFECTO[editZona]?.[editPromo] || 80);
-    if (editPromo === "twoXone") {
-      return editCantidad * base;
-    }
-    if (editPromo === "threeXtwo") {
-      const grupos = Math.ceil(editCantidad / 3);
-      return grupos * base;
-    }
     return editCantidad * base;
   }, [editZona, editPromo, editCantidad, eventSettings.zonas]);
 
@@ -2231,27 +2226,27 @@ function AdminEntradasPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs uppercase tracking-wider text-slate-700 font-bold mb-1.5">
-                      {promo === "twoXone" ? "Cantidad de Promos 2x1 Compradas *" : "Número de Entradas a Descontar *"}
+                      {entradasPorPromoForm > 1 ? `Cantidad de Promos ${promoTagForm} Compradas *` : "Número de Entradas a Descontar *"}
                     </label>
                     <input
                       type="number"
                       min="1"
-                      max={formZoneAvail ? (promo === "twoXone" ? Math.max(1, Math.floor(formZoneAvail.availableSeats / 2)) : formZoneAvail.availableSeats) : 50}
+                      max={formZoneAvail ? Math.max(1, Math.floor(formZoneAvail.availableSeats / entradasPorPromoForm)) : 50}
                       value={cantidad}
                       onChange={(e) => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
                       className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 font-bold focus:outline-hidden focus:border-red-600 focus:ring-1 focus:ring-red-600"
                     />
 
-                    {promo === "twoXone" && (
+                    {entradasPorPromoForm > 1 && (
                       <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
                         <div className="font-bold flex items-center gap-1.5 text-amber-800">
                           <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                          <span>Promo 2x1: {cantidad} paquete(s) = {cantidad * 2} asientos a entregar</span>
+                          <span>Promo {promoTagForm}: {cantidad} paquete(s) = {cantidad * entradasPorPromoForm} asientos a entregar</span>
                         </div>
                         <p className="mt-1 text-[11px] text-amber-800">
-                          📌 Si el cliente pagó por <strong>2 asientos</strong>, coloca <strong>Cantidad = 1</strong> (1 promo 2x1).
+                          📌 Si el cliente pagó por <strong>{entradasPorPromoForm} asientos</strong>, coloca <strong>Cantidad = 1</strong> (1 promo {promoTagForm}).
                           <br />
-                          📌 Si pagó por <strong>4 asientos</strong>, coloca <strong>Cantidad = 2</strong> (2 promos 2x1).
+                          📌 Si pagó por <strong>{entradasPorPromoForm * 2} asientos</strong>, coloca <strong>Cantidad = 2</strong> (2 promos {promoTagForm}).
                         </p>
                       </div>
                     )}
@@ -2408,8 +2403,8 @@ function AdminEntradasPage() {
                       : isCortesiaSelected
                       ? `Confirmar Pase de Cortesía (${cantidad} Asientos · S/ 0.00)`
                       : formZona
-                      ? promo === "twoXone"
-                        ? `Confirmar Venta 2x1 y Descontar ${cantidad * 2} Asientos (${cantidad} promo = ${cantidad * 2} entradas)`
+                      ? entradasPorPromoForm > 1
+                        ? `Confirmar Venta ${promoTagForm} y Descontar ${cantidad * entradasPorPromoForm} Asientos (${cantidad} promo = ${cantidad * entradasPorPromoForm} entradas)`
                         : `Confirmar Venta y Descontar ${cantidad} Asientos (${ZONAS_CONFIG[formZona]?.label})`
                       : "Selecciona una zona arriba para continuar"}
                   </span>
@@ -2665,7 +2660,7 @@ function AdminEntradasPage() {
                     <div>
                       <span className="text-red-300 font-bold block uppercase text-[10px]">Función & Asistentes</span>
                       <span className="text-white font-bold text-xs sm:text-sm block mt-0.5">
-                        {scanAlert.ticket?.funcion} ({scanAlert.ticket ? getEffectiveTicketsCount(scanAlert.ticket) : 0} pers.{scanAlert.ticket?.etapaPromo === "twoXone" ? " · 2x1" : ""}) · {ZONAS_CONFIG[scanAlert.ticket?.zonaKey || ""]?.label || scanAlert.ticket?.zonaKey}
+                        {scanAlert.ticket?.funcion} ({scanAlert.ticket ? getEffectiveTicketsCount(scanAlert.ticket) : 0} pers.{scanAlert.ticket && (scanAlert.ticket.etapaPromo === "twoXone" || scanAlert.ticket.etapaPromo === "threeXtwo") ? ` · ${PROMOS_CONFIG[scanAlert.ticket.etapaPromo]?.tag}` : ""}) · {ZONAS_CONFIG[scanAlert.ticket?.zonaKey || ""]?.label || scanAlert.ticket?.zonaKey}
                       </span>
                     </div>
                   </div>
@@ -2781,7 +2776,7 @@ function AdminEntradasPage() {
                         ¡Ingreso Registrado con Éxito!
                       </div>
                       <p className="text-xs sm:text-sm text-emerald-200 mt-0.5">
-                        {scannedTicket.clienteNombre} · {getEffectiveTicketsCount(scannedTicket)} persona(s) {scannedTicket.etapaPromo === "twoXone" ? "(promo 2x1) " : ""}en {ZONAS_CONFIG[scannedTicket.zonaKey]?.label} ({scannedTicket.funcion}).
+                        {scannedTicket.clienteNombre} · {getEffectiveTicketsCount(scannedTicket)} persona(s) {(scannedTicket.etapaPromo === "twoXone" || scannedTicket.etapaPromo === "threeXtwo") ? `(promo ${PROMOS_CONFIG[scannedTicket.etapaPromo]?.tag}) ` : ""}en {ZONAS_CONFIG[scannedTicket.zonaKey]?.label} ({scannedTicket.funcion}).
                       </p>
                     </div>
                   </div>
@@ -2963,9 +2958,9 @@ function AdminEntradasPage() {
                             <span className="font-bold text-slate-900 text-sm block mt-0.5">
                               {effectiveCount} {effectiveCount === 1 ? "persona" : "personas"}
                             </span>
-                            {r.etapaPromo === "twoXone" && (
+                            {(r.etapaPromo === "twoXone" || r.etapaPromo === "threeXtwo") && (
                               <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-block mt-0.5">
-                                Promo 2x1 ({r.cantidad})
+                                Promo {PROMOS_CONFIG[r.etapaPromo]?.tag || r.etapaPromo} ({r.cantidad})
                               </span>
                             )}
                           </div>
@@ -3080,9 +3075,9 @@ function AdminEntradasPage() {
                               <div className="inline-block bg-slate-100 border border-slate-200 px-2.5 py-1 font-bold text-slate-800 rounded-md text-xs">
                                 {effectiveCount} pers.
                               </div>
-                              {r.etapaPromo === "twoXone" && (
+                              {(r.etapaPromo === "twoXone" || r.etapaPromo === "threeXtwo") && (
                                 <div className="text-[10px] text-amber-700 font-bold mt-0.5">
-                                  Promo 2x1 ({r.cantidad})
+                                  Promo {PROMOS_CONFIG[r.etapaPromo]?.tag || r.etapaPromo} ({r.cantidad})
                                 </div>
                               )}
                             </td>
