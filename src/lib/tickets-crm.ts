@@ -175,14 +175,12 @@ export function buildWhatsAppReservationMessage(
     ? `S/. 0.00 SOLES (PASE DE CORTESÍA)`
     : `S/. ${Number(reservation.totalPagado).toFixed(2)} SOLES (${promoMeta.label.toUpperCase()})`;
 
-  const effectiveTickets =
-    reservation.etapaPromo === "twoXone"
-      ? Number(reservation.cantidad || 0) * 2
-      : Number(reservation.cantidad || 0);
+  const effectiveTickets = getEffectiveTicketsCount(reservation);
+  const promoTag = PROMOS_CONFIG[reservation.etapaPromo]?.tag || reservation.etapaPromo;
 
   const cantidadText =
-    reservation.etapaPromo === "twoXone"
-      ? `${reservation.cantidad} promo(s) 2x1 (${effectiveTickets} entradas entregadas)`
+    effectiveTickets !== Number(reservation.cantidad || 0)
+      ? `${reservation.cantidad} promo(s) ${promoTag} (${effectiveTickets} entradas entregadas)`
       : `${reservation.cantidad} ${reservation.cantidad === 1 ? "entrada" : "entradas"}`;
 
   return (

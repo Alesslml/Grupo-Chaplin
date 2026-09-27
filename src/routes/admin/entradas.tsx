@@ -619,7 +619,7 @@ function AdminEntradasPage() {
     } else {
       setScanAlert({
         type: "success",
-        message: `Boleto VÁLIDO. Listo para autorizar el ingreso de ${found.cantidad} persona(s).`,
+        message: `Boleto VÁLIDO. Listo para autorizar el ingreso de ${getEffectiveTicketsCount(found)} persona(s).`,
         ticket: found,
       });
     }
@@ -650,7 +650,7 @@ function AdminEntradasPage() {
       } else if (result.ok && result.ticket) {
         setScanAlert({
           type: "success",
-          message: `¡INGRESO EXITOSO! Se autorizó el acceso a ${result.ticket.clienteNombre} (${result.ticket.cantidad} entradas).`,
+          message: `¡INGRESO EXITOSO! Se autorizó el acceso a ${result.ticket.clienteNombre} (${getEffectiveTicketsCount(result.ticket)} entradas).`,
           ticket: result.ticket,
         });
         setScannedTicket(result.ticket);
@@ -1964,7 +1964,7 @@ function AdminEntradasPage() {
                             : `¡Venta registrada con éxito para ${lastRegistered.clienteNombre}!`}
                         </h3>
                         <p className={`text-xs mt-1 ${isCortesia ? "text-amber-900" : "text-emerald-800"}`}>
-                          Se asignaron <strong>{lastRegistered.cantidad} asientos</strong> de{" "}
+                          Se asignaron <strong>{getEffectiveTicketsCount(lastRegistered)} asientos</strong> de{" "}
                           <strong>{ZONAS_CONFIG[lastRegistered.zonaKey]?.label}</strong> para la función de las{" "}
                           <strong>{lastRegistered.funcion}</strong>. Total:{" "}
                           <strong className={isCortesia ? "text-amber-800" : ""}>
