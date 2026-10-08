@@ -3,7 +3,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "@tanstack/react-router";
 import jesucristoFlyer from "@/assets/jesucristo-rockstar-flyer.jpg";
-import drama from "@/assets/show-drama.jpg";
+import shrekFlyer from "@/assets/shrek-flyer.jpg";
 import { Calendar } from "lucide-react";
 
 if (typeof window !== "undefined") {
@@ -21,7 +21,7 @@ const temporada = [
     title: "SHREK",
     subtitle: "El inicio de la aventura · Dir. Harold López",
     fecha: "Diciembre",
-    img: drama,
+    img: shrekFlyer,
   },
 ];
 

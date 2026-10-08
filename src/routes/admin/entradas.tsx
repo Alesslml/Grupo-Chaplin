@@ -1016,7 +1016,7 @@ function AdminEntradasPage() {
                 type="button"
                 onClick={() => exportTicketsToExcel(filteredReservations)}
                 className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-white text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 border border-slate-300 rounded-md transition-colors shadow-2xs cursor-pointer whitespace-nowrap"
-                title="Descargar base de datos del CRM a Excel (.csv con formato UTF-8 BOM)"
+                title="Descargar base de datos del CRM a Excel (.xlsx)"
               >
                 <Download className="w-3.5 h-3.5 text-emerald-600" />
                 <span className="hidden sm:inline">Exportar a Excel</span>
@@ -1428,7 +1428,7 @@ function AdminEntradasPage() {
                     type="button"
                     onClick={() => exportTicketsToExcel(filteredReservations)}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 text-xs font-bold uppercase tracking-wider border border-slate-300 hover:border-emerald-400 rounded-md transition-all shadow-2xs cursor-pointer"
-                    title="Exportar registros filtrados a Excel (.csv UTF-8 BOM)"
+                    title="Exportar registros filtrados a Excel (.xlsx)"
                   >
                     <Download className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Exportar ({filteredReservations.length})</span>

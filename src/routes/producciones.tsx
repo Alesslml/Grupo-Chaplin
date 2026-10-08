@@ -7,6 +7,7 @@ import { PageHero } from "@/components/chaplin/PageHero";
 import musical from "@/assets/show-musical.jpg";
 import drama from "@/assets/show-drama.jpg";
 import family from "@/assets/show-family.jpg";
+import shrekFlyer from "@/assets/shrek-flyer.jpg";
 import comedy from "@/assets/show-comedy.jpg";
 import jesucristoFlyer from "@/assets/jesucristo-rockstar-flyer.jpg";
 import heathersCard from "@/assets/prod-heathers-card.jpg";
@@ -106,7 +107,7 @@ const obras: Obra[] = [
     title: "SHREK, El inicio de la aventura",
     year: "2026",
     tipo: "Familiar",
-    img: family,
+    img: shrekFlyer,
     tag: "PRÓXIMA",
     autores: "Basado en DreamWorks",
     director: "Harold López Segovia",

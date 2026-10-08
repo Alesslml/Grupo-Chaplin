@@ -1562,7 +1562,7 @@ function toCsvCell(v: string | number | null | undefined): string {
   return /[",\n;\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-export function exportTicketsToExcel(
+export async function exportTicketsToExcel(
   reservations: TicketReservation[],
   options?: { filename?: string; onlyAttended?: boolean }
 ) {
@@ -1629,7 +1629,7 @@ export function exportTicketsToExcel(
       r.cantidad,
       effectiveTickets,
       promoLabel,
-      Number(r.totalPagado).toFixed(2),
+      Number(r.totalPagado),
       metodoLabel,
       r.vendedor,
       r.estado.toUpperCase(),
@@ -1640,21 +1640,33 @@ export function exportTicketsToExcel(
         : "PENDIENTE",
       attendedDate,
       r.notas || "",
-    ]
-      .map(toCsvCell)
-      .join(",");
+    ];
   });
 
-  const csvContent = [headers.map(toCsvCell).join(","), ...rows].join("\r\n");
-  // BOM UTF-8 (\uFEFF) para compatibilidad total con Microsoft Excel en español (acentos, ñ, números)
-  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+  // Archivo .xlsx real: abre con columnas separadas en cualquier idioma/dispositivo
+  // (el CSV con comas se veía "todo junto" en Excel configurado en español).
+  const { default: writeXlsxFile } = await import("write-excel-file/browser");
+  const sheetData = [
+    headers.map((h) => ({ value: h, fontWeight: "bold" as const, backgroundColor: "#f1f5f9" })),
+    ...rows.map((row) =>
+      row.map((v) =>
+        typeof v === "number" ? { type: Number, value: v } : { type: String, value: v === null || v === undefined ? "" : String(v) }
+      )
+    ),
+  ];
+  const widths = [20, 18, 30, 18, 12, 11, 22, 11, 14, 22, 12, 14, 20, 12, 14, 34, 36];
+  const blob = await writeXlsxFile(sheetData as any, {
+    columns: headers.map((_, i) => ({ width: widths[i] || 16 })),
+    stickyRowsCount: 1,
+  } as any).toBlob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
+  const day = new Date().toISOString().slice(0, 10);
   const defaultName = options?.onlyAttended
-    ? `asistencia-jesucristo-rockstar-${new Date().toISOString().slice(0, 10)}.csv`
-    : `crm-reservas-jesucristo-rockstar-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.download = options?.filename || defaultName;
+    ? `asistencia-jesucristo-rockstar-${day}.xlsx`
+    : `crm-reservas-jesucristo-rockstar-${day}.xlsx`;
+  a.download = options?.filename ? options.filename.replace(/\.csv$/i, ".xlsx") : defaultName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
