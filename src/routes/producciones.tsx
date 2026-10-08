@@ -55,7 +55,39 @@ interface Obra {
 }
 
 const obras: Obra[] = [
-  /* ── Temporada 2026 ── */
+  /* ── Temporada 2026 (de la más próxima a la más antigua) ── */
+  {
+    title: "SHREK, El inicio de la aventura",
+    year: "2026",
+    tipo: "Familiar",
+    img: shrekFlyer,
+    tag: "PRÓXIMA",
+    autores: "Basado en DreamWorks",
+    director: "Harold López Segovia",
+    sinopsis:
+      "El ogro más querido del cine llega al escenario iqueño en una aventura familiar sobre la amistad, la aceptación y encontrar la belleza donde menos se espera. Diciembre de 2026.",
+  },
+  {
+    title: "Jesucristo Rockstar",
+    year: "2026",
+    tipo: "Musical",
+    img: jesucristoFlyer,
+    tag: "PRÓXIMA",
+    autores: "Andrew Lloyd Webber y Tim Rice",
+    director: "Harold López Segovia",
+    sinopsis:
+      "El clásico rock-ópera que narra los últimos días de Jesucristo desde la mirada humana de sus discípulos, especialmente Judas. Rock, fe y escena en una sola noche. Octubre de 2026.",
+  },
+  {
+    title: "SING, Ven y Canta",
+    year: "2026",
+    tipo: "Musical",
+    img: sing,
+    autores: "Chaplin Grupo Cultural",
+    director: "Gerson Juaze y Harold López",
+    sinopsis:
+      "Un musical que celebra la voz como herramienta de encuentro: canto, comunidad y la invitación a subir al escenario a cantar junto al elenco. Sábado 15 de agosto de 2026.",
+  },
   {
     title: "Heathers · El Musical",
     year: "2026",
@@ -81,38 +113,6 @@ const obras: Obra[] = [
       { personaje: "Kurt Kelly", actor: "Cesar Alvarado Guevara" },
       { personaje: "Ram Sweney", actor: "Heber Martínez Maestre" },
     ],
-  },
-  {
-    title: "SING, Ven y Canta",
-    year: "2026",
-    tipo: "Musical",
-    img: sing,
-    autores: "Chaplin Grupo Cultural",
-    director: "Gerson Juaze y Harold López",
-    sinopsis:
-      "Un musical que celebra la voz como herramienta de encuentro: canto, comunidad y la invitación a subir al escenario a cantar junto al elenco. Sábado 15 de agosto de 2026.",
-  },
-  {
-    title: "Jesucristo Rockstar",
-    year: "2026",
-    tipo: "Musical",
-    img: jesucristoFlyer,
-    tag: "PRÓXIMA",
-    autores: "Andrew Lloyd Webber y Tim Rice",
-    director: "Harold López Segovia",
-    sinopsis:
-      "El clásico rock-ópera que narra los últimos días de Jesucristo desde la mirada humana de sus discípulos, especialmente Judas. Rock, fe y escena en una sola noche. Octubre de 2026.",
-  },
-  {
-    title: "SHREK, El inicio de la aventura",
-    year: "2026",
-    tipo: "Familiar",
-    img: shrekFlyer,
-    tag: "PRÓXIMA",
-    autores: "Basado en DreamWorks",
-    director: "Harold López Segovia",
-    sinopsis:
-      "El ogro más querido del cine llega al escenario iqueño en una aventura familiar sobre la amistad, la aceptación y encontrar la belleza donde menos se espera. Diciembre de 2026.",
   },
 
   /* ── 2025 ── */
