@@ -422,47 +422,39 @@ export const saveAdminReservationServer = createServerFn({ method: "POST" })
     const id = "res-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 6);
     const r = data.reservation;
 
-    // Calcular siguiente secuencial por función y zona
-    const countRow = (await sql`
-      select count(*)::int as cnt from ticket_reservations 
-      where funcion = ${r.funcion} and zona_key = ${r.zonaKey}
-    `) as any[];
-    const nextSeq = Number(countRow[0]?.cnt || 0) + 1;
-    const ticketCode = r.ticketCode || generateTicketCode(r.funcion, r.zonaKey, nextSeq);
-
-    await sql`
-      insert into ticket_reservations (
-        id,
-        cliente_nombre,
-        cliente_telefono,
-        cliente_dni,
-        funcion,
-        zona_key,
-        cantidad,
-        etapa_promo,
-        total_pagado,
-        metodo_pago,
-        vendedor,
-        estado,
-        notas,
-        ticket_code
-      ) values (
-        ${id},
-        ${r.clienteNombre},
-        ${r.clienteTelefono},
-        ${r.clienteDni || null},
-        ${r.funcion},
-        ${r.zonaKey},
-        ${r.cantidad},
-        ${r.etapaPromo},
-        ${r.totalPagado},
-        ${r.metodoPago || "yape"},
-        ${r.vendedor || "Boletería"},
-        ${r.estado || "confirmado"},
-        ${r.notas || null},
-        ${ticketCode}
-      )
-    `;
+    // Siguiente correlativo = (mayor número usado en ese horario y zona) + 1.
+    // No se usa count(): si se borra o edita un ticket, el conteo repite códigos.
+    const prefix = generateTicketCode(r.funcion, r.zonaKey, 1).slice(0, -3);
+    const manualCode = r.ticketCode ? r.ticketCode.trim() : "";
+    let ticketCode = manualCode;
+    let inserted = false;
+    for (let attempt = 0; attempt < 6 && !inserted; attempt++) {
+      if (!manualCode) {
+        const maxRow = (await sql`
+          select coalesce(max(substring(ticket_code from '([0-9]+)$')::int), 0) as mx
+          from ticket_reservations
+          where ticket_code ~ ${"^" + prefix + "[0-9]+$"}
+        `) as any[];
+        ticketCode = generateTicketCode(r.funcion, r.zonaKey, Number(maxRow[0]?.mx || 0) + 1);
+      }
+      // Inserta solo si el código no existe todavía (protege contra ventas simultáneas)
+      const res = (await sql`
+        insert into ticket_reservations (
+          id, cliente_nombre, cliente_telefono, cliente_dni, funcion, zona_key,
+          cantidad, etapa_promo, total_pagado, metodo_pago, vendedor, estado, notas, ticket_code
+        )
+        select
+          ${id}, ${r.clienteNombre}, ${r.clienteTelefono}, ${r.clienteDni || null},
+          ${r.funcion}, ${r.zonaKey}, ${r.cantidad}, ${r.etapaPromo}, ${r.totalPagado},
+          ${r.metodoPago || "yape"}, ${r.vendedor || "Boletería"}, ${r.estado || "confirmado"},
+          ${r.notas || null}, ${ticketCode}
+        where not exists (select 1 from ticket_reservations where ticket_code = ${ticketCode})
+        returning id
+      `) as any[];
+      inserted = res.length > 0;
+      if (!inserted && manualCode) throw new Error("TICKET_CODE_DUPLICADO");
+    }
+    if (!inserted) throw new Error("No se pudo generar un código de ticket único");
 
     const saved: TicketReservation = {
       ...r,
@@ -620,6 +612,17 @@ export const updateAdminReservationServer = createServerFn({ method: "POST" })
     await ensureTicketsSchema();
     const sql = getSql();
     const r = data.reservation;
+
+    if (r.ticketCode) {
+      const dup = (await sql`
+        select 1 from ticket_reservations
+        where ticket_code = ${r.ticketCode} and id <> ${r.id} and ticket_code <> ${r.id}
+        limit 1
+      `) as any[];
+      if (dup.length > 0) {
+        return { ok: false as const, error: "TICKET_CODE_DUPLICADO", ticket: null };
+      }
+    }
 
     const rows = (await sql`
       update ticket_reservations
@@ -839,10 +842,12 @@ export async function saveReservation(
 
   if (!newRes) {
     const current = getStoredReservations();
-    const sameCount = current.filter(
-      (c) => c.funcion === reservation.funcion && c.zonaKey === reservation.zonaKey
-    ).length;
-    const ticketCode = generateTicketCode(reservation.funcion, reservation.zonaKey, sameCount + 1);
+    const localPrefix = generateTicketCode(reservation.funcion, reservation.zonaKey, 1).slice(0, -3);
+    const maxLocal = current.reduce((mx, c) => {
+      const m = c.ticketCode?.startsWith(localPrefix) ? Number(c.ticketCode.slice(localPrefix.length)) : 0;
+      return Number.isFinite(m) && m > mx ? m : mx;
+    }, 0);
+    const ticketCode = generateTicketCode(reservation.funcion, reservation.zonaKey, maxLocal + 1);
 
     newRes = {
       ...reservation,
@@ -952,6 +957,7 @@ export async function updateReservation(
     saveStoredReservationsLocally(current);
   }
 
+  let duplicateCode = false;
   const auth = getStoredHaroldAuth();
   if (auth) {
     try {
@@ -968,10 +974,13 @@ export async function updateReservation(
         }
         return res.ticket;
       }
+      if (res && (res as any).error === "TICKET_CODE_DUPLICADO") duplicateCode = true;
     } catch (err) {
       console.error("Error actualizando en Neon:", err);
     }
   }
+
+  if (duplicateCode) throw new Error("Ese código de ticket ya existe en otra reserva. Usa uno distinto.");
 
   return targetIndex !== -1 ? updatedTicket! : null;
 }

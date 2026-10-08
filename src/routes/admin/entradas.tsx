@@ -398,7 +398,11 @@ function AdminEntradasPage() {
       }
     } catch (err) {
       console.error("Error guardando edición de reserva:", err);
-      alert("Hubo un error al guardar los cambios. Intenta nuevamente.");
+      alert(
+        err instanceof Error && err.message.includes("ya existe")
+          ? err.message
+          : "Hubo un error al guardar los cambios. Intenta nuevamente."
+      );
     } finally {
       setIsSavingEdit(false);
     }
