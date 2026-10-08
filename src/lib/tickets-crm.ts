@@ -136,6 +136,28 @@ export interface TicketReservation {
   asistio?: boolean;
   asistioAt?: string; // ISO string
   asistioNotas?: string;
+  // Registro de cada ingreso a sala (puede llegar el grupo por partes)
+  ingresos?: IngresoLog[];
+}
+
+export interface IngresoLog {
+  at: string; // ISO: fecha y hora exacta del ingreso
+  cantidad: number; // personas que entraron en ese momento
+}
+
+function parseIngresos(raw: unknown): IngresoLog[] {
+  let v: unknown = raw;
+  if (typeof v === "string") {
+    try {
+      v = JSON.parse(v);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((i: any) => ({ at: String(i?.at || ""), cantidad: Number(i?.cantidad || 0) }))
+    .filter((i) => i.at && i.cantidad > 0);
 }
 
 export function generateTicketCode(funcion: string, zonaKey: string, sequentialNumber: number): string {
@@ -376,7 +398,8 @@ export const fetchAdminReservationsServer = createServerFn({ method: "POST" })
         ticket_code,
         asistio,
         asistio_at,
-        asistio_notas
+        asistio_notas,
+        ingresos
       from ticket_reservations
       order by created_at desc
     `) as any[];
@@ -400,6 +423,7 @@ export const fetchAdminReservationsServer = createServerFn({ method: "POST" })
       asistio: Boolean(r.asistio),
       asistioAt: r.asistio_at ? new Date(r.asistio_at).toISOString() : undefined,
       asistioNotas: r.asistio_notas ? String(r.asistio_notas) : undefined,
+      ingresos: parseIngresos(r.ingresos),
     }));
 
     return { ok: true as const, reservations };
@@ -492,7 +516,8 @@ export const fetchTicketByIdServer = createServerFn({ method: "POST" })
         ticket_code,
         asistio,
         asistio_at,
-        asistio_notas
+        asistio_notas,
+        ingresos
       from ticket_reservations
       where id = ${data.id} or ticket_code = ${data.id}
       limit 1
@@ -522,6 +547,7 @@ export const fetchTicketByIdServer = createServerFn({ method: "POST" })
       asistio: Boolean(r.asistio),
       asistioAt: r.asistio_at ? new Date(r.asistio_at).toISOString() : undefined,
       asistioNotas: r.asistio_notas ? String(r.asistio_notas) : undefined,
+      ingresos: parseIngresos(r.ingresos),
     };
 
     return { ok: true as const, ticket };
@@ -550,7 +576,11 @@ export const markTicketAttendanceServer = createServerFn({ method: "POST" })
       set 
         asistio = ${data.asistio},
         asistio_at = ${asistioAt},
-        asistio_notas = ${data.asistioNotas || null}
+        asistio_notas = ${data.asistioNotas || null},
+        ingresos = case
+          when ${data.asistio} then ingresos
+          else '[]'::jsonb
+        end
       where id = ${data.id} or ticket_code = ${data.id}
       returning *
     `) as any[];
@@ -579,8 +609,113 @@ export const markTicketAttendanceServer = createServerFn({ method: "POST" })
       asistio: Boolean(r.asistio),
       asistioAt: r.asistio_at ? new Date(r.asistio_at).toISOString() : undefined,
       asistioNotas: r.asistio_notas ? String(r.asistio_notas) : undefined,
+      ingresos: parseIngresos(r.ingresos),
     };
 
+    return { ok: true as const, ticket };
+  });
+
+// 6b. Registrar ingreso parcial o total de un ticket (cada ingreso queda con fecha y hora)
+export const registerTicketEntryServer = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      auth: { username: string; password: string };
+      id: string;
+      cantidad: number; // personas que entran ahora; si undoLast, se ignora
+      undoLast?: boolean;
+    }) => data
+  )
+  .handler(async ({ data }) => {
+    if (!isHaroldAuthenticated(data.auth.username, data.auth.password)) {
+      throw new Error("UNAUTHORIZED");
+    }
+    await ensureTicketsSchema();
+    await ensureEventSettingsSchema();
+    const sql = getSql();
+
+    const found = (await sql`
+      select * from ticket_reservations where id = ${data.id} or ticket_code = ${data.id} limit 1
+    `) as any[];
+    if (!found.length) return { ok: false as const, error: "TICKET_NOT_FOUND", ticket: null };
+    const row = found[0];
+
+    const setRows = (await sql`select value from event_settings where key = 'jesucristo_rockstar_settings'`) as any[];
+    const promos: EventPromoSetting[] = setRows[0]?.value?.promos ?? [];
+    const perPromo =
+      promos.find((p) => p.key === row.etapa_promo)?.entradasPorPrecio ??
+      (row.etapa_promo === "twoXone" ? 2 : row.etapa_promo === "threeXtwo" ? 3 : 1);
+    const total = Number(row.cantidad || 1) * perPromo;
+
+    const previous = parseIngresos(row.ingresos);
+    const entered =
+      previous.length > 0
+        ? previous.reduce((n, i) => n + i.cantidad, 0)
+        : row.asistio
+        ? total
+        : 0;
+
+    let next: IngresoLog[];
+    if (data.undoLast) {
+      if (previous.length === 0) {
+        return { ok: false as const, error: "NADA_QUE_DESHACER", ticket: null };
+      }
+      next = previous.slice(0, -1);
+    } else {
+      const qty = Math.floor(Number(data.cantidad));
+      if (!Number.isFinite(qty) || qty < 1) {
+        return { ok: false as const, error: "CANTIDAD_INVALIDA", ticket: null };
+      }
+      if (entered + qty > total) {
+        return { ok: false as const, error: "EXCEDE_ENTRADAS", ticket: null };
+      }
+      // Si venía marcado completo sin detalle, se conserva como un solo registro
+      const base =
+        previous.length === 0 && entered > 0
+          ? [{ at: row.asistio_at ? new Date(row.asistio_at).toISOString() : new Date().toISOString(), cantidad: entered }]
+          : previous;
+      next = [...base, { at: new Date().toISOString(), cantidad: qty }];
+    }
+
+    const enteredNext = next.reduce((n, i) => n + i.cantidad, 0);
+    const complete = enteredNext >= total;
+    const lastAt = next.length ? next[next.length - 1].at : null;
+
+    // Condición sobre el estado leído: si otro portero registró al mismo tiempo, se rechaza
+    const updated = (await sql`
+      update ticket_reservations
+      set
+        ingresos = ${JSON.stringify(next)}::jsonb,
+        asistio = ${complete},
+        asistio_at = ${lastAt}
+      where id = ${row.id} and ingresos = ${JSON.stringify(previous)}::jsonb
+      returning *
+    `) as any[];
+    if (!updated.length) {
+      return { ok: false as const, error: "CONFLICTO_REINTENTAR", ticket: null };
+    }
+
+    const r = updated[0];
+    const ticket: TicketReservation = {
+      id: String(r.id),
+      createdAt: new Date(r.created_at).toISOString(),
+      clienteNombre: String(r.cliente_nombre),
+      clienteTelefono: String(r.cliente_telefono),
+      clienteDni: r.cliente_dni ? String(r.cliente_dni) : undefined,
+      funcion: r.funcion as any,
+      zonaKey: r.zona_key as any,
+      cantidad: Number(r.cantidad || 1),
+      etapaPromo: r.etapa_promo as any,
+      totalPagado: Number(r.total_pagado || 0),
+      metodoPago: (r.metodo_pago || "yape") as any,
+      vendedor: String(r.vendedor || "Boletería"),
+      estado: (r.estado || "confirmado") as any,
+      notas: r.notas ? String(r.notas) : undefined,
+      ticketCode: r.ticket_code ? String(r.ticket_code) : undefined,
+      asistio: Boolean(r.asistio),
+      asistioAt: r.asistio_at ? new Date(r.asistio_at).toISOString() : undefined,
+      asistioNotas: r.asistio_notas ? String(r.asistio_notas) : undefined,
+      ingresos: parseIngresos(r.ingresos),
+    };
     return { ok: true as const, ticket };
   });
 
@@ -668,6 +803,7 @@ export const updateAdminReservationServer = createServerFn({ method: "POST" })
       asistio: Boolean(row.asistio),
       asistioAt: row.asistio_at ? new Date(row.asistio_at).toISOString() : undefined,
       asistioNotas: row.asistio_notas ? String(row.asistio_notas) : undefined,
+      ingresos: parseIngresos(row.ingresos),
     };
 
     return { ok: true as const, ticket };
@@ -893,6 +1029,7 @@ export async function markTicketAttendance(
     asistio,
     asistioAt: nowIso,
     asistioNotas: notas !== undefined ? notas : existing.asistioNotas,
+    ingresos: asistio ? existing.ingresos : [],
   };
 
   current[targetIndex] = updatedTicket;
@@ -1112,6 +1249,62 @@ export function getEffectiveTicketsCount(
   return qty * entradasPorPrecio;
 }
 
+// Personas de este ticket que ya entraron (suma de los ingresos registrados).
+// Los tickets antiguos marcados como "asistió" sin detalle cuentan como completos.
+export function getIngresadosCount(
+  r: TicketReservation,
+  promos: EventPromoSetting[] = getStoredEventSettings().promos
+): number {
+  if (r.ingresos && r.ingresos.length > 0) {
+    return r.ingresos.reduce((n, i) => n + i.cantidad, 0);
+  }
+  return r.asistio ? getEffectiveTicketsCount(r, promos) : 0;
+}
+
+export function getPendientesIngresoCount(
+  r: TicketReservation,
+  promos: EventPromoSetting[] = getStoredEventSettings().promos
+): number {
+  return Math.max(0, getEffectiveTicketsCount(r, promos) - getIngresadosCount(r, promos));
+}
+
+// Historial de ingresos; para tickets antiguos sin detalle se muestra un solo registro.
+export function getIngresosLog(r: TicketReservation): IngresoLog[] {
+  if (r.ingresos && r.ingresos.length > 0) return r.ingresos;
+  if (r.asistio && r.asistioAt) {
+    return [{ at: r.asistioAt, cantidad: getEffectiveTicketsCount(r) }];
+  }
+  return [];
+}
+
+export async function registerTicketEntry(
+  idOrCode: string,
+  cantidad: number,
+  options?: { undoLast?: boolean }
+): Promise<{ ok: boolean; ticket: TicketReservation | null; error?: string }> {
+  const current = getStoredReservations();
+  const idx = current.findIndex((r) => r.id === idOrCode || r.ticketCode === idOrCode);
+  if (idx === -1) return { ok: false, ticket: null, error: "TICKET_NOT_FOUND" };
+
+  const auth = getStoredHaroldAuth();
+  if (!auth) return { ok: false, ticket: null, error: "SIN_SESION" };
+
+  try {
+    const res = await registerTicketEntryServer({
+      data: { auth, id: current[idx].id, cantidad, undoLast: options?.undoLast },
+    });
+    if (res && res.ok && res.ticket) {
+      current[idx] = res.ticket;
+      saveStoredReservationsLocally(current);
+      return { ok: true, ticket: res.ticket };
+    }
+    return { ok: false, ticket: null, error: (res as any)?.error || "ERROR" };
+  } catch (err) {
+    console.error("Error registrando ingreso en Neon:", err);
+    return { ok: false, ticket: null, error: "ERROR_RED" };
+  }
+}
+
 export function getZoneAvailability(
   reservations: TicketReservation[],
   funcion: string,
@@ -1153,15 +1346,15 @@ export function getCRMStats(reservations: TicketReservation[], customCap?: numbe
   const revenue7pm = active7pm.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
 
   // Asistencia en sala / puerta (contabiliza personas reales que ingresan)
-  const attended = active.filter((r) => r.asistio);
-  const totalAttendedTickets = attended.reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
+  const attended = active.filter((r) => getIngresadosCount(r) > 0);
+  const totalAttendedTickets = active.reduce((sum, r) => sum + getIngresadosCount(r), 0);
   const attendedOrdersCount = attended.length;
-  const attended4pm = attended
+  const attended4pm = active
     .filter((r) => r.funcion === "4:00 pm")
-    .reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
-  const attended7pm = attended
+    .reduce((sum, r) => sum + getIngresadosCount(r), 0);
+  const attended7pm = active
     .filter((r) => r.funcion === "7:00 pm")
-    .reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
+    .reduce((sum, r) => sum + getIngresadosCount(r), 0);
   const percentAttendedTotal = totalTickets > 0 ? Math.round((totalAttendedTickets / totalTickets) * 100) : 0;
   const percentAttended4pm = tickets4pm > 0 ? Math.round((attended4pm / tickets4pm) * 100) : 0;
   const percentAttended7pm = tickets7pm > 0 ? Math.round((attended7pm / tickets7pm) * 100) : 0;
@@ -1173,8 +1366,7 @@ export function getCRMStats(reservations: TicketReservation[], customCap?: numbe
     const list = active.filter((r) => r.funcion === func);
     const tickets = list.reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
     const rev = list.reduce((sum, r) => sum + Number(r.totalPagado || 0), 0);
-    const attList = list.filter((r) => r.asistio);
-    const attTickets = attList.reduce((sum, r) => sum + getEffectiveTicketsCount(r), 0);
+    const attTickets = list.reduce((sum, r) => sum + getIngresadosCount(r), 0);
     return {
       funcion: func,
       tickets,
@@ -1376,7 +1568,7 @@ export function exportTicketsToExcel(
 ) {
   if (typeof window === "undefined") return;
 
-  const items = options?.onlyAttended ? reservations.filter((r) => r.asistio) : reservations;
+  const items = options?.onlyAttended ? reservations.filter((r) => getIngresadosCount(r) > 0) : reservations;
 
   const headers = [
     "CÓDIGO DE TICKET",
@@ -1407,17 +1599,19 @@ export function exportTicketsToExcel(
       minute: "2-digit",
     });
 
-    const attendedDate =
-      r.asistio && r.asistioAt
-        ? new Date(r.asistioAt).toLocaleString("es-PE", {
+    const attendedDate = getIngresosLog(r)
+      .map(
+        (l) =>
+          `${new Date(l.at).toLocaleString("es-PE", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
-          })
-        : "";
+          })} (${l.cantidad})`
+      )
+      .join(" | ");
 
     const zonaLabel = ZONAS_CONFIG[r.zonaKey]?.label || r.zonaKey;
     const promoLabel = PROMOS_CONFIG[r.etapaPromo]?.label || r.etapaPromo;
@@ -1439,7 +1633,11 @@ export function exportTicketsToExcel(
       metodoLabel,
       r.vendedor,
       r.estado.toUpperCase(),
-      r.asistio ? "INGRESADO" : "PENDIENTE",
+      getPendientesIngresoCount(r) === 0 && getIngresadosCount(r) > 0
+        ? "INGRESADO"
+        : getIngresadosCount(r) > 0
+        ? `PARCIAL ${getIngresadosCount(r)}/${getEffectiveTicketsCount(r)}`
+        : "PENDIENTE",
       attendedDate,
       r.notas || "",
     ]

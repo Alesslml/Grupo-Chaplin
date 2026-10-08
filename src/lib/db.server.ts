@@ -98,6 +98,7 @@ export function ensureTicketsSchema() {
       .then(() => sql`alter table ticket_reservations add column if not exists asistio boolean not null default false`)
       .then(() => sql`alter table ticket_reservations add column if not exists asistio_at timestamptz`)
       .then(() => sql`alter table ticket_reservations add column if not exists asistio_notas text`)
+      .then(() => sql`alter table ticket_reservations add column if not exists ingresos jsonb not null default '[]'::jsonb`)
       .then(() => undefined);
   }
   return _ticketsEnsured;

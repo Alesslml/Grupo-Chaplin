@@ -61,6 +61,10 @@ import {
   getActivePromoKey,
   getZoneAvailability,
   getEffectiveTicketsCount,
+  getIngresadosCount,
+  getPendientesIngresoCount,
+  getIngresosLog,
+  registerTicketEntry,
   getCRMStats,
   getPromosBreakdown,
   buildWhatsAppReservationMessage,
@@ -76,6 +80,15 @@ import {
   type EventZoneSetting,
   DEFAULT_EVENT_SETTINGS,
 } from "@/lib/tickets-crm";
+
+const fmtIngreso = (iso: string) =>
+  new Date(iso).toLocaleString("es-PE", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 
 export const Route = createFileRoute("/admin/entradas")({
   head: () => ({
@@ -151,6 +164,8 @@ function AdminEntradasPage() {
   } | null>(null);
   const [isMarkingAttendance, setIsMarkingAttendance] = useState(false);
   const [attendanceRevertTarget, setAttendanceRevertTarget] = useState<TicketReservation | null>(null);
+  const [entryTargetId, setEntryTargetId] = useState<string | null>(null);
+  const [entryQty, setEntryQty] = useState(1);
   const [filtroAsistenciaTab, setFiltroAsistenciaTab] = useState<"todos" | "asistidos" | "pendientes">("todos");
   const [filtroAsistenciaFuncion, setFiltroAsistenciaFuncion] = useState<string>("todas");
   const [filtroAsistenciaVendedor, setFiltroAsistenciaVendedor] = useState<string>("todos");
@@ -571,8 +586,8 @@ function AdminEntradasPage() {
         filtroAsistenciaTab === "todos"
           ? true
           : filtroAsistenciaTab === "asistidos"
-          ? Boolean(r.asistio)
-          : !r.asistio;
+          ? getIngresadosCount(r) > 0
+          : getPendientesIngresoCount(r) > 0;
 
       const matchFuncion =
         filtroAsistenciaFuncion === "todas" || r.funcion === filtroAsistenciaFuncion;
@@ -615,7 +630,7 @@ function AdminEntradasPage() {
 
     setScannedTicket(found);
 
-    if (found.asistio) {
+    if (found.asistio && getPendientesIngresoCount(found) === 0) {
       setScanAlert({
         type: "duplicate",
         message: "¡ALERTA DE DUPLICADO! Este boleto YA fue utilizado para ingresar.",
@@ -625,45 +640,79 @@ function AdminEntradasPage() {
     } else {
       setScanAlert({
         type: "success",
-        message: `Boleto VÁLIDO. Listo para autorizar el ingreso de ${getEffectiveTicketsCount(found)} persona(s).`,
+        message:
+          getIngresadosCount(found) > 0
+            ? `Boleto VÁLIDO. Ya ingresaron ${getIngresadosCount(found)} de ${getEffectiveTicketsCount(found)}; faltan ${getPendientesIngresoCount(found)} persona(s).`
+            : `Boleto VÁLIDO. Listo para autorizar el ingreso de ${getEffectiveTicketsCount(found)} persona(s).`,
         ticket: found,
       });
     }
   };
 
-  // Confirmar ingreso de un ticket
+  // Registrar ingreso de un ticket: si queda 1 persona se registra directo; si no, se pregunta cuántas entran
+  const submitEntry = async (target: TicketReservation, qty: number) => {
+    setIsMarkingAttendance(true);
+    try {
+      const result = await registerTicketEntry(target.id, qty);
+      if (result.ok && result.ticket) {
+        const t = result.ticket;
+        const total = getEffectiveTicketsCount(t);
+        const ing = getIngresadosCount(t);
+        setScanAlert({
+          type: "success",
+          message:
+            ing >= total
+              ? `¡INGRESO COMPLETO! ${t.clienteNombre}: ${total} de ${total} personas ya ingresaron.`
+              : `Ingresaron ${ing} de ${total} personas de ${t.clienteNombre}. Faltan ${total - ing}.`,
+          ticket: t,
+        });
+        setScannedTicket(t);
+        setReservations(getStoredReservations());
+        setEntryTargetId(null);
+      } else if (result.error === "EXCEDE_ENTRADAS") {
+        alert("Esa cantidad supera las entradas pendientes de este boleto.");
+      } else if (result.error === "CONFLICTO_REINTENTAR") {
+        alert("Otro dispositivo registró un ingreso al mismo tiempo. Revisa el estado y vuelve a intentar.");
+        setReservations(getStoredReservations());
+      } else {
+        alert("No se pudo registrar el ingreso. Revisa tu conexión e intenta de nuevo.");
+      }
+    } catch (err) {
+      console.error("Error al registrar asistencia:", err);
+    } finally {
+      setIsMarkingAttendance(false);
+    }
+  };
+
   const handleConfirmAttendance = async (target: TicketReservation) => {
-    if (target.asistio) {
+    const pending = getPendientesIngresoCount(target);
+    if (pending === 0) {
       setScanAlert({
         type: "duplicate",
-        message: "¡ALERTA DE DUPLICADO! Este boleto YA fue ingresado previamente.",
+        message: "¡ALERTA DE DUPLICADO! Este boleto YA fue ingresado completamente.",
         ticket: target,
         previousUsedAt: target.asistioAt,
       });
       return;
     }
+    if (pending === 1) {
+      await submitEntry(target, 1);
+      return;
+    }
+    setEntryQty(pending);
+    setEntryTargetId(target.id);
+  };
 
+  const handleUndoLastEntry = async (target: TicketReservation) => {
     setIsMarkingAttendance(true);
     try {
-      const result = await markTicketAttendance(target.id, true);
-      if (result.alreadyUsed) {
-        setScanAlert({
-          type: "duplicate",
-          message: "¡ALERTA DE SEGURIDAD! El boleto fue marcado como usado hace instantes.",
-          ticket: result.ticket || target,
-          previousUsedAt: result.previousUsedAt,
-        });
-      } else if (result.ok && result.ticket) {
-        setScanAlert({
-          type: "success",
-          message: `¡INGRESO EXITOSO! Se autorizó el acceso a ${result.ticket.clienteNombre} (${getEffectiveTicketsCount(result.ticket)} entradas).`,
-          ticket: result.ticket,
-        });
-        setScannedTicket(result.ticket);
+      const result = await registerTicketEntry(target.id, 0, { undoLast: true });
+      if (result.ok && result.ticket) {
         setReservations(getStoredReservations());
+        if (scannedTicket && scannedTicket.id === target.id) setScannedTicket(result.ticket);
+      } else {
+        alert("No se pudo deshacer el último ingreso.");
       }
-    } catch (err) {
-      console.error("Error al registrar asistencia:", err);
     } finally {
       setIsMarkingAttendance(false);
     }
@@ -2689,8 +2738,10 @@ function AdminEntradasPage() {
               )}
 
               {/* CASO 2: 🟢 TICKET VÁLIDO - LISTO PARA INGRESAR (PENDIENTE) */}
-              {scanAlert && scanAlert.type === "success" && scannedTicket && !scannedTicket.asistio && (() => {
+              {scanAlert && scanAlert.type === "success" && scannedTicket && getPendientesIngresoCount(scannedTicket) > 0 && (() => {
                 const effectiveCount = getEffectiveTicketsCount(scannedTicket);
+                const pendCount = getPendientesIngresoCount(scannedTicket);
+                const ingCount = getIngresadosCount(scannedTicket);
                 return (
                   <div className="p-4 sm:p-6 bg-emerald-950/90 border-2 border-emerald-500 rounded-2xl shadow-2xl text-white animate-fade-in space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -2744,6 +2795,11 @@ function AdminEntradasPage() {
                         <span className="text-yellow-300 font-black text-2xl block mt-0.5">
                           {effectiveCount} {effectiveCount === 1 ? "PERSONA" : "PERSONAS"}
                         </span>
+                        {ingCount > 0 && (
+                          <span className="text-[11px] text-emerald-100 block font-bold mt-0.5">
+                            Ya ingresaron {ingCount} · Faltan {pendCount}
+                          </span>
+                        )}
                         {scannedTicket.etapaPromo === "twoXone" && (
                           <span className="text-[11px] text-emerald-200 block font-normal mt-0.5">
                             ({scannedTicket.cantidad} compras en promo 2x1 = {effectiveCount} entradas)
@@ -2763,7 +2819,9 @@ function AdminEntradasPage() {
                       <span>
                         {isMarkingAttendance
                           ? "Registrando Ingreso en el Sistema..."
-                          : `✅ CONFIRMAR INGRESO · ADMITIR A ${effectiveCount} PERSONA(S)`}
+                          : pendCount === 1
+                          ? "✅ CONFIRMAR INGRESO · ADMITIR A 1 PERSONA"
+                          : `✅ REGISTRAR INGRESO · FALTAN ${pendCount} PERSONA(S)`}
                       </span>
                     </button>
                   </div>
@@ -2771,7 +2829,7 @@ function AdminEntradasPage() {
               })()}
 
               {/* CASO 3: 🎉 INGRESO RECIÉN CONFIRMADO */}
-              {scanAlert && scanAlert.type === "success" && scannedTicket?.asistio && (
+              {scanAlert && scanAlert.type === "success" && scannedTicket?.asistio && getPendientesIngresoCount(scannedTicket) === 0 && (
                 <div className="p-4 sm:p-6 bg-emerald-900/80 border-2 border-emerald-400 rounded-2xl shadow-xl text-white animate-fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center shrink-0 font-black text-xl shadow-lg">
@@ -2914,11 +2972,14 @@ function AdminEntradasPage() {
                   attendanceFilteredList.map((r) => {
                     const meta = ZONAS_CONFIG[r.zonaKey];
                     const effectiveCount = getEffectiveTicketsCount(r);
+                    const ingCount = getIngresadosCount(r);
+                    const pendCount = getPendientesIngresoCount(r);
+                    const isPartial = ingCount > 0 && pendCount > 0;
                     return (
                       <div
                         key={r.id}
                         className={`p-4 rounded-xl border transition-all ${
-                          r.asistio
+                          pendCount === 0 && ingCount > 0
                             ? "bg-emerald-50/40 border-emerald-300/80 shadow-2xs"
                             : "bg-white border-slate-200 shadow-xs"
                         }`}
@@ -2927,7 +2988,11 @@ function AdminEntradasPage() {
                           <span className="font-mono font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded text-[11px]">
                             #{r.ticketCode || r.id}
                           </span>
-                          {r.asistio ? (
+                          {isPartial ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                              <span>PARCIAL {ingCount}/{effectiveCount}</span>
+                            </span>
+                          ) : ingCount > 0 ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                               <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                               <span>INGRESADO</span>
@@ -2976,17 +3041,15 @@ function AdminEntradasPage() {
                           <span>Vendedor: <strong className="text-slate-700">{r.vendedor || "Boletería"}</strong></span>
                         </div>
 
-                        <div className="mt-3">
-                          {r.asistio ? (
-                            <button
-                              type="button"
-                              onClick={() => setAttendanceRevertTarget(r)}
-                              className="w-full py-2 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-800 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-                              <span>Desmarcar Asistencia (Error)</span>
-                            </button>
-                          ) : (
+                        {ingCount > 0 && (
+                          <div className="mt-2 text-[11px] text-slate-600">
+                            Ingresaron <strong>{ingCount}</strong> de {effectiveCount}
+                            {pendCount > 0 && <> · <strong className="text-amber-700">faltan {pendCount}</strong></>}
+                          </div>
+                        )}
+
+                        <div className="mt-3 space-y-2">
+                          {pendCount > 0 && (
                             <button
                               type="button"
                               onClick={() => handleConfirmAttendance(r)}
@@ -2994,7 +3057,19 @@ function AdminEntradasPage() {
                               className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
                             >
                               <UserCheck className="w-4 h-4" />
-                              <span>Marcar Ingreso ({effectiveCount} pers.)</span>
+                              <span>
+                                {ingCount > 0 ? `Registrar ingreso (faltan ${pendCount})` : `Marcar Ingreso (${effectiveCount} pers.)`}
+                              </span>
+                            </button>
+                          )}
+                          {ingCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setEntryTargetId(r.id)}
+                              className="w-full py-2 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-800 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                              <span>Ver historial / corregir</span>
                             </button>
                           )}
                         </div>
@@ -3030,21 +3105,25 @@ function AdminEntradasPage() {
                       attendanceFilteredList.map((r) => {
                         const meta = ZONAS_CONFIG[r.zonaKey];
                         const effectiveCount = getEffectiveTicketsCount(r);
+                        const ingCount = getIngresadosCount(r);
+                        const pendCount = getPendientesIngresoCount(r);
+                        const isPartial = ingCount > 0 && pendCount > 0;
+                        const log = getIngresosLog(r);
                         return (
                           <tr
                             key={r.id}
                             className={`border-b border-slate-100 last:border-0 transition-colors ${
-                              r.asistio ? "bg-emerald-50/30 hover:bg-emerald-50/60" : "hover:bg-slate-50"
+                              ingCount > 0 && pendCount === 0 ? "bg-emerald-50/30 hover:bg-emerald-50/60" : isPartial ? "bg-amber-50/40 hover:bg-amber-50/70" : "hover:bg-slate-50"
                             }`}
                           >
                             <td className="px-4 py-3.5">
-                              {r.asistio && r.asistioAt ? (
-                                <div className="font-mono text-emerald-900 font-bold text-xs">
-                                  {new Date(r.asistioAt).toLocaleTimeString("es-PE", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    second: "2-digit",
-                                  })}
+                              {log.length > 0 ? (
+                                <div className="space-y-0.5">
+                                  {log.map((l, i) => (
+                                    <div key={i} className="font-mono text-emerald-900 font-bold text-[11px] whitespace-nowrap">
+                                      {fmtIngreso(l.at)} <span className="text-slate-500 font-semibold">· {l.cantidad} pers.</span>
+                                    </div>
+                                  ))}
                                 </div>
                               ) : (
                                 <span className="text-slate-400 font-medium italic text-[11px]">
@@ -3081,6 +3160,11 @@ function AdminEntradasPage() {
                               <div className="inline-block bg-slate-100 border border-slate-200 px-2.5 py-1 font-bold text-slate-800 rounded-md text-xs">
                                 {effectiveCount} pers.
                               </div>
+                              {ingCount > 0 && (
+                                <div className="text-[10px] font-bold mt-0.5 text-slate-600">
+                                  Ingresaron {ingCount} · {pendCount > 0 ? <span className="text-amber-700">faltan {pendCount}</span> : "completo"}
+                                </div>
+                              )}
                               {(r.etapaPromo === "twoXone" || r.etapaPromo === "threeXtwo") && (
                                 <div className="text-[10px] text-amber-700 font-bold mt-0.5">
                                   Promo {PROMOS_CONFIG[r.etapaPromo]?.tag || r.etapaPromo} ({r.cantidad})
@@ -3093,7 +3177,11 @@ function AdminEntradasPage() {
                             </td>
 
                             <td className="px-4 py-3.5 text-center">
-                              {r.asistio ? (
+                              {isPartial ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                  <span>PARCIAL {ingCount}/{effectiveCount}</span>
+                                </span>
+                              ) : ingCount > 0 ? (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                                   <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                   <span>INGRESADO</span>
@@ -3106,28 +3194,31 @@ function AdminEntradasPage() {
                             </td>
 
                             <td className="px-4 py-3.5 text-right">
-                              {r.asistio ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setAttendanceRevertTarget(r)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold text-slate-500 hover:text-amber-700 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
-                                  title="Desmarcar asistencia de este boleto"
-                                >
-                                  <RotateCcw className="w-3.5 h-3.5" />
-                                  <span>Desmarcar</span>
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => handleConfirmAttendance(r)}
-                                  disabled={isMarkingAttendance}
-                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-2xs cursor-pointer"
-                                  title="Confirmar ingreso de este boleto"
-                                >
-                                  <UserCheck className="w-3.5 h-3.5" />
-                                  <span>Marcar Ingreso</span>
-                                </button>
-                              )}
+                              <div className="flex flex-col items-end gap-1">
+                                {pendCount > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleConfirmAttendance(r)}
+                                    disabled={isMarkingAttendance}
+                                    className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-2xs cursor-pointer"
+                                    title="Registrar ingreso de este boleto"
+                                  >
+                                    <UserCheck className="w-3.5 h-3.5" />
+                                    <span>{ingCount > 0 ? `Registrar (faltan ${pendCount})` : "Marcar Ingreso"}</span>
+                                  </button>
+                                )}
+                                {ingCount > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setEntryTargetId(r.id)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold text-slate-500 hover:text-amber-700 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
+                                    title="Ver historial de ingresos o corregir"
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    <span>Historial / corregir</span>
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -3732,6 +3823,127 @@ function AdminEntradasPage() {
           </div>
         </div>
       )}
+
+      {/* Modal: registrar ingresos parciales y ver historial por ticket */}
+      {entryTargetId && (() => {
+        const t = reservations.find((x) => x.id === entryTargetId);
+        if (!t) return null;
+        const total = getEffectiveTicketsCount(t);
+        const ing = getIngresadosCount(t);
+        const pend = getPendientesIngresoCount(t);
+        const log = getIngresosLog(t);
+        const qty = Math.min(Math.max(1, entryQty), Math.max(1, pend));
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+              <div>
+                <h4 className="font-display text-lg font-bold text-slate-900">Registrar ingreso</h4>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  <strong className="font-mono text-slate-900">#{t.ticketCode || t.id}</strong> · {t.clienteNombre}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Total</div>
+                  <div className="text-xl font-black text-slate-900">{total}</div>
+                </div>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2">
+                  <div className="text-[10px] uppercase font-bold text-emerald-600">Ingresaron</div>
+                  <div className="text-xl font-black text-emerald-700">{ing}</div>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
+                  <div className="text-[10px] uppercase font-bold text-amber-600">Pendientes</div>
+                  <div className="text-xl font-black text-amber-700">{pend}</div>
+                </div>
+              </div>
+
+              {pend > 0 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 block">¿Cuántas personas ingresan ahora?</label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setEntryQty(Math.max(1, qty - 1))}
+                      className="w-11 h-11 rounded-lg border border-slate-300 text-xl font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
+                    >
+                      −
+                    </button>
+                    <div className="flex-1 text-center text-3xl font-black text-slate-900">{qty}</div>
+                    <button
+                      type="button"
+                      onClick={() => setEntryQty(Math.min(pend, qty + 1))}
+                      className="w-11 h-11 rounded-lg border border-slate-300 text-xl font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    {qty < pend
+                      ? `Quedarán ${pend - qty} pendiente(s) hasta que lleguen los demás.`
+                      : "Con esto el ticket queda completo."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => submitEntry(t, qty)}
+                    disabled={isMarkingAttendance}
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    <span>{isMarkingAttendance ? "Registrando..." : `Registrar ingreso de ${qty}`}</span>
+                  </button>
+                </div>
+              )}
+
+              {log.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Historial de ingresos</div>
+                  <ul className="divide-y divide-slate-100 border border-slate-200 rounded-lg text-xs">
+                    {log.map((l, i) => (
+                      <li key={i} className="flex items-center justify-between px-3 py-2">
+                        <span className="font-mono text-slate-700">{fmtIngreso(l.at)}</span>
+                        <span className="font-bold text-emerald-700">{l.cantidad} {l.cantidad === 1 ? "persona" : "personas"}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {(t.ingresos?.length ?? 0) > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleUndoLastEntry(t)}
+                        disabled={isMarkingAttendance}
+                        className="px-3 py-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-md cursor-pointer"
+                      >
+                        Deshacer último ingreso
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEntryTargetId(null);
+                        setAttendanceRevertTarget(t);
+                      }}
+                      className="px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:text-red-700 bg-slate-50 hover:bg-red-50 border border-slate-200 rounded-md cursor-pointer"
+                    >
+                      Reiniciar todo a Pendiente
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => setEntryTargetId(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Modal de Confirmación para Desmarcar Asistencia */}
       {attendanceRevertTarget && (
