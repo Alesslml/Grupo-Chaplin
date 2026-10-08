@@ -9,76 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TerminosRouteImport } from './routes/terminos'
-import { Route as TalleresRouteImport } from './routes/talleres'
-import { Route as ProduccionesRouteImport } from './routes/producciones'
-import { Route as NoticiasRouteImport } from './routes/noticias'
-import { Route as NosotrosRouteImport } from './routes/nosotros'
-import { Route as LibroDeReclamacionesRouteImport } from './routes/libro-de-reclamaciones'
-import { Route as FesmicaRouteImport } from './routes/fesmica'
-import { Route as EquipoRouteImport } from './routes/equipo'
-import { Route as EntradasRouteImport } from './routes/entradas'
-import { Route as EncuestaRouteImport } from './routes/encuesta'
-import { Route as ContactoRouteImport } from './routes/contacto'
-import { Route as AliadosRouteImport } from './routes/aliados'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TicketIdRouteImport } from './routes/ticket.$id'
-import { Route as AdminEntradasRouteImport } from './routes/admin/entradas'
+import { Route as AliadosRouteImport } from './routes/aliados'
+import { Route as ContactoRouteImport } from './routes/contacto'
+import { Route as EncuestaRouteImport } from './routes/encuesta'
+import { Route as EntradasRouteImport } from './routes/entradas'
+import { Route as EquipoRouteImport } from './routes/equipo'
+import { Route as FesmicaRouteImport } from './routes/fesmica'
+import { Route as LibroDeReclamacionesRouteImport } from './routes/libro-de-reclamaciones'
+import { Route as NosotrosRouteImport } from './routes/nosotros'
+import { Route as NoticiasRouteImport } from './routes/noticias'
+import { Route as ProduccionesRouteImport } from './routes/producciones'
+import { Route as TalleresRouteImport } from './routes/talleres'
+import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as AdminEncuestasRouteImport } from './routes/admin/encuestas'
+import { Route as AdminEntradasRouteImport } from './routes/admin/entradas'
+import { Route as TicketIdRouteImport } from './routes/ticket.$id'
 
-const TerminosRoute = TerminosRouteImport.update({
-  id: '/terminos',
-  path: '/terminos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TalleresRoute = TalleresRouteImport.update({
-  id: '/talleres',
-  path: '/talleres',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProduccionesRoute = ProduccionesRouteImport.update({
-  id: '/producciones',
-  path: '/producciones',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NoticiasRoute = NoticiasRouteImport.update({
-  id: '/noticias',
-  path: '/noticias',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NosotrosRoute = NosotrosRouteImport.update({
-  id: '/nosotros',
-  path: '/nosotros',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LibroDeReclamacionesRoute = LibroDeReclamacionesRouteImport.update({
-  id: '/libro-de-reclamaciones',
-  path: '/libro-de-reclamaciones',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FesmicaRoute = FesmicaRouteImport.update({
-  id: '/fesmica',
-  path: '/fesmica',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EquipoRoute = EquipoRouteImport.update({
-  id: '/equipo',
-  path: '/equipo',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EntradasRoute = EntradasRouteImport.update({
-  id: '/entradas',
-  path: '/entradas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EncuestaRoute = EncuestaRouteImport.update({
-  id: '/encuesta',
-  path: '/encuesta',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactoRoute = ContactoRouteImport.update({
-  id: '/contacto',
-  path: '/contacto',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AliadosRoute = AliadosRouteImport.update({
@@ -86,14 +36,64 @@ const AliadosRoute = AliadosRouteImport.update({
   path: '/aliados',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ContactoRoute = ContactoRouteImport.update({
+  id: '/contacto',
+  path: '/contacto',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TicketIdRoute = TicketIdRouteImport.update({
-  id: '/ticket/$id',
-  path: '/ticket/$id',
+const EncuestaRoute = EncuestaRouteImport.update({
+  id: '/encuesta',
+  path: '/encuesta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntradasRoute = EntradasRouteImport.update({
+  id: '/entradas',
+  path: '/entradas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EquipoRoute = EquipoRouteImport.update({
+  id: '/equipo',
+  path: '/equipo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FesmicaRoute = FesmicaRouteImport.update({
+  id: '/fesmica',
+  path: '/fesmica',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibroDeReclamacionesRoute = LibroDeReclamacionesRouteImport.update({
+  id: '/libro-de-reclamaciones',
+  path: '/libro-de-reclamaciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NosotrosRoute = NosotrosRouteImport.update({
+  id: '/nosotros',
+  path: '/nosotros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NoticiasRoute = NoticiasRouteImport.update({
+  id: '/noticias',
+  path: '/noticias',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProduccionesRoute = ProduccionesRouteImport.update({
+  id: '/producciones',
+  path: '/producciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TalleresRoute = TalleresRouteImport.update({
+  id: '/talleres',
+  path: '/talleres',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TerminosRoute = TerminosRouteImport.update({
+  id: '/terminos',
+  path: '/terminos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminEncuestasRoute = AdminEncuestasRouteImport.update({
+  id: '/admin/encuestas',
+  path: '/admin/encuestas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminEntradasRoute = AdminEntradasRouteImport.update({
@@ -101,9 +101,9 @@ const AdminEntradasRoute = AdminEntradasRouteImport.update({
   path: '/admin/entradas',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminEncuestasRoute = AdminEncuestasRouteImport.update({
-  id: '/admin/encuestas',
-  path: '/admin/encuestas',
+const TicketIdRoute = TicketIdRouteImport.update({
+  id: '/ticket/$id',
+  path: '/ticket/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -240,81 +240,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/terminos': {
-      id: '/terminos'
-      path: '/terminos'
-      fullPath: '/terminos'
-      preLoaderRoute: typeof TerminosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/talleres': {
-      id: '/talleres'
-      path: '/talleres'
-      fullPath: '/talleres'
-      preLoaderRoute: typeof TalleresRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/producciones': {
-      id: '/producciones'
-      path: '/producciones'
-      fullPath: '/producciones'
-      preLoaderRoute: typeof ProduccionesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/noticias': {
-      id: '/noticias'
-      path: '/noticias'
-      fullPath: '/noticias'
-      preLoaderRoute: typeof NoticiasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/nosotros': {
-      id: '/nosotros'
-      path: '/nosotros'
-      fullPath: '/nosotros'
-      preLoaderRoute: typeof NosotrosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/libro-de-reclamaciones': {
-      id: '/libro-de-reclamaciones'
-      path: '/libro-de-reclamaciones'
-      fullPath: '/libro-de-reclamaciones'
-      preLoaderRoute: typeof LibroDeReclamacionesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/fesmica': {
-      id: '/fesmica'
-      path: '/fesmica'
-      fullPath: '/fesmica'
-      preLoaderRoute: typeof FesmicaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/equipo': {
-      id: '/equipo'
-      path: '/equipo'
-      fullPath: '/equipo'
-      preLoaderRoute: typeof EquipoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/entradas': {
-      id: '/entradas'
-      path: '/entradas'
-      fullPath: '/entradas'
-      preLoaderRoute: typeof EntradasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/encuesta': {
-      id: '/encuesta'
-      path: '/encuesta'
-      fullPath: '/encuesta'
-      preLoaderRoute: typeof EncuestaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contacto': {
-      id: '/contacto'
-      path: '/contacto'
-      fullPath: '/contacto'
-      preLoaderRoute: typeof ContactoRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aliados': {
@@ -324,18 +254,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AliadosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/contacto': {
+      id: '/contacto'
+      path: '/contacto'
+      fullPath: '/contacto'
+      preLoaderRoute: typeof ContactoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ticket/$id': {
-      id: '/ticket/$id'
-      path: '/ticket/$id'
-      fullPath: '/ticket/$id'
-      preLoaderRoute: typeof TicketIdRouteImport
+    '/encuesta': {
+      id: '/encuesta'
+      path: '/encuesta'
+      fullPath: '/encuesta'
+      preLoaderRoute: typeof EncuestaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entradas': {
+      id: '/entradas'
+      path: '/entradas'
+      fullPath: '/entradas'
+      preLoaderRoute: typeof EntradasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/equipo': {
+      id: '/equipo'
+      path: '/equipo'
+      fullPath: '/equipo'
+      preLoaderRoute: typeof EquipoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fesmica': {
+      id: '/fesmica'
+      path: '/fesmica'
+      fullPath: '/fesmica'
+      preLoaderRoute: typeof FesmicaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/libro-de-reclamaciones': {
+      id: '/libro-de-reclamaciones'
+      path: '/libro-de-reclamaciones'
+      fullPath: '/libro-de-reclamaciones'
+      preLoaderRoute: typeof LibroDeReclamacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nosotros': {
+      id: '/nosotros'
+      path: '/nosotros'
+      fullPath: '/nosotros'
+      preLoaderRoute: typeof NosotrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/noticias': {
+      id: '/noticias'
+      path: '/noticias'
+      fullPath: '/noticias'
+      preLoaderRoute: typeof NoticiasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/producciones': {
+      id: '/producciones'
+      path: '/producciones'
+      fullPath: '/producciones'
+      preLoaderRoute: typeof ProduccionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/talleres': {
+      id: '/talleres'
+      path: '/talleres'
+      fullPath: '/talleres'
+      preLoaderRoute: typeof TalleresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terminos': {
+      id: '/terminos'
+      path: '/terminos'
+      fullPath: '/terminos'
+      preLoaderRoute: typeof TerminosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/encuestas': {
+      id: '/admin/encuestas'
+      path: '/admin/encuestas'
+      fullPath: '/admin/encuestas'
+      preLoaderRoute: typeof AdminEncuestasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/entradas': {
@@ -345,11 +345,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEntradasRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/encuestas': {
-      id: '/admin/encuestas'
-      path: '/admin/encuestas'
-      fullPath: '/admin/encuestas'
-      preLoaderRoute: typeof AdminEncuestasRouteImport
+    '/ticket/$id': {
+      id: '/ticket/$id'
+      path: '/ticket/$id'
+      fullPath: '/ticket/$id'
+      preLoaderRoute: typeof TicketIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
