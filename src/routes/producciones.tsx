@@ -47,6 +47,7 @@ interface Obra {
   tipo: Tipo;
   img: string;
   tag?: string;
+  fecha?: string; // fecha de función para obras próximas
   autores: string;
   director: string;
   sinopsis: string;
@@ -62,6 +63,7 @@ const obras: Obra[] = [
     tipo: "Familiar",
     img: shrekFlyer,
     tag: "PRÓXIMA",
+    fecha: "Diciembre 2026",
     autores: "Basado en DreamWorks",
     director: "Harold López Segovia",
     sinopsis:
@@ -73,6 +75,7 @@ const obras: Obra[] = [
     tipo: "Musical",
     img: jesucristoFlyer,
     tag: "PRÓXIMA",
+    fecha: "Dom 18 de octubre · 4:00 pm y 7:00 pm",
     autores: "Andrew Lloyd Webber y Tim Rice",
     director: "Harold López Segovia",
     sinopsis:
@@ -378,8 +381,13 @@ function ObraCard({ obra, isOpen, onToggle }: {
         <div className="absolute inset-0 bg-negro/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
         {obra.tag && (
-          <div className="absolute top-4 right-4 bg-rojo px-3 py-1">
-            <span className="font-body text-negro text-[10px] font-bold uppercase tracking-[0.2em]">{obra.tag}</span>
+          <div className="absolute top-4 right-4 bg-rojo px-3 py-1 text-right max-w-[75%]">
+            <span className="block font-body text-negro text-[10px] font-bold uppercase tracking-[0.2em]">{obra.tag}</span>
+            {obra.fecha && (
+              <span className="block font-body text-negro text-[10px] font-semibold uppercase tracking-[0.12em] mt-0.5">
+                {obra.fecha}
+              </span>
+            )}
           </div>
         )}
 
