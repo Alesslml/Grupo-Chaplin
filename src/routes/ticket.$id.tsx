@@ -124,7 +124,7 @@ function TicketPage() {
   const handleShareWhatsApp = () => {
     if (!ticket) return;
     const msg = buildWhatsAppReservationMessage(ticket);
-    const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
     window.open(url, "_blank");
   };
 

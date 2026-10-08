@@ -170,14 +170,16 @@ function AdminEntradasPage() {
   const [lastRegistered, setLastRegistered] = useState<TicketReservation | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const handleSendWhatsApp = (res: TicketReservation) => {
+  // Se usa api.whatsapp.com/send directo: wa.me reescribe los emojis como "?" al redirigir.
+  const buildWhatsAppUrl = (res: TicketReservation) => {
     const rawPhone = res.clienteTelefono.replace(/\D/g, "");
     const cleanPhone = rawPhone.length === 9 ? `51${rawPhone}` : rawPhone;
     const msg = buildWhatsAppReservationMessage(res);
-    const url = cleanPhone
-      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`
-      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-    window.open(url, "_blank");
+    return `https://api.whatsapp.com/send?${cleanPhone ? `phone=${cleanPhone}&` : ""}text=${encodeURIComponent(msg)}`;
+  };
+
+  const handleSendWhatsApp = (res: TicketReservation) => {
+    window.open(buildWhatsAppUrl(res), "_blank");
   };
 
   const handleCopyTicketLink = (res: TicketReservation) => {
@@ -1571,7 +1573,7 @@ function AdminEntradasPage() {
                         {/* Botones de acción mobile */}
                         <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-100 flex-wrap">
                           <a
-                            href={`https://wa.me/51${r.clienteTelefono.replace(/\D/g, "")}`}
+                            href={buildWhatsAppUrl(r)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-md transition-colors"
@@ -1704,7 +1706,7 @@ function AdminEntradasPage() {
                                 <span>{r.clienteTelefono}</span>
                               </div>
                               <a
-                                href={`https://wa.me/51${r.clienteTelefono.replace(/\D/g, "")}`}
+                                href={buildWhatsAppUrl(r)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-[11px] text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1 mt-1 font-bold"
