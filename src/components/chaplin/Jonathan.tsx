@@ -16,9 +16,9 @@ const credenciales = [
 
 const trayectoria = [
   { lugar: "Universidad Alas Peruanas", rol: "Administración y Negocios Internacionales" },
-  { lugar: "Pollería Roky's", rol: "Cargos administrativos" },
-  { lugar: "Discoteca Sopranos", rol: "Cargos administrativos" },
-  { lugar: "Chicharronería Mechita", rol: "Fundó su propia empresa" },
+  { lugar: "Grupo Roky's", rol: "Administrador" },
+  { lugar: "Karaoke Bar y Discoteca Sopranos", rol: "Administrador" },
+  { lugar: "Chicharronería Mechita", rol: "Gerente General de su propia empresa" },
   { lugar: "Macacona Hotel Resort", rol: "Administrador" },
   { lugar: "Actualidad", rol: "Asesor administrativo de negocios" },
 ];
@@ -88,7 +88,7 @@ export function Jonathan() {
               Nacido en Ica, Jonathan estudió <strong className="text-blanco">Administración y Negocios Internacionales</strong> en la Universidad Alas Peruanas y construyó su carrera <em className="not-italic font-semibold text-blanco">desde la gestión de negocios reales</em>.
             </p>
             <p className="jon-fade font-body text-blanco/60 text-base leading-[1.8] mb-5 max-w-xl">
-              Desempeñó cargos administrativos en el rubro de pollerías, como Roky's, y de discotecas, como Sopranos. Luego dio el salto a emprender con su propia empresa, Chicharronería Mechita, y fue administrador de Macacona Hotel Resort.
+              Se desempeñó como administrador en el Grupo Roky's y en el Karaoke Bar y Discoteca Sopranos. Luego dio el salto a emprender con su propia empresa, Chicharronería Mechita, como Gerente General, y fue administrador de Macacona Hotel Resort.
             </p>
             <p className="jon-fade font-body text-blanco/60 text-base leading-[1.8] mb-10 max-w-xl">
               Hoy es asesor administrativo de negocios en Lima, Ica y otras regiones, y pone esa experiencia al servicio de Chaplin Grupo Cultural como Gerente General, cuidando que la parte administrativa esté tan bien armada como lo que ocurre sobre el escenario.
@@ -133,7 +133,7 @@ export function Jonathan() {
             <div className="relative aspect-[3/4] overflow-hidden">
               <img
                 src={jonathanImg}
-                alt="Jonathan López – Gerente General"
+                alt="Jonathan López Segovia – Gerente General"
                 loading="lazy"
                 className="w-full h-full object-cover object-[50%_18%]"
               />
@@ -144,7 +144,7 @@ export function Jonathan() {
                   Gerente General
                 </p>
                 <h3 className="font-display text-blanco text-3xl leading-none">
-                  JONATHAN<br />LÓPEZ
+                  JONATHAN<br />LÓPEZ SEGOVIA
                 </h3>
               </div>
             </div>
