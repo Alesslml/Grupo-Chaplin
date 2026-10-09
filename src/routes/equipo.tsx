@@ -5,6 +5,8 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { PageLayout } from "@/components/chaplin/PageLayout";
 import { PageHero } from "@/components/chaplin/PageHero";
 import ensemble from "@/assets/team-gala.jpg";
+import { Harold } from "@/components/chaplin/Harold";
+import { Jonathan } from "@/components/chaplin/Jonathan";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -23,20 +25,6 @@ export const Route = createFileRoute("/equipo")({
   }),
   component: EquipoPage,
 });
-
-const equipo = [
-  { nombre: "Harold López", cargo: "Director general" },
-  { nombre: "Jonathan López", cargo: "Gerente general" },
-  { nombre: "Yenny Huamani", cargo: "Directora de producción" },
-];
-
-function iniciales(nombre: string) {
-  return nombre
-    .split(" ")
-    .map((p) => p[0])
-    .join("")
-    .toUpperCase();
-}
 
 function EquipoSection() {
   const ref = useRef<HTMLElement>(null);
@@ -60,9 +48,9 @@ function EquipoSection() {
   }, []);
 
   return (
-    <section ref={ref} className="bg-negro grain py-28 lg:py-40">
+    <section ref={ref} className="bg-negro grain pt-28 lg:pt-40 pb-4">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
-        <header className="max-w-3xl mb-20">
+        <header className="max-w-3xl">
           <p className="font-body uppercase tracking-[0.4em] text-rojo text-xs mb-5">La familia detrás del telón</p>
           <h2 className="font-display text-blanco text-5xl md:text-6xl lg:text-7xl leading-[0.95] mb-8">
             NUESTRO<br />EQUIPO.
@@ -76,27 +64,6 @@ function EquipoSection() {
           </p>
         </header>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {equipo.map((p) => (
-            <div
-              key={p.nombre}
-              className="eq-card group bg-negro-suave border border-gris-textura hover:border-rojo/40 transition-colors duration-500 p-8 text-center"
-            >
-              <div className="w-24 h-24 mx-auto mb-6 border-2 border-rojo flex items-center justify-center bg-negro group-hover:bg-rojo transition-colors duration-500">
-                <span className="font-display text-rojo group-hover:text-negro text-3xl transition-colors duration-500">
-                  {iniciales(p.nombre)}
-                </span>
-              </div>
-              <h3 className="font-display text-blanco text-2xl mb-1">{p.nombre}</h3>
-              <p className="font-body text-rojo text-[12px] uppercase tracking-[0.2em]">{p.cargo}</p>
-            </div>
-          ))}
-        </div>
-
-        <p className="font-body text-blanco/50 text-sm text-center mt-16 max-w-2xl mx-auto">
-          Presentamos a quienes, día a día, hacen que la pasión por el teatro sea
-          nuestra forma de vivir.
-        </p>
       </div>
     </section>
   );
@@ -112,6 +79,14 @@ function EquipoPage() {
         bg={ensemble}
       />
       <EquipoSection />
+      <Harold />
+      <Jonathan />
+      <section className="bg-negro grain py-16">
+        <p className="font-body text-blanco/50 text-sm text-center max-w-2xl mx-auto px-6">
+          Presentamos a quienes, día a día, hacen que la pasión por el teatro sea
+          nuestra forma de vivir.
+        </p>
+      </section>
     </PageLayout>
   );
 }
