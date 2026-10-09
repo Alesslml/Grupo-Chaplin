@@ -14,13 +14,17 @@ const credenciales = [
   { valor: "Lima · Ica", desc: "Asesoría de negocios en regiones" },
 ];
 
-const trayectoria = [
+const trayectoria: { lugar: string; rol: string; detalle?: string }[] = [
   { lugar: "Universidad Alas Peruanas", rol: "Administración y Negocios Internacionales" },
   { lugar: "Grupo Roky's", rol: "Administrador" },
   { lugar: "Karaoke Bar y Discoteca Sopranos", rol: "Administrador" },
   { lugar: "Chicharronería Mechita", rol: "Gerente General de su propia empresa" },
   { lugar: "Macacona Hotel Resort", rol: "Administrador" },
-  { lugar: "Actualidad", rol: "Asesor administrativo de negocios" },
+  {
+    lugar: "Actualidad",
+    rol: "Asesor administrativo de negocios",
+    detalle: "Asesora a Inversiones Leoney E.I.R.L. y Cía. Minera Cruzcam E.I.R.L.",
+  },
 ];
 
 export function Jonathan() {
@@ -103,6 +107,7 @@ export function Jonathan() {
                     <span className="absolute -left-[31px] top-1.5 w-2.5 h-2.5 bg-rojo rounded-full" />
                     <p className="font-display text-blanco text-xl leading-none">{t.lugar}</p>
                     <p className="font-body text-blanco/55 text-sm mt-1">{t.rol}</p>
+                    {t.detalle && <p className="font-body text-blanco/40 text-xs mt-1">{t.detalle}</p>}
                   </li>
                 ))}
               </ol>
