@@ -138,7 +138,7 @@ export function Jonathan() {
             <div className="relative aspect-[3/4] overflow-hidden">
               <img
                 src={jonathanImg}
-                alt="Jonathan López Segovia – Gerente General"
+                alt="Jonathan Christhofer López Segovia – Gerente General"
                 loading="lazy"
                 className="w-full h-full object-cover object-[50%_18%]"
               />
@@ -149,7 +149,7 @@ export function Jonathan() {
                   Gerente General
                 </p>
                 <h3 className="font-display text-blanco text-3xl leading-none">
-                  JONATHAN<br />LÓPEZ SEGOVIA
+                  JONATHAN CHRISTHOFER<br />LÓPEZ SEGOVIA
                 </h3>
               </div>
             </div>
