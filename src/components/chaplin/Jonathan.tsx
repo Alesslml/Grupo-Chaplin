@@ -148,7 +148,7 @@ export function Jonathan() {
                 <p className="font-body uppercase tracking-[0.35em] text-rojo text-[10px] mb-2">
                   Gerente General
                 </p>
-                <h3 className="font-display text-blanco text-3xl leading-none">
+                <h3 className="font-display text-blanco text-2xl sm:text-3xl leading-none">
                   JONATHAN CHRISTHOFER<br />LÓPEZ SEGOVIA
                 </h3>
               </div>
