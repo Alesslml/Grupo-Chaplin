@@ -539,6 +539,28 @@ function TicketPage() {
                 </li>
               </ul>
 
+              <p className="text-blanco/70 leading-relaxed font-body">
+                Con esta entrada aceptas nuestros{" "}
+                <a
+                  href="/terminos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-amber-300 underline underline-offset-2 hover:text-blanco font-semibold"
+                >
+                  Términos y condiciones
+                </a>
+                . ¿Tienes un reclamo? Registra tu{" "}
+                <a
+                  href="/libro-de-reclamaciones"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-amber-300 underline underline-offset-2 hover:text-blanco font-semibold"
+                >
+                  Libro de Reclamaciones
+                </a>
+                .
+              </p>
+
               <div className="pt-3 border-t border-amber-500/30 text-center space-y-1">
                 <p className="text-blanco/90 font-medium">
                   Muchas gracias 👍🏽 por apoyar el arte y la cultura, en especial el teatro 🎭...
