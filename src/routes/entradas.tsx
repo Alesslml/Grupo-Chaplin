@@ -887,6 +887,19 @@ function EntradasPage() {
                   </div>
                 )}
 
+                <p className="font-body text-blanco/60 text-xs leading-relaxed">
+                  Al reservar aceptas nuestros{" "}
+                  <a
+                    href="/terminos"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-rojo underline underline-offset-2 hover:text-blanco transition-colors"
+                  >
+                    Términos y condiciones
+                  </a>
+                  .
+                </p>
+
                 <p className="font-body text-blanco/50 text-xs leading-relaxed">
                   {noHayCupo
                     ? "El aforo solicitado supera la disponibilidad en vivo."
@@ -912,6 +925,14 @@ function EntradasPage() {
         <div className="max-w-[1200px] mx-auto px-6 lg:px-12 text-center">
           <p className="font-body text-blanco/40 text-xs uppercase tracking-[0.2em]">
             Chaplin Grupo Cultural · Ica, Perú
+          </p>
+          <p className="font-body text-blanco/40 text-xs mt-3 space-x-4">
+            <a href="/terminos" className="hover:text-rojo transition-colors underline underline-offset-2">
+              Términos y condiciones
+            </a>
+            <a href="/libro-de-reclamaciones" className="hover:text-rojo transition-colors underline underline-offset-2">
+              Libro de Reclamaciones
+            </a>
           </p>
         </div>
       </footer>
