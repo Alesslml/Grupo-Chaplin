@@ -549,15 +549,6 @@ function TicketPage() {
                 >
                   Términos y condiciones
                 </a>
-                . ¿Tienes un reclamo? Registra tu{" "}
-                <a
-                  href="/libro-de-reclamaciones"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-amber-300 underline underline-offset-2 hover:text-blanco font-semibold"
-                >
-                  Libro de Reclamaciones
-                </a>
                 .
               </p>
 

@@ -118,7 +118,6 @@ const secciones: Seccion[] = [
     titulo: "Reclamos y contacto",
     items: [
       "Para consultas, cambios o reclamos, escríbenos por WhatsApp.",
-      "También puedes registrar tu reclamo en nuestro Libro de Reclamaciones.",
     ],
   },
   {
@@ -184,9 +183,6 @@ function TerminosPage() {
                     >
                       WhatsApp {WHATSAPP}
                     </a>
-                    <Link to="/libro-de-reclamaciones" className="btn-outline">
-                      Libro de Reclamaciones
-                    </Link>
                   </div>
                 )}
               </article>

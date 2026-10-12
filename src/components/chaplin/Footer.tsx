@@ -15,7 +15,6 @@ const navLinks = [
 
 const legalLinks = [
   { to: "/terminos", label: "Términos y condiciones" },
-  { to: "/libro-de-reclamaciones", label: "Libro de Reclamaciones" },
 ];
 
 export function Footer() {

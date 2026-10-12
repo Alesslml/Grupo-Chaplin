@@ -930,9 +930,6 @@ function EntradasPage() {
             <a href="/terminos" className="hover:text-rojo transition-colors underline underline-offset-2">
               Términos y condiciones
             </a>
-            <a href="/libro-de-reclamaciones" className="hover:text-rojo transition-colors underline underline-offset-2">
-              Libro de Reclamaciones
-            </a>
           </p>
         </div>
       </footer>
