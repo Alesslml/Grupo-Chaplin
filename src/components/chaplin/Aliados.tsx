@@ -1,11 +1,21 @@
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import amareLogo from "@/assets/aliados/amare.png";
 
-const aliados = [
-  "LA TÍA", "LA CARTELERA", "ARCSUR", "CINCO PIEDRAS",
-  "LIMÓN Y SAL", "RESPIRA", "VILLA DEL SOL", "OLIMPO",
-  "DRUCILA MAKEUP", "DREBON", "CULTURA ICA", "ARTE+",
+interface Aliado {
+  nombre: string;
+  logo?: string; // si no hay logo, se muestra el nombre en texto
+  href?: string; // al hacer clic se abre su Instagram / página
+}
+
+const aliados: Aliado[] = [
+  { nombre: "AMARÉ", logo: amareLogo, href: "https://instagram.com/amarestudio.pe" },
+  ...[
+    "LA TÍA", "LA CARTELERA", "ARCSUR", "CINCO PIEDRAS",
+    "LIMÓN Y SAL", "RESPIRA", "VILLA DEL SOL", "OLIMPO",
+    "DRUCILA MAKEUP", "DREBON", "CULTURA ICA", "ARTE+",
+  ].map((nombre) => ({ nombre })),
 ];
 
 export function Aliados() {
@@ -42,16 +52,38 @@ export function Aliados() {
         </header>
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-px bg-gris-textura">
-          {aliados.map((a) => (
-            <div
-              key={a}
-              className="al-fade bg-negro aspect-[3/2] flex items-center justify-center p-4 group hover:bg-rojo transition-colors duration-500"
-            >
+          {aliados.map((a) => {
+            const tile = "al-fade bg-negro aspect-[3/2] flex items-center justify-center p-4 group hover:bg-rojo transition-colors duration-500";
+            const contenido = a.logo ? (
+              <img
+                src={a.logo}
+                alt={`Logo de ${a.nombre}`}
+                loading="lazy"
+                className="w-full max-w-[150px] h-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-500"
+              />
+            ) : (
               <span className="logo-grayscale group-hover:!opacity-100 group-hover:!filter-none font-display text-blanco text-base md:text-xl tracking-wider text-center group-hover:text-negro transition-colors duration-500">
-                {a}
+                {a.nombre}
               </span>
-            </div>
-          ))}
+            );
+            return a.href ? (
+              <a
+                key={a.nombre}
+                href={a.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${a.nombre} en Instagram`}
+                title={`${a.nombre} en Instagram`}
+                className={tile}
+              >
+                {contenido}
+              </a>
+            ) : (
+              <div key={a.nombre} className={tile}>
+                {contenido}
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
