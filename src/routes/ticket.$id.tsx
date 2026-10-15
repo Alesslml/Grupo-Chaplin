@@ -432,9 +432,9 @@ function TicketPage() {
                     <span className="font-bold text-amber-300 uppercase block">
                       {promoLabel}
                     </span>
-                    {ticket.etapaPromo === "twoXone" && (
+                    {(ticket.etapaPromo === "twoXone" || ticket.etapaPromo === "threeXtwo") && (
                       <span className="text-[10px] text-emerald-300 font-semibold block">
-                        Llevas 2x1 ({effectiveTickets} entradas en total)
+                        Llevas {PROMOS_CONFIG[ticket.etapaPromo]?.tag} ({effectiveTickets} entradas en total)
                       </span>
                     )}
                   </div>
