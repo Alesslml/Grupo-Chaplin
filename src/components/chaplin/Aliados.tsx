@@ -3,6 +3,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import amareLogo from "@/assets/aliados/amare.png";
 import saborMilagrosoLogo from "@/assets/aliados/sabor-milagroso.png";
+import laCarteleraLogo from "@/assets/aliados/la-cartelera.png";
 
 interface Aliado {
   nombre: string;
@@ -14,8 +15,9 @@ interface Aliado {
 const aliados: Aliado[] = [
   { nombre: "AMARÉ", logo: amareLogo, href: "https://instagram.com/amarestudio.pe", fondoCompleto: true },
   { nombre: "EL SABOR MILAGROSO", logo: saborMilagrosoLogo, href: "https://www.instagram.com/elsabormilagroso" },
+  { nombre: "LA CARTELERA", logo: laCarteleraLogo, href: "https://www.youtube.com/@lacartelera1076", fondoCompleto: true },
   ...[
-    "LA TÍA", "LA CARTELERA", "ARCSUR", "CINCO PIEDRAS",
+    "LA TÍA", "ARCSUR", "CINCO PIEDRAS",
     "LIMÓN Y SAL", "RESPIRA", "VILLA DEL SOL", "OLIMPO",
     "DRUCILA MAKEUP", "DREBON", "CULTURA ICA", "ARTE+",
   ].map((nombre) => ({ nombre })),
@@ -81,8 +83,8 @@ export function Aliados() {
                 href={a.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={`${a.nombre} en Instagram`}
-                title={`${a.nombre} en Instagram`}
+                aria-label={`Visitar a ${a.nombre}`}
+                title={`Visitar a ${a.nombre}`}
                 className={tile}
               >
                 {contenido}
