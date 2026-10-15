@@ -340,16 +340,34 @@ async function cachedPublicQuery<T>(name: string, loader: () => Promise<{ value:
 export const fetchPublicAvailabilityV2Server = createServerFn({ method: "POST" }).handler(async () =>
   cachedPublicQuery("fetchPublicAvailability", async () => {
     await ensureTicketsSchema();
+    await ensureEventSettingsSchema();
     const sql = getSql();
-    const rows = (await sql`
-      select 
-        funcion, 
-        zona_key, 
-        sum(case when etapa_promo = 'twoXone' then cantidad * 2 else cantidad end)::int as sold
+    // Cada promoción descuenta de la sala tantos asientos como indique su configuración
+    // (2x1 = 2, 3x2 = 3, resto = 1), igual que el CRM.
+    const setRows = (await sql`
+      select value from event_settings where key = 'jesucristo_rockstar_settings' limit 1
+    `) as any[];
+    const promos: EventPromoSetting[] = setRows[0]?.value?.promos ?? DEFAULT_EVENT_SETTINGS.promos;
+    const seatsPerPromo = (key: string) =>
+      promos.find((p) => p.key === key)?.entradasPorPrecio ??
+      (key === "twoXone" ? 2 : key === "threeXtwo" ? 3 : 1);
+
+    const raw = (await sql`
+      select funcion, zona_key, etapa_promo, sum(cantidad)::int as qty
       from ticket_reservations
       where estado != 'anulado'
-      group by funcion, zona_key
+      group by funcion, zona_key, etapa_promo
     `) as any[];
+
+    const totals = new Map<string, number>();
+    for (const r of raw) {
+      const key = `${r.funcion}|${r.zona_key}`;
+      totals.set(key, (totals.get(key) || 0) + Number(r.qty || 0) * seatsPerPromo(String(r.etapa_promo)));
+    }
+    const rows = Array.from(totals.entries()).map(([k, sold]) => {
+      const [funcion, zona_key] = k.split("|");
+      return { funcion, zona_key, sold };
+    });
 
     const soldMap: Record<string, Record<string, number>> = {
       "4:00 pm": { superstar: 0, cortesia: 0, getsemani: 0, hosanna: 0, pueblo: 0 },
