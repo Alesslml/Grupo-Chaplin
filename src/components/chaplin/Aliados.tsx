@@ -2,15 +2,18 @@ import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import amareLogo from "@/assets/aliados/amare.png";
+import saborMilagrosoLogo from "@/assets/aliados/sabor-milagroso.png";
 
 interface Aliado {
   nombre: string;
   logo?: string; // logo con sus colores originales; si no hay, se muestra el nombre en texto
   href?: string; // al hacer clic se abre su Instagram / página
+  fondoCompleto?: boolean; // el logo trae su propio fondo y ocupa todo el cuadro
 }
 
 const aliados: Aliado[] = [
-  { nombre: "AMARÉ", logo: amareLogo, href: "https://instagram.com/amarestudio.pe" },
+  { nombre: "AMARÉ", logo: amareLogo, href: "https://instagram.com/amarestudio.pe", fondoCompleto: true },
+  { nombre: "EL SABOR MILAGROSO", logo: saborMilagrosoLogo, href: "https://www.instagram.com/elsabormilagroso" },
   ...[
     "LA TÍA", "LA CARTELERA", "ARCSUR", "CINCO PIEDRAS",
     "LIMÓN Y SAL", "RESPIRA", "VILLA DEL SOL", "OLIMPO",
@@ -54,14 +57,18 @@ export function Aliados() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-px bg-gris-textura">
           {aliados.map((a) => {
             const tile = a.logo
-              ? "al-fade bg-negro aspect-[3/2] overflow-hidden group"
+              ? "al-fade bg-negro aspect-[3/2] overflow-hidden group flex items-center justify-center"
               : "al-fade bg-negro aspect-[3/2] flex items-center justify-center p-4 group hover:bg-rojo transition-colors duration-500";
             const contenido = a.logo ? (
               <img
                 src={a.logo}
                 alt={`Logo de ${a.nombre}`}
                 loading="lazy"
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                className={
+                  a.fondoCompleto
+                    ? "w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    : "w-[88%] h-[88%] object-contain transition-transform duration-500 group-hover:scale-105"
+                }
               />
             ) : (
               <span className="logo-grayscale group-hover:!opacity-100 group-hover:!filter-none font-display text-blanco text-base md:text-xl tracking-wider text-center group-hover:text-negro transition-colors duration-500">
