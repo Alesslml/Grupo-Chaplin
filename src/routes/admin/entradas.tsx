@@ -89,6 +89,7 @@ import {
 } from "@/lib/tickets-crm";
 
 import { QrScanner } from "@/components/shrek/QrScanner";
+import { ShrekDashboard } from "@/components/shrek/ShrekDashboard";
 import shrekPersonaje from "@/assets/shrek/shrek-personaje.png";
 
 const fmtIngreso = (iso: string) =>
@@ -105,6 +106,9 @@ export const Route = createFileRoute("/admin/entradas")({
     meta: [
       { title: "Panel CRM · Chaplin Grupo Cultural" },
       { name: "robots", content: "noindex, nofollow" },
+    ],
+    links: [
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Lilita+One&family=Cinzel:wght@700;900&display=swap" },
     ],
   }),
   component: AdminEntradasPage,
@@ -946,17 +950,19 @@ function AdminEntradasPage() {
   }
 
   return (
-    <div className={`crm-skin ${shrekTema ? "crm-shrek" : ""} min-h-screen bg-[#f4f1ea] text-[#1f1d19] selection:bg-red-500 selection:text-white font-body`}>
+    <div
+      className={`crm-skin ${shrekTema ? "crm-shrek shk-root" : "bg-[#f4f1ea] text-[#1f1d19]"} min-h-screen selection:bg-red-500 selection:text-white font-body`}
+    >
       {/* Encabezado: sobrio, sin cajas. El color de acento cambia con el evento. */}
-      <header className="sticky top-0 z-30 border-b border-[#e3dccb] bg-[#fbf9f3]/95 backdrop-blur-md">
+      <header className={`sticky top-0 z-30 border-b ${shrekTema ? "border-white/10 bg-[#06120b]/85" : "border-[#e3dccb] bg-[#fbf9f3]/95"} backdrop-blur-md`}>
         <div className="h-[3px] w-full" style={{ background: shrekTema ? "linear-gradient(90deg,#a6e22e,#4c8a1f 55%,#a6e22e)" : "#dc2626" }} />
         <div className="relative mx-auto flex max-w-[1300px] items-center justify-between gap-4 px-3 py-3 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <Link to="/entradas" className="shrink-0" aria-label="Ver la ticketera">
-              <img src="/logo-chaplin.png" alt="Chaplin Grupo Cultural" className="h-8 w-auto object-contain sm:h-9" />
+              <img src="/logo-chaplin.png" alt="Chaplin Grupo Cultural" className="h-8 w-auto object-contain sm:h-9" style={shrekTema ? { filter: "invert(1) hue-rotate(180deg)" } : undefined} />
             </Link>
-            <div className="min-w-0 border-l border-[#e3dccb] pl-3 sm:pl-4">
-              <p className="text-[11px] text-[#7b715d]">Panel de ventas</p>
+            <div className={`min-w-0 border-l pl-3 sm:pl-4 ${shrekTema ? "border-white/15" : "border-[#e3dccb]"}`}>
+              <p className={`text-[11px] ${shrekTema ? "text-white/55" : "text-[#7b715d]"}`}>Panel de ventas</p>
               <div className="flex items-baseline gap-4">
                 {Object.values(EVENTOS).map((e) => (
                   <button
@@ -964,13 +970,13 @@ function AdminEntradasPage() {
                     type="button"
                     onClick={() => cambiarEvento(e.key)}
                     className={`relative cursor-pointer pb-0.5 text-[17px] leading-tight transition-colors sm:text-[20px] ${
-                      evento === e.key ? "font-bold text-[#1f1d19]" : "font-medium text-[#a79d86] hover:text-[#6b624f]"
+                      evento === e.key ? (shrekTema ? "font-bold text-white" : "font-bold text-[#1f1d19]") : (shrekTema ? "font-medium text-white/40 hover:text-white/70" : "font-medium text-[#a79d86] hover:text-[#6b624f]")
                     }`}
                   >
                     {e.nombreCorto}
                     <span
                       className="absolute -bottom-0.5 left-0 h-[3px] rounded-full transition-all"
-                      style={{ width: evento === e.key ? "100%" : 0, background: shrekTema && e.key === "shrek" ? "#4c8a1f" : "#dc2626" }}
+                      style={{ width: evento === e.key ? "100%" : 0, background: shrekTema && e.key === "shrek" ? "#a6e22e" : "#dc2626" }}
                     />
                   </button>
                 ))}
@@ -991,7 +997,7 @@ function AdminEntradasPage() {
               type="button"
               onClick={handleManualSync}
               disabled={isSyncing}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 font-medium text-[#6b624f] hover:bg-[#efe9da] disabled:opacity-60"
+              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 font-medium ${shrekTema ? "text-white/70 hover:bg-white/10" : "text-[#6b624f] hover:bg-[#efe9da]"} disabled:opacity-60`}
               title="Sincronizar con la base de datos"
             >
               <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
@@ -1000,7 +1006,7 @@ function AdminEntradasPage() {
             <Link
               to="/entradas"
               target="_blank"
-              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 font-medium text-[#6b624f] hover:bg-[#efe9da]"
+              className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 font-medium ${shrekTema ? "text-white/70 hover:bg-white/10" : "text-[#6b624f] hover:bg-[#efe9da]"}`}
               title="Ver la ticketera pública"
             >
               <ArrowUpRight className="h-4 w-4" />
@@ -1009,7 +1015,7 @@ function AdminEntradasPage() {
             <button
               type="button"
               onClick={handleLogout}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 font-medium text-[#6b624f] hover:bg-[#efe9da] hover:text-red-700"
+              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 font-medium ${shrekTema ? "text-white/70 hover:bg-white/10" : "text-[#6b624f] hover:bg-[#efe9da]"} hover:text-red-700`}
               title="Cerrar sesión"
             >
               <LogOut className="h-4 w-4" />
@@ -1020,7 +1026,7 @@ function AdminEntradasPage() {
         </div>
 
         {/* Pestañas */}
-        <div className="border-t border-[#e3dccb]">
+        <div className={`border-t ${shrekTema ? "border-white/10" : "border-[#e3dccb]"}`}>
           <div className="mx-auto flex max-w-[1300px] items-center justify-between gap-3 overflow-x-auto px-3 no-scrollbar sm:px-6 lg:px-8">
             <nav className="flex items-center gap-5 sm:gap-8" aria-label="Secciones">
               {(
@@ -1039,14 +1045,14 @@ function AdminEntradasPage() {
                     setLastRegistered(null);
                   }}
                   className={`relative cursor-pointer whitespace-nowrap py-3 text-[14px] transition-colors ${
-                    activeTab === key ? "font-bold text-[#1f1d19]" : "font-medium text-[#8c8268] hover:text-[#4d4636]"
+                    activeTab === key ? (shrekTema ? "font-bold text-white" : "font-bold text-[#1f1d19]") : (shrekTema ? "font-medium text-white/50 hover:text-white/80" : "font-medium text-[#8c8268] hover:text-[#4d4636]")
                   }`}
                 >
                   {label}
-                  {nota && <span className="ml-1.5 text-[12px] font-medium text-[#a79d86]">{nota}</span>}
+                  {nota && <span className={`ml-1.5 text-[12px] font-medium ${shrekTema ? "text-white/40" : "text-[#a79d86]"}`}>{nota}</span>}
                   <span
                     className="absolute inset-x-0 -bottom-px h-[3px] rounded-full transition-opacity"
-                    style={{ background: shrekTema ? "#4c8a1f" : "#dc2626", opacity: activeTab === key ? 1 : 0 }}
+                    style={{ background: shrekTema ? "#a6e22e" : "#dc2626", opacity: activeTab === key ? 1 : 0 }}
                   />
                 </button>
               ))}
@@ -1056,7 +1062,7 @@ function AdminEntradasPage() {
               <button
                 type="button"
                 onClick={() => exportTicketsToExcel(filteredReservations)}
-                className="inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[13px] font-medium text-[#6b624f] hover:bg-[#efe9da]"
+                className={`inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[13px] font-medium ${shrekTema ? "text-white/70 hover:bg-white/10" : "text-[#6b624f] hover:bg-[#efe9da]"}`}
                 title="Descargar las ventas en Excel (.xlsx)"
               >
                 <Download className="h-4 w-4" />
@@ -1086,6 +1092,25 @@ function AdminEntradasPage() {
         {/* ==================================================================== */}
         {activeTab === "dashboard" && (
           <div className="space-y-6 sm:space-y-8 animate-fade-in">
+            {shrekTema && (
+              <ShrekDashboard
+                reservations={reservations}
+                settings={eventSettings}
+                stats={stats as any}
+                zonas={zonasMonitor}
+                zonaMeta={ZONAS_CONFIG}
+                funcionActual={selectedFuncion}
+                onFuncion={setSelectedFuncion}
+                promoActiva={activePromoKey}
+                onNuevaVenta={() => {
+                  setActiveTab("registro");
+                  setLastRegistered(null);
+                }}
+              />
+            )}
+
+            {!shrekTema && (
+              <>
             {/* 1. Cifras principales en una sola franja, separadas por líneas (sin tarjetas) */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-7 border-b border-[#e3dccb] pb-7 lg:grid-cols-4 lg:gap-x-0 lg:divide-x lg:divide-[#e3dccb]">
               <div className="lg:pr-8">
@@ -1125,7 +1150,11 @@ function AdminEntradasPage() {
                 </div>
               ))}
             </div>
+              </>
+            )}
 
+            {/* Resto del resumen: en Shrek va sobre una hoja de papel */}
+            <div className={shrekTema ? "crm-paper space-y-6 sm:space-y-8" : "space-y-6 sm:space-y-8"}>
             {/* 2. Ventas por etapa: una tabla simple */}
             <section>
               <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
@@ -1183,6 +1212,8 @@ function AdminEntradasPage() {
               </div>
             </section>
 
+            {!shrekTema && (
+              <>
             {/* 3. Aforo por zonas: filas con una barra fina */}
             <section>
               <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -1240,6 +1271,8 @@ function AdminEntradasPage() {
                 })}
               </div>
             </section>
+              </>
+            )}
 
             {/* 3. Compradores */}
             <section className="space-y-5">
@@ -1749,6 +1782,7 @@ function AdminEntradasPage() {
                 </table>
               </div>
             </section>
+            </div>
           </div>
         )}
 
@@ -1756,7 +1790,7 @@ function AdminEntradasPage() {
         {/* PARTE 2: REGISTRO DE VENTA (LIMPIO, CLARO Y CON APARICIÓN DE ZONA SEGÚN HORARIO) */}
         {/* ==================================================================== */}
         {activeTab === "registro" && (
-          <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+          <div className={`max-w-2xl mx-auto space-y-6 animate-fade-in ${shrekTema ? "crm-paper" : ""}`}>
             {/* Cabecera del formulario con botón de retorno */}
             <div className="flex items-center justify-between pb-2 border-b border-slate-200">
               <button
@@ -2295,7 +2329,7 @@ function AdminEntradasPage() {
         {/* PARTE 3: CONTROL DE ASISTENCIA EN PUERTA & PREVENCIÓN DE DUPLICADOS */}
         {/* ==================================================================== */}
         {activeTab === "asistencia" && (
-          <div className="space-y-8 animate-fade-in">
+          <div className={`space-y-8 animate-fade-in ${shrekTema ? "crm-paper" : ""}`}>
             {/* Cabecera del módulo de puerta */}
             <div className="flex flex-col gap-4 border-b border-[#d9d0bb] pb-5 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -3011,7 +3045,7 @@ function AdminEntradasPage() {
 
         {/* PESTAÑA 4: CONFIGURAR PRECIOS, HORARIOS Y SHOW */}
         {activeTab === "configuracion" && (
-          <div className="space-y-6 animate-fade-in pb-12">
+          <div className={`space-y-6 animate-fade-in pb-12 ${shrekTema ? "crm-paper" : ""}`}>
             {/* Header de Configuración */}
             <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>

@@ -738,3 +738,23 @@
 /* CRM: las "pastillas" de estado pasan a ser texto de color (sin fondo ni borde) */
 .crm-skin .inline-flex.rounded-full.border { background: transparent; border-color: transparent; padding-left: 0; padding-right: 0; }
 .crm-skin .inline-flex.rounded-full.border.font-bold { font-weight: 700; }
+
+/* CRM de Shrek: las secciones de trabajo van sobre una hoja de papel (como el boleto) */
+.crm-paper {
+  color: #1f1d19;
+  border-radius: 26px;
+  padding: 22px;
+  background:
+    radial-gradient(ellipse at 15% 0%, rgba(255, 255, 255, 0.55), transparent 55%),
+    radial-gradient(ellipse at 95% 100%, rgba(150, 100, 30, 0.16), transparent 60%),
+    linear-gradient(180deg, #fbefc6 0%, #f3dd9c 100%);
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.7);
+}
+@media (min-width: 640px) {
+  .crm-paper { padding: 34px; }
+}
+.crm-shrek .crm-paper .bg-white { background-color: rgba(255, 253, 244, 0.82); }
+.crm-shrek .crm-paper .bg-slate-50 { background-color: rgba(255, 250, 230, 0.55); }
+.crm-shrek .crm-paper .border-slate-200 { border-color: rgba(120, 85, 25, 0.22); }
+.crm-shrek .crm-paper .border-slate-300 { border-color: rgba(120, 85, 25, 0.35); }
+.crm-shrek .crm-paper .bg-slate-100 { background-color: rgba(120, 85, 25, 0.1); }
