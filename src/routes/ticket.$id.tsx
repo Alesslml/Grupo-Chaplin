@@ -34,6 +34,30 @@ import { ShrekTicket } from "@/components/shrek/ShrekTicket";
 
 export const Route = createFileRoute("/ticket/$id")({
   loader: async ({ params }) => {
+    // Boleto de ejemplo para mostrar el diseño (no existe en la base de datos)
+    if (params.id.toUpperCase() === "SH-DEMO") {
+      const demo: TicketReservation = {
+        id: "demo-shrek",
+        evento: "shrek",
+        createdAt: new Date().toISOString(),
+        clienteNombre: "María Pérez Rojas (ejemplo)",
+        clienteTelefono: "956060826",
+        clienteDni: "45872136",
+        funcion: "4:00 pm",
+        zonaKey: "duloc",
+        cantidad: 1,
+        cantidadNino: 1,
+        etapaPromo: "twoXone",
+        totalPagado: 140,
+        metodoPago: "yape",
+        vendedor: "Boletería",
+        estado: "confirmado",
+        ticketCode: "SH-DEMO",
+        asistio: false,
+        ingresos: [],
+      };
+      return { ticket: demo, ticketId: params.id };
+    }
     try {
       const res = await fetchTicketByIdServer({ data: { id: params.id } });
       return { ticket: res.ok ? res.ticket : null, ticketId: params.id };

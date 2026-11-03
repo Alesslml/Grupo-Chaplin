@@ -88,6 +88,9 @@ import {
   DEFAULT_EVENT_SETTINGS,
 } from "@/lib/tickets-crm";
 
+import { QrScanner } from "@/components/shrek/QrScanner";
+import shrekPersonaje from "@/assets/shrek/shrek-personaje.png";
+
 const fmtIngreso = (iso: string) =>
   new Date(iso).toLocaleString("es-PE", {
     day: "2-digit",
@@ -129,6 +132,7 @@ function AdminEntradasPage() {
   const [eventSettings, setEventSettings] = useState<EventSettings>(() => getStoredEventSettings());
   const [evento, setEventoState] = useState<EventoKey>(() => getEvento());
   const cfgEvento = EVENTOS[evento];
+  const shrekTema = evento === "shrek";
   const activePromoKey = getActivePromoKey(eventSettings.promos);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState<string | null>(null);
@@ -178,6 +182,7 @@ function AdminEntradasPage() {
   const [entryQty, setEntryQty] = useState(1);
   // Entrada concreta (1..total) cuando se escanea el QR individual de una persona
   const [scanSeat, setScanSeat] = useState<number | null>(null);
+  const [camaraAbierta, setCamaraAbierta] = useState(false);
   const [filtroAsistenciaTab, setFiltroAsistenciaTab] = useState<"todos" | "asistidos" | "pendientes">("todos");
   const [filtroAsistenciaFuncion, setFiltroAsistenciaFuncion] = useState<string>("todas");
   const [filtroAsistenciaVendedor, setFiltroAsistenciaVendedor] = useState<string>("todos");
@@ -467,7 +472,7 @@ function AdminEntradasPage() {
     setSettingsSuccessMsg(null);
     try {
       await saveEventSettings(eventSettings);
-      setSettingsSuccessMsg("✅ ¡Configuración del evento guardada en vivo! Precios, horarios y aforos actualizados en la web pública.");
+      setSettingsSuccessMsg("¡Configuración del evento guardada en vivo! Precios, horarios y aforos actualizados en la web pública.");
       setTimeout(() => setSettingsSuccessMsg(null), 4000);
     } catch (err) {
       console.error("Error guardando configuración:", err);
@@ -651,10 +656,10 @@ function AdminEntradasPage() {
   }, [reservations, filtroAsistenciaTab, filtroAsistenciaFuncion, filtroAsistenciaVendedor]);
 
   // Validador rápido de boletos en puerta (por código, DNI o nombre)
-  const handleValidateScan = (e?: React.FormEvent) => {
+  const handleValidateScan = (e?: React.FormEvent, textoDirecto?: string) => {
     if (e) e.preventDefault();
     // El QR de cada entrada trae el enlace (…/ticket/CÓDIGO?e=3): se toma el código y el número de entrada
-    const rawQuery = scanQuery.trim();
+    const rawQuery = (textoDirecto ?? scanQuery).trim();
     let query = rawQuery;
     let seatN: number | null = null;
     if (rawQuery.includes("/ticket/")) {
@@ -935,199 +940,122 @@ function AdminEntradasPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-red-500 selection:text-white font-body">
-      {/* Top Header en Modo Claro */}
-      {/* Top Header en Modo Claro */}
-      <header className="border-b border-slate-200 sticky top-0 z-30 bg-white/95 backdrop-blur-md shadow-xs">
-        <div className="max-w-[1300px] mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 sm:gap-4">
-              <Link to="/entradas" className="shrink-0 group">
-                <img
-                  src="/logo-chaplin.png"
-                  alt="Chaplin Grupo Cultural"
-                  className="h-8 sm:h-9 w-auto object-contain transition-transform group-hover:scale-105"
-                />
-              </Link>
-              <div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="bg-red-600 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.16em] px-1.5 sm:px-2 py-0.5 rounded-xs">
-                    CRM · {cfgEvento.nombreCorto}
-                  </span>
-                  <span className="flex items-center gap-1 text-emerald-700 text-[10px] sm:text-xs font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    En vivo
-                  </span>
-                </div>
-                <h1 className="font-display text-slate-900 text-lg sm:text-2xl tracking-wide leading-tight mt-0.5">
-                  Panel de Control de Harold
-                </h1>
-                <div className="mt-1.5 inline-flex overflow-hidden rounded-md border border-slate-300 text-[11px] font-bold" role="group" aria-label="Evento">
-                  {Object.values(EVENTOS).map((e) => (
-                    <button
-                      key={e.key}
-                      type="button"
-                      onClick={() => cambiarEvento(e.key)}
-                      className={`px-3 py-1 transition-colors cursor-pointer ${
-                        evento === e.key ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-100"
-                      }`}
-                    >
-                      {e.nombreCorto}
-                    </button>
-                  ))}
-                </div>
+    <div className={`crm-skin ${shrekTema ? "crm-shrek" : ""} min-h-screen bg-[#f4f1ea] text-[#1f1d19] selection:bg-red-500 selection:text-white font-body`}>
+      {/* Encabezado: sobrio, sin cajas. El color de acento cambia con el evento. */}
+      <header className="sticky top-0 z-30 border-b border-[#e3dccb] bg-[#fbf9f3]/95 backdrop-blur-md">
+        <div className="h-[3px] w-full" style={{ background: shrekTema ? "linear-gradient(90deg,#a6e22e,#4c8a1f 55%,#a6e22e)" : "#dc2626" }} />
+        <div className="relative mx-auto flex max-w-[1300px] items-center justify-between gap-4 px-3 py-3 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <Link to="/entradas" className="shrink-0" aria-label="Ver la ticketera">
+              <img src="/logo-chaplin.png" alt="Chaplin Grupo Cultural" className="h-8 w-auto object-contain sm:h-9" />
+            </Link>
+            <div className="min-w-0 border-l border-[#e3dccb] pl-3 sm:pl-4">
+              <p className="text-[11px] text-[#7b715d]">Panel de ventas</p>
+              <div className="flex items-baseline gap-4">
+                {Object.values(EVENTOS).map((e) => (
+                  <button
+                    key={e.key}
+                    type="button"
+                    onClick={() => cambiarEvento(e.key)}
+                    className={`relative cursor-pointer pb-0.5 text-[17px] leading-tight transition-colors sm:text-[20px] ${
+                      evento === e.key ? "font-bold text-[#1f1d19]" : "font-medium text-[#a79d86] hover:text-[#6b624f]"
+                    }`}
+                  >
+                    {e.nombreCorto}
+                    <span
+                      className="absolute -bottom-0.5 left-0 h-[3px] rounded-full transition-all"
+                      style={{ width: evento === e.key ? "100%" : 0, background: shrekTema && e.key === "shrek" ? "#4c8a1f" : "#dc2626" }}
+                    />
+                  </button>
+                ))}
               </div>
             </div>
-
-            {/* Acciones en Mobile */}
-            <div className="flex md:hidden items-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleManualSync}
-                disabled={isSyncing}
-                className="p-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
-                title="Sincronizar reservas"
-              >
-                <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin text-red-600" : ""}`} />
-              </button>
-              <Link
-                to="/entradas"
-                target="_blank"
-                className="p-2 bg-red-600 text-white rounded-md transition-all shadow-xs"
-                title="Ver Ticketera pública"
-              >
-                <ArrowUpRight className="w-4 h-4" />
-              </Link>
-            </div>
+            {shrekTema && (
+              <img
+                src={shrekPersonaje}
+                alt=""
+                className="pointer-events-none -mb-[14px] hidden h-[50px] w-auto select-none self-end xl:block"
+                style={{ clipPath: "inset(0 0 42% 0)" }}
+              />
+            )}
           </div>
 
-          <div className="hidden md:flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-3 text-[13px]">
             <button
+              type="button"
               onClick={handleManualSync}
               disabled={isSyncing}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-300 hover:border-slate-400 hover:text-slate-900 rounded-md transition-colors shadow-xs cursor-pointer disabled:opacity-60"
-              title="Sincronizar reservas en tiempo real"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 font-medium text-[#6b624f] hover:bg-[#efe9da] disabled:opacity-60"
+              title="Sincronizar con la base de datos"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isSyncing ? "animate-spin text-red-600" : ""}`} />
-              <span>{isSyncing ? "Sincronizando..." : "Sincronizar"}</span>
+              <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+              <span className="hidden md:inline">{isSyncing ? "Sincronizando…" : "Sincronizar"}</span>
             </button>
-
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-md border border-slate-200/80">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Harold López</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
-                title="Cerrar sesión"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Cerrar Sesión</span>
-              </button>
-            </div>
-
             <Link
               to="/entradas"
               target="_blank"
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 rounded-md transition-all shadow-sm ml-1"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 font-medium text-[#6b624f] hover:bg-[#efe9da]"
+              title="Ver la ticketera pública"
             >
-              Ver Ticketera
-              <ArrowUpRight className="w-3.5 h-3.5" />
+              <ArrowUpRight className="h-4 w-4" />
+              <span className="hidden md:inline">Ver ticketera</span>
             </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 font-medium text-[#6b624f] hover:bg-[#efe9da] hover:text-red-700"
+              title="Cerrar sesión"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden md:inline">Salir</span>
+            </button>
           </div>
+
         </div>
 
-        {/* NAVEGACIÓN PRINCIPAL: 1. DASHBOARD & CRM vs 2. REGISTRAR VENTA vs 3. ASISTENCIA */}
-        <div className="border-t border-slate-200 bg-slate-100/80">
-          <div className="max-w-[1300px] mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-2">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("dashboard");
-                  setLastRegistered(null);
-                }}
-                className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === "dashboard"
-                    ? "bg-white text-slate-900 border-slate-300 shadow-xs"
-                    : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                }`}
-              >
-                <LayoutDashboard className={`w-3.5 h-3.5 ${activeTab === "dashboard" ? "text-red-600" : "text-slate-500"}`} />
-                <span>1. Dashboard & CRM</span>
-                <span className="px-1.5 py-0.2 text-[10px] font-bold bg-slate-200 text-slate-700 rounded-full">
-                  {reservations.length}
-                </span>
-              </button>
+        {/* Pestañas */}
+        <div className="border-t border-[#e3dccb]">
+          <div className="mx-auto flex max-w-[1300px] items-center justify-between gap-3 overflow-x-auto px-3 no-scrollbar sm:px-6 lg:px-8">
+            <nav className="flex items-center gap-5 sm:gap-8" aria-label="Secciones">
+              {(
+                [
+                  ["dashboard", "Resumen", `${reservations.length}`],
+                  ["registro", "Nueva venta", ""],
+                  ["asistencia", "Puerta", stats.totalAttendedTickets > 0 ? `${stats.totalAttendedTickets} adentro` : ""],
+                  ["configuracion", "Precios y show", ""],
+                ] as const
+              ).map(([key, label, nota]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(key);
+                    setLastRegistered(null);
+                  }}
+                  className={`relative cursor-pointer whitespace-nowrap py-3 text-[14px] transition-colors ${
+                    activeTab === key ? "font-bold text-[#1f1d19]" : "font-medium text-[#8c8268] hover:text-[#4d4636]"
+                  }`}
+                >
+                  {label}
+                  {nota && <span className="ml-1.5 text-[12px] font-medium text-[#a79d86]">{nota}</span>}
+                  <span
+                    className="absolute inset-x-0 -bottom-px h-[3px] rounded-full transition-opacity"
+                    style={{ background: shrekTema ? "#4c8a1f" : "#dc2626", opacity: activeTab === key ? 1 : 0 }}
+                  />
+                </button>
+              ))}
+            </nav>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("registro");
-                  setLastRegistered(null);
-                }}
-                className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === "registro"
-                    ? "bg-white text-slate-900 border-slate-300 shadow-xs"
-                    : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                }`}
-              >
-                <UserPlus className={`w-3.5 h-3.5 ${activeTab === "registro" ? "text-red-600" : "text-slate-500"}`} />
-                <span>2. Nueva Venta</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("asistencia");
-                  setLastRegistered(null);
-                }}
-                className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === "asistencia"
-                    ? "bg-white text-slate-900 border-slate-300 shadow-xs"
-                    : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                }`}
-              >
-                <UserCheck className={`w-3.5 h-3.5 ${activeTab === "asistencia" ? "text-emerald-600" : "text-slate-500"}`} />
-                <span>3. Asistencia (Puerta)</span>
-                <span className={`px-1.5 py-0.2 text-[10px] font-bold rounded-full ${
-                  stats.totalAttendedTickets > 0 ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"
-                }`}>
-                  {stats.totalAttendedTickets} en sala
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("configuracion");
-                  setLastRegistered(null);
-                }}
-                className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === "configuracion"
-                    ? "bg-white text-slate-900 border-slate-300 shadow-xs"
-                    : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                }`}
-              >
-                <SlidersHorizontal className={`w-3.5 h-3.5 ${activeTab === "configuracion" ? "text-red-600" : "text-slate-500"}`} />
-                <span>4. Configurar Precios & Show</span>
-              </button>
-            </div>
-
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex shrink-0 items-center gap-2 py-1.5">
               <button
                 type="button"
                 onClick={() => exportTicketsToExcel(filteredReservations)}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-white text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 border border-slate-300 rounded-md transition-colors shadow-2xs cursor-pointer whitespace-nowrap"
-                title="Descargar base de datos del CRM a Excel (.xlsx)"
+                className="inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[13px] font-medium text-[#6b624f] hover:bg-[#efe9da]"
+                title="Descargar las ventas en Excel (.xlsx)"
               >
-                <Download className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="hidden sm:inline">Exportar a Excel</span>
-                <span className="sm:hidden">Excel</span>
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Excel</span>
               </button>
-
               {activeTab === "dashboard" && (
                 <button
                   type="button"
@@ -1135,10 +1063,10 @@ function AdminEntradasPage() {
                     setActiveTab("registro");
                     setLastRegistered(null);
                   }}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 rounded-md transition-colors shadow-xs cursor-pointer whitespace-nowrap"
+                  className="hidden cursor-pointer whitespace-nowrap rounded-md px-4 py-1.5 text-[13px] font-bold text-white sm:inline-flex"
+                  style={{ background: shrekTema ? "#3f7d1f" : "#dc2626" }}
                 >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  <span>+ Venta</span>
+                  + Nueva venta
                 </button>
               )}
             </div>
@@ -1152,379 +1080,168 @@ function AdminEntradasPage() {
         {/* ==================================================================== */}
         {activeTab === "dashboard" && (
           <div className="space-y-6 sm:space-y-8 animate-fade-in">
-            {/* 1. Tarjetas de Métricas Globales (KPIs) en Grid 2x2 para Móviles */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors">
-                <div className="flex items-center justify-between text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 sm:mb-2">
-                  <span>Recaudación Total</span>
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-50 flex items-center justify-center">
-                    <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
-                  </div>
-                </div>
-                <div className="font-display text-xl sm:text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
+            {/* 1. Cifras principales en una sola franja, separadas por líneas (sin tarjetas) */}
+            <div className="grid grid-cols-2 gap-x-6 gap-y-7 border-b border-[#e3dccb] pb-7 lg:grid-cols-4 lg:gap-x-0 lg:divide-x lg:divide-[#e3dccb]">
+              <div className="lg:pr-8">
+                <p className="text-[13px] text-[#7b715d]">Recaudación</p>
+                <p className="font-display mt-1 text-[38px] leading-none sm:text-[46px]">
                   S/ {stats.totalRevenue.toLocaleString("es-PE", { minimumFractionDigits: 0 })}
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-500 mt-1.5 sm:mt-2 font-medium flex-wrap">
-                  <span className="text-amber-800 font-bold bg-amber-50 px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded border border-amber-200">
-                    4pm: S/ {stats.revenue4pm.toFixed(0)}
-                  </span>
-                  <span className="text-sky-800 font-bold bg-sky-50 px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded border border-sky-200">
-                    7pm: S/ {stats.revenue7pm.toFixed(0)}
-                  </span>
-                </div>
+                </p>
+                <p className="mt-2 text-[12px] text-[#7b715d]">
+                  {stats.funcionStats?.map((fs) => `${fs.funcion}: S/ ${fs.revenue.toFixed(0)}`).join("  ·  ")}
+                </p>
               </div>
 
-              {/* ENTRADAS VENDIDAS TOTALES (Con conteo x2 en 2x1) */}
-              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors">
-                <div className="flex items-center justify-between text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 sm:mb-2">
-                  <span>Entradas Vendidas</span>
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-red-50 flex items-center justify-center">
-                    <Ticket className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-600" />
-                  </div>
-                </div>
-                <div className="font-display text-xl sm:text-3xl md:text-4xl text-slate-900 font-bold tracking-tight">
-                  {stats.totalTickets}{" "}
-                  <span className="text-xs sm:text-sm font-normal text-slate-400 font-body">asientos</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-500 mt-1.5 sm:mt-2 font-medium flex-wrap">
-                  {stats.funcionStats?.map((fs) => (
-                    <span
-                      key={fs.funcion}
-                      className="font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200"
-                    >
-                      {fs.funcion}: {fs.tickets} ent.
-                    </span>
-                  ))}
-                </div>
+              <div className="lg:px-8">
+                <p className="text-[13px] text-[#7b715d]">Entradas vendidas</p>
+                <p className="font-display mt-1 text-[38px] leading-none sm:text-[46px]">
+                  {stats.totalTickets}
+                  <span className="ml-1.5 font-body text-[14px] font-medium text-[#a79d86]">asientos</span>
+                </p>
+                <p className="mt-2 text-[12px] text-[#7b715d]">
+                  {stats.funcionStats?.map((fs) => `${fs.funcion}: ${fs.tickets}`).join("  ·  ")}
+                </p>
               </div>
 
-              {stats.funcionStats?.map((fs, idx) => {
-                const colors = [
-                  { bg: "bg-amber-50", text: "text-amber-600", bar: "bg-amber-500", rev: "text-amber-700" },
-                  { bg: "bg-sky-50", text: "text-sky-600", bar: "bg-sky-500", rev: "text-sky-700" },
-                  { bg: "bg-purple-50", text: "text-purple-600", bar: "bg-purple-500", rev: "text-purple-700" },
-                  { bg: "bg-emerald-50", text: "text-emerald-600", bar: "bg-emerald-500", rev: "text-emerald-700" },
-                ];
-                const c = colors[idx % colors.length];
-                return (
-                  <div
-                    key={fs.funcion}
-                    className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs hover:border-slate-300 transition-colors"
-                  >
-                    <div className="flex items-center justify-between text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 sm:mb-2">
-                      <span>Función {fs.funcion}</span>
-                      <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full ${c.bg} flex items-center justify-center`}>
-                        <Clock className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${c.text}`} />
-                      </div>
-                    </div>
-                    <div className="flex items-baseline justify-between flex-wrap gap-1">
-                      <div className="font-display text-xl sm:text-3xl text-slate-900 font-bold tracking-tight">
-                        {fs.tickets}{" "}
-                        <span className="text-xs sm:text-sm text-slate-400 font-normal font-body">/ {stats.totalCap}</span>
-                      </div>
-                      <span className={`text-[11px] sm:text-xs font-bold ${c.rev}`}>
-                        S/ {fs.revenue.toFixed(0)}
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-100 h-1.5 sm:h-2 mt-2 rounded-full overflow-hidden">
-                      <div className={`${c.bar} h-full transition-all`} style={{ width: `${fs.percent}%` }} />
-                    </div>
-                    <div className="flex justify-between text-[10px] sm:text-[11px] text-slate-500 mt-1 font-medium">
-                      <span>{fs.percent}% aforo</span>
-                      <span>{Math.max(0, stats.totalCap - fs.tickets)} libres</span>
-                    </div>
+              {stats.funcionStats?.map((fs) => (
+                <div key={fs.funcion} className="lg:px-8">
+                  <p className="text-[13px] text-[#7b715d]">Función {fs.funcion}</p>
+                  <p className="font-display mt-1 text-[38px] leading-none sm:text-[46px]">
+                    {fs.tickets}
+                    <span className="ml-1.5 font-body text-[14px] font-medium text-[#a79d86]">/ {stats.totalCap}</span>
+                  </p>
+                  <div className="mt-3 h-[4px] w-full overflow-hidden rounded-full bg-[#e8e1d1]">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${fs.percent}%`, background: shrekTema ? "#4c8a1f" : "#dc2626" }} />
                   </div>
-                );
-              })}
-            </div>
-
-            {/* 2. Métricas de Promociones & Rendimiento General */}
-            <div className="border border-slate-200 bg-white p-6 rounded-xl shadow-xs">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-100">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="p-1.5 rounded-lg bg-red-50 text-red-600 border border-red-100">
-                      <Tag className="w-4 h-4" />
-                    </span>
-                    <h2 className="font-display text-2xl text-slate-900 tracking-wide">
-                      Métricas por Promociones & Rendimiento General
-                    </h2>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Análisis en tiempo real de entradas vendidas y recaudación por cada etapa de preventa y precio regular.
+                  <p className="mt-2 text-[12px] text-[#7b715d]">
+                    {fs.percent}% del aforo · {Math.max(0, stats.totalCap - fs.tickets)} libres
                   </p>
                 </div>
-
-                {/* Destacado: ¿En qué promo se vendió más? */}
-                {promosBreakdown.topPromoByTickets && promosBreakdown.topPromoByTickets.ticketsSold > 0 ? (
-                  <div className="flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl shadow-xs self-start md:self-auto">
-                    <div className="w-9 h-9 rounded-full bg-amber-500 flex items-center justify-center text-white shadow-xs shrink-0">
-                      <Trophy className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-full border border-amber-300">
-                          🏆 Promo Más Vendida
-                        </span>
-                      </div>
-                      <div className="font-bold text-slate-900 text-sm mt-0.5">
-                        {promosBreakdown.topPromoByTickets.meta.label}
-                      </div>
-                      <div className="text-xs text-slate-600 font-medium">
-                        <strong className="text-amber-950 font-extrabold">{promosBreakdown.topPromoByTickets.ticketsSold} entradas</strong> · S/ {promosBreakdown.topPromoByTickets.revenue.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500 self-start md:self-auto">
-                    <Sparkles className="w-4 h-4 text-slate-400" />
-                    <span>Aún sin ventas registradas. El CRM destacará la promo líder automáticamente.</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Métrica General Global */}
-              <div className="mt-5 p-4 bg-slate-50/80 border border-slate-200 rounded-xl grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">
-                    Recaudación General
-                  </span>
-                  <div className="font-display text-2xl text-slate-900 font-bold mt-1">
-                    S/ {promosBreakdown.totalRevenue.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-medium">100% de ingresos totales</span>
-                </div>
-
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">
-                    Total Boletos Vendidos
-                  </span>
-                  <div className="font-display text-2xl text-slate-900 font-bold mt-1">
-                    {promosBreakdown.totalTickets} <span className="text-xs font-normal text-slate-400 font-body">entradas</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-medium">
-                    {promosBreakdown.totalOrders} compras registradas
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">
-                    Ticket Promedio / Entrada
-                  </span>
-                  <div className="font-display text-2xl text-slate-900 font-bold mt-1">
-                    S/ {promosBreakdown.avgTicketPriceGlobal.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-medium">Promedio por cada asiento</span>
-                </div>
-
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">
-                    Promo con Más Ventas
-                  </span>
-                  <div className="font-bold text-slate-900 text-sm mt-1 truncate">
-                    {promosBreakdown.topPromoByTickets && promosBreakdown.topPromoByTickets.ticketsSold > 0
-                      ? promosBreakdown.topPromoByTickets.meta.label
-                      : "Sin ventas aún"}
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-medium block mt-0.5">
-                    {promosBreakdown.topPromoByTickets && promosBreakdown.topPromoByTickets.ticketsSold > 0
-                      ? `${promosBreakdown.topPromoByTickets.percentOfTotalTickets}% del volumen total`
-                      : "Todas las promos en 0"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Tarjetas Detalladas por cada Promoción */}
-              <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {promosBreakdown.items.map((item) => {
-                  return (
-                    <div
-                      key={item.key}
-                      className={`p-4 rounded-xl border transition-all ${
-                        item.isLeaderTickets
-                          ? "bg-amber-50/40 border-amber-300 ring-2 ring-amber-400/30"
-                          : "bg-white border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div>
-                          <span
-                            className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${item.meta.badgeBg} ${item.meta.badgeText} ${item.meta.badgeBorder}`}
-                          >
-                            {item.meta.tag}
-                          </span>
-                          <h3 className="font-bold text-slate-900 text-sm mt-1">
-                            {item.meta.label}
-                          </h3>
-                          <span className="text-[10px] text-slate-400 block">
-                            {item.meta.dateRange}
-                          </span>
-                        </div>
-
-                        {item.isLeaderTickets && (
-                          <span
-                            className="flex items-center gap-1 text-[10px] font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full shadow-xs shrink-0"
-                            title="Promoción con mayor cantidad de entradas vendidas"
-                          >
-                            <Trophy className="w-3 h-3" />
-                            Líder
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Cantidad y Recaudado */}
-                      <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5">
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-[11px] font-semibold text-slate-500">Recaudación:</span>
-                          <span className="font-display text-lg text-slate-900 font-bold">
-                            S/ {item.revenue.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-[11px] font-semibold text-slate-500">Entradas vendidas:</span>
-                          <span className="font-bold text-slate-800 text-sm">
-                            {item.ticketsSold} <span className="text-[11px] font-normal text-slate-400">entradas</span>
-                          </span>
-                        </div>
-
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-[11px] text-slate-400">Transacciones:</span>
-                          <span className="text-[11px] font-medium text-slate-600">
-                            {item.ordersCount} compras
-                          </span>
-                        </div>
-
-                        {/* Barra de progreso de participación en entradas */}
-                        <div className="mt-3 pt-2">
-                          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full transition-all ${
-                                item.isLeaderTickets ? "bg-amber-500" : "bg-red-500"
-                              }`}
-                              style={{ width: `${item.percentOfTotalTickets}%` }}
-                            />
-                          </div>
-                          <div className="flex justify-between items-center text-[10px] text-slate-400 mt-1">
-                            <span>{item.percentOfTotalTickets}% del volumen total</span>
-                            {item.ticketsSold > 0 && (
-                              <span>Prom: S/ {item.avgTicketPrice.toFixed(0)}/ent.</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              ))}
             </div>
 
-            {/* 3. Monitor de Aforo en Vivo por Zonas */}
-            <div className="border border-slate-200 bg-white p-6 rounded-xl shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            {/* 2. Ventas por etapa: una tabla simple */}
+            <section>
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
                 <div>
-                  <h2 className="font-display text-2xl text-slate-900 tracking-wide flex items-center gap-2">
-                    Monitor de Aforo por Zonas
-                    <span className="text-xs font-body font-normal text-slate-500">
-                      (Descontado en vivo de la web pública)
-                    </span>
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Auditorio del Colegio de Ingenieros de Ica · Capacidad: {stats.totalCap} asientos por función.
+                  <h2 className="font-display text-[28px] leading-none">Ventas por etapa</h2>
+                  <p className="mt-1.5 text-[13px] text-[#7b715d]">
+                    Entradas y dinero de cada promoción. Hoy rige: <strong className="text-[#1f1d19]">{eventSettings.promos.find((p) => p.key === activePromoKey)?.label}</strong>.
                   </p>
                 </div>
+                <p className="text-[13px] text-[#7b715d]">
+                  Precio promedio por entrada: <strong className="text-[#1f1d19]">S/ {promosBreakdown.avgTicketPriceGlobal.toFixed(2)}</strong>
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[14px] sm:min-w-[560px]">
+                  <thead>
+                    <tr className="border-b border-[#d9d0bb] text-[12px] text-[#7b715d]">
+                      <th className="py-2 pr-3 font-medium">Etapa</th>
+                      <th className="px-3 py-2 font-medium">Fechas</th>
+                      <th className="px-3 py-2 text-right font-medium">Entradas</th>
+                      <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">Compras</th>
+                      <th className="px-3 py-2 text-right font-medium">Recaudado</th>
+                      <th className="hidden py-2 pl-3 text-right font-medium sm:table-cell">Prom. por entrada</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {promosBreakdown.items.map((item) => {
+                      const cfgPromo = eventSettings.promos.find((p) => p.key === item.key);
+                      const hoy = item.key === activePromoKey;
+                      const fmt = (iso: string) => {
+                        const [, m, d] = iso.split("-").map(Number);
+                        return `${d}/${m}`;
+                      };
+                      return (
+                        <tr key={item.key} className="border-b border-[#e8e1d1]">
+                          <td className="py-3 pr-3">
+                            <span className={`font-semibold ${item.ticketsSold === 0 ? "text-[#a79d86]" : ""}`}>
+                              {cfgPromo?.label ?? item.meta?.label}
+                            </span>
+                            {hoy && <span className="ml-2 text-[12px] font-bold" style={{ color: shrekTema ? "#3f7d1f" : "#dc2626" }}>● hoy</span>}
+                            {item.isLeaderTickets && <span className="ml-2 text-[12px] text-[#7b715d]">la que más vende</span>}
+                          </td>
+                          <td className="px-3 py-3 text-[#7b715d]">{cfgPromo ? `${fmt(cfgPromo.from)} al ${fmt(cfgPromo.to)}` : "—"}</td>
+                          <td className="px-3 py-3 text-right font-semibold tabular-nums">{item.ticketsSold}</td>
+                          <td className="hidden px-3 py-3 text-right tabular-nums text-[#7b715d] sm:table-cell">{item.ordersCount}</td>
+                          <td className="px-3 py-3 text-right font-semibold tabular-nums">S/ {item.revenue.toFixed(0)}</td>
+                          <td className="hidden py-3 pl-3 text-right tabular-nums text-[#7b715d] sm:table-cell">
+                            {item.ticketsSold > 0 ? `S/ ${item.avgTicketPrice.toFixed(0)}` : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
 
-                {/* Selector de Función */}
-                <div className="inline-flex p-1 bg-slate-100 border border-slate-200 rounded-lg self-start flex-wrap gap-1">
+            {/* 3. Aforo por zonas: filas con una barra fina */}
+            <section>
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-[28px] leading-none">Aforo por zonas</h2>
+                  <p className="mt-1.5 text-[13px] text-[#7b715d]">
+                    Auditorio del Colegio de Ingenieros de Ica · {stats.totalCap} asientos por función. Es lo mismo que ve el público.
+                  </p>
+                </div>
+                <div className="flex items-center gap-5" role="tablist" aria-label="Función">
                   {eventSettings.funciones.map((func) => (
                     <button
                       key={func}
                       type="button"
                       onClick={() => setSelectedFuncion(func)}
-                      className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${
-                        selectedFuncion === func
-                          ? "bg-white text-slate-900 shadow-xs border border-slate-200"
-                          : "text-slate-600 hover:text-slate-900"
+                      className={`relative cursor-pointer pb-1 text-[15px] transition-colors ${
+                        selectedFuncion === func ? "font-bold text-[#1f1d19]" : "font-medium text-[#a79d86] hover:text-[#6b624f]"
                       }`}
                     >
-                      Función {func.toUpperCase()}
+                      {func.toUpperCase()}
+                      <span
+                        className="absolute inset-x-0 -bottom-px h-[3px] rounded-full"
+                        style={{ background: shrekTema ? "#4c8a1f" : "#dc2626", opacity: selectedFuncion === func ? 1 : 0 }}
+                      />
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div>
                 {zonasMonitor.map((z) => {
                   const meta = ZONAS_CONFIG[z.zonaKey];
                   return (
-                    <div
-                      key={z.zonaKey}
-                      className={`p-4 border rounded-xl transition-all relative ${
-                        z.isSoldOut
-                          ? "border-red-200 bg-red-50/60"
-                          : z.isLowStock
-                          ? "border-amber-200 bg-amber-50/60"
-                          : "border-slate-200 bg-slate-50/50 hover:border-slate-300"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="w-3.5 h-3.5 rounded-full ring-2 ring-white shadow-xs" style={{ backgroundColor: meta.color }} />
-                          <span className="font-bold text-sm text-slate-900">{meta.label}</span>
+                    <div key={z.zonaKey} className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 border-t border-[#e8e1d1] py-4 first:border-t-0 sm:grid-cols-[220px_1fr_auto]">
+                      <div className="flex items-center gap-2.5">
+                        <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ backgroundColor: meta.color }} />
+                        <span className="text-[15px] font-semibold">{meta.label.replace(" (2do piso)", "")}</span>
+                      </div>
+                      <div className="order-3 col-span-2 sm:order-none sm:col-span-1">
+                        <div className="h-[6px] w-full overflow-hidden rounded-full bg-[#e8e1d1]">
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${z.percentSold}%`, backgroundColor: z.isSoldOut ? "#dc2626" : meta.color }} />
                         </div>
-                        {z.isSoldOut ? (
-                          <span className="bg-red-600 text-white text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-sm">
-                            AGOTADO
-                          </span>
-                        ) : z.isLowStock ? (
-                          <span className="bg-amber-500 text-white text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-sm animate-pulse">
-                            ÚLTIMOS {z.availableSeats}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-bold uppercase">
-                            Disponible
-                          </span>
-                        )}
+                        <p className="mt-1.5 text-[12px] text-[#7b715d]">
+                          {z.soldSeats} vendidos de {z.totalSeats} · {z.percentSold}%
+                        </p>
                       </div>
-
-                      <div className="flex items-baseline justify-between mb-2">
-                        <div>
-                          <span className="text-3xl font-bold font-display text-slate-900">{z.availableSeats}</span>
-                          <span className="text-xs text-slate-500 ml-1 font-medium">disponibles</span>
-                        </div>
-                        <span className="text-xs text-slate-500 font-medium">
-                          {z.soldSeats} / {z.totalSeats} vendidos
-                        </span>
-                      </div>
-
-                      <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                        <div
-                          className="h-full transition-all duration-500"
-                          style={{
-                            width: `${z.percentSold}%`,
-                            backgroundColor: z.isSoldOut ? "#dc2626" : meta.color,
-                          }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-[11px] text-slate-500 mt-2 font-medium">
-                        <span>{z.percentSold}% ocupado</span>
-                        <span>{meta.totalSeats} asientos totales</span>
-                      </div>
+                      <p className="text-right">
+                        <span className="font-display text-[30px] leading-none">{z.availableSeats}</span>
+                        <span className="ml-1 text-[12px] text-[#7b715d]">libres</span>
+                        {z.isSoldOut && <span className="mt-0.5 block text-[12px] font-bold text-red-700">Agotada</span>}
+                        {!z.isSoldOut && z.isLowStock && <span className="mt-0.5 block text-[12px] font-bold text-amber-700">Quedan pocas</span>}
+                      </p>
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </section>
 
-            {/* 3. CRM: Registro Completo de Compradores (Sin botón de exportar excel) */}
-            <div className="border border-slate-200 bg-white p-6 rounded-xl shadow-xs space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            {/* 3. Compradores */}
+            <section className="space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#d9d0bb] pb-4">
                 <div>
-                  <h2 className="font-display text-2xl text-slate-900 tracking-wide">
-                    Registro de Compradores (CRM)
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Lista completa de clientes con entradas confirmadas ({reservations.length} compras registradas).
+                  <h2 className="font-display text-[28px] leading-none">Compradores</h2>
+                  <p className="mt-1.5 text-[13px] text-[#7b715d]">
+                    {reservations.length} compras registradas. Toca una fila para ver o editar el boleto.
                   </p>
                 </div>
 
@@ -1646,8 +1363,8 @@ function AdminEntradasPage() {
                       className="w-full bg-white border border-slate-300 rounded-md px-2.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-red-600 font-medium"
                     >
                       <option value="todas">Puerta (Todas)</option>
-                      <option value="solo_ingresados">🟢 Ingresados</option>
-                      <option value="solo_pendientes">⚪ Pendientes</option>
+                      <option value="solo_ingresados">Ingresados</option>
+                      <option value="solo_pendientes">Pendientes</option>
                     </select>
                   </div>
                 </div>
@@ -1712,7 +1429,7 @@ function AdminEntradasPage() {
                               {effectiveTickets} {effectiveTickets === 1 ? "asiento" : "asientos"}
                             </span>
                             {(r.etapaPromo === "twoXone" || r.etapaPromo === "threeXtwo" || (r.cantidadNino ?? 0) > 0) && (
-                              <span className="text-[10px] text-amber-700 font-bold block">
+                              <span className="text-[12px] text-[#7b715d] block">
                                 ({describeEntradas(r)})
                               </span>
                             )}
@@ -1847,14 +1564,10 @@ function AdminEntradasPage() {
                                 · DNI: {r.clienteDni || "-"}
                               </div>
                               <div className="flex items-center gap-1.5 mt-1">
-                                <span className="font-mono text-[10px] font-bold text-red-700 bg-red-50 border border-red-200/80 px-1.5 py-0.5 rounded-sm">
+                                <span className="font-mono text-[11px] font-bold text-[#5d5644]">
                                   #{r.ticketCode || r.id}
                                 </span>
-                                {r.notas && (
-                                  <span className="bg-slate-100 text-[10px] text-slate-600 px-1.5 py-0.5 rounded-sm border border-slate-200">
-                                    {r.notas}
-                                  </span>
-                                )}
+                                {r.notas && <span className="text-[11px] text-[#7b715d]">· {r.notas}</span>}
                               </div>
                             </td>
 
@@ -1887,12 +1600,12 @@ function AdminEntradasPage() {
 
                             <td className="px-4 py-3.5 text-center">
                               <div className="flex flex-col items-center">
-                                <span className="bg-slate-100 border border-slate-200 px-2.5 py-1 font-bold text-slate-800 rounded-md text-xs">
+                                <span className="text-[15px] font-bold">
                                   {effectiveTickets} {effectiveTickets === 1 ? "asiento" : "asientos"}
                                 </span>
                                 {(r.etapaPromo === "twoXone" || r.etapaPromo === "threeXtwo" || (r.cantidadNino ?? 0) > 0) && (
-                                  <span className="text-[10px] text-amber-700 font-semibold mt-0.5">
-                                    ({describeEntradas(r)})
+                                  <span className="mt-0.5 text-[11px] text-[#7b715d]">
+                                    {describeEntradas(r).replace(/ \(.*\)$/, "")}
                                   </span>
                                 )}
                               </div>
@@ -1907,38 +1620,12 @@ function AdminEntradasPage() {
                                   </span>
                                 </div>
                               ) : (
-                                <div className="font-bold text-red-600 text-sm">S/ {r.totalPagado.toFixed(2)}</div>
+                                <div className="text-[15px] font-bold">S/ {r.totalPagado.toFixed(2)}</div>
                               )}
-                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                {PROMOS_CONFIG[r.etapaPromo] ? (
-                                  <span
-                                    className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border ${
-                                      PROMOS_CONFIG[r.etapaPromo].badgeBg
-                                    } ${PROMOS_CONFIG[r.etapaPromo].badgeText} ${
-                                      PROMOS_CONFIG[r.etapaPromo].badgeBorder
-                                    }`}
-                                  >
-                                    {PROMOS_CONFIG[r.etapaPromo].tag}
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] text-slate-500 uppercase tracking-wider font-medium">
-                                    {r.etapaPromo}
-                                  </span>
-                                )}
-                                {r.metodoPago && (
-                                  <span
-                                    className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border ${
-                                      METODOS_PAGO_CONFIG[r.metodoPago]?.bg || "bg-slate-100"
-                                    } ${
-                                      METODOS_PAGO_CONFIG[r.metodoPago]?.text || "text-slate-700"
-                                    } ${
-                                      METODOS_PAGO_CONFIG[r.metodoPago]?.border || "border-slate-200"
-                                    }`}
-                                  >
-                                    {METODOS_PAGO_CONFIG[r.metodoPago]?.label || r.metodoPago}
-                                  </span>
-                                )}
-                              </div>
+                              <p className="mt-0.5 text-[12px] text-[#7b715d]">
+                                {(PROMOS_CONFIG[r.etapaPromo]?.tag || r.etapaPromo)}
+                                {r.metodoPago ? ` · ${METODOS_PAGO_CONFIG[r.metodoPago]?.label || r.metodoPago}` : ""}
+                              </p>
                             </td>
 
                             <td className="px-4 py-3.5 text-slate-600 text-xs">
@@ -1948,12 +1635,12 @@ function AdminEntradasPage() {
                             <td className="px-4 py-3.5 text-center">
                               {r.asistio ? (
                                 <div className="inline-flex flex-col items-center">
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                    <span>INGRESADO</span>
+                                  <span className="inline-flex items-center gap-1 text-[13px] font-bold text-emerald-700">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>Ingresó</span>
                                   </span>
                                   {r.asistioAt && (
-                                    <span className="text-[10px] text-slate-500 mt-0.5 font-mono">
+                                    <span className="text-[11px] text-slate-500 mt-0.5 font-mono">
                                       {new Date(r.asistioAt).toLocaleTimeString("es-PE", {
                                         hour: "2-digit",
                                         minute: "2-digit",
@@ -1966,11 +1653,11 @@ function AdminEntradasPage() {
                                   type="button"
                                   onClick={() => handleConfirmAttendance(r)}
                                   disabled={isMarkingAttendance}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 transition-all cursor-pointer shadow-2xs"
+                                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[#d3c9b2] px-3 py-1.5 text-[13px] font-semibold text-[#3f3a2e] transition-colors hover:border-emerald-600 hover:text-emerald-700"
                                   title="Marcar ingreso en puerta"
                                 >
-                                  <UserCheck className="w-3 h-3 text-slate-500" />
-                                  <span>Marcar Ingreso</span>
+                                  <UserCheck className="w-3.5 h-3.5" />
+                                  <span>Marcar ingreso</span>
                                 </button>
                               )}
                             </td>
@@ -2055,7 +1742,7 @@ function AdminEntradasPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </section>
           </div>
         )}
 
@@ -2430,7 +2117,7 @@ function AdminEntradasPage() {
                           <span>Promo {promoTagForm}: {cantidad + cantidadNino} paquete(s) = {(cantidad + cantidadNino) * entradasPorPromoForm} asientos a entregar</span>
                         </div>
                         <p className="mt-1 text-[11px] text-amber-800">
-                          📌 Cada promo {promoTagForm} que pagó el cliente son <strong>{entradasPorPromoForm} asientos</strong>. Si pagó 1 promo, coloca <strong>1</strong>; si pagó 2, coloca <strong>2</strong>.
+                          Cada promo {promoTagForm} que pagó el cliente son <strong>{entradasPorPromoForm} asientos</strong>. Si pagó 1 promo, coloca <strong>1</strong>; si pagó 2, coloca <strong>2</strong>.
                         </p>
                       </div>
                     )}
@@ -2603,141 +2290,87 @@ function AdminEntradasPage() {
         {/* ==================================================================== */}
         {activeTab === "asistencia" && (
           <div className="space-y-8 animate-fade-in">
-            {/* Cabecera del Módulo de Asistencia */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+            {/* Cabecera del módulo de puerta */}
+            <div className="flex flex-col gap-4 border-b border-[#d9d0bb] pb-5 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2">
-                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Control de Acceso en Puerta · {cfgEvento.nombreCorto}</span>
-                </div>
-                <h2 className="font-display text-2xl sm:text-3xl text-slate-900 tracking-wide font-bold">
-                  Validador de Boletos & Lista de Asistencia
-                </h2>
-                <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-                  Registra la llegada de los asistentes en el Auditorio del Colegio de Ingenieros. Si un asistente intenta ingresar con un boleto ya presentado, el sistema lo bloqueará automáticamente para impedir el reingreso duplicado.
+                <p className="text-[13px] text-[#7b715d]">Control de acceso · {cfgEvento.nombreCorto}</p>
+                <h2 className="font-display text-[30px] leading-none sm:text-[36px]">Puerta</h2>
+                <p className="mt-2 max-w-2xl text-[13px] text-[#7b715d]">
+                  Escanea el QR de cada entrada o busca por código o DNI. Si una entrada ya ingresó, el sistema avisa y no la deja repetir.
                 </p>
               </div>
-
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => exportTicketsToExcel(reservations, { onlyAttended: true })}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-300 hover:border-emerald-400 text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-xs cursor-pointer"
-                  title="Descargar solo los asistentes ingresados a Excel"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[#d3c9b2] px-3.5 py-2 text-[13px] font-semibold text-[#3f3a2e] hover:bg-[#efe9da]"
+                  title="Descargar solo los asistentes ingresados"
                 >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                  <span>Exportar Asistentes ({stats.totalAttendedTickets})</span>
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Asistentes ({stats.totalAttendedTickets})
                 </button>
-
                 <button
                   type="button"
                   onClick={() => exportTicketsToExcel(reservations)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-xs cursor-pointer"
-                  title="Descargar base completa de boletos a Excel"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[#d3c9b2] px-3.5 py-2 text-[13px] font-semibold text-[#3f3a2e] hover:bg-[#efe9da]"
+                  title="Descargar la base completa"
                 >
-                  <Download className="w-4 h-4 text-white" />
-                  <span>Exportar Todo</span>
+                  <Download className="h-4 w-4" />
+                  Todo
                 </button>
               </div>
             </div>
 
-            {/* Tarjetas de Aforo y Asistencia en Vivo */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-              <div className="border border-emerald-200 bg-emerald-50/50 p-3.5 sm:p-5 rounded-xl shadow-xs">
-                <div className="flex items-center justify-between text-emerald-800 text-xs font-bold uppercase tracking-wider mb-2">
-                  <span className="truncate">Asistentes en Sala</span>
-                  <div className="w-7 h-7 rounded-full bg-emerald-200/70 flex items-center justify-center shrink-0">
-                    <UserCheck className="w-4 h-4 text-emerald-800" />
-                  </div>
+            {/* Cifras de ingreso en una franja */}
+            <div className="grid grid-cols-2 gap-x-6 gap-y-7 pb-1 lg:grid-cols-4 lg:gap-x-0 lg:divide-x lg:divide-[#e3dccb]">
+              <div className="lg:pr-8">
+                <p className="text-[13px] text-[#7b715d]">En sala</p>
+                <p className="font-display mt-1 text-[38px] leading-none sm:text-[46px]">
+                  {stats.totalAttendedTickets}
+                  <span className="ml-1.5 font-body text-[14px] font-medium text-[#a79d86]">/ {stats.totalTickets}</span>
+                </p>
+                <div className="mt-3 h-[4px] w-full overflow-hidden rounded-full bg-[#e8e1d1]">
+                  <div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: `${stats.percentAttendedTotal}%` }} />
                 </div>
-                <div className="font-display text-2xl sm:text-3xl lg:text-4xl text-emerald-950 font-bold tracking-tight">
-                  {stats.totalAttendedTickets}{" "}
-                  <span className="text-sm sm:text-base text-emerald-700 font-normal font-body">/ {stats.totalTickets}</span>
-                </div>
-                <div className="w-full bg-emerald-200 h-2 mt-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-emerald-600 h-full transition-all"
-                    style={{ width: `${stats.percentAttendedTotal}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] sm:text-[11px] text-emerald-800 mt-1.5 font-bold">
-                  <span>{stats.percentAttendedTotal}% en sala</span>
-                  <span>{Math.max(0, stats.totalTickets - stats.totalAttendedTickets)} pendientes</span>
-                </div>
+                <p className="mt-2 text-[12px] text-[#7b715d]">
+                  {stats.percentAttendedTotal}% · {Math.max(0, stats.totalTickets - stats.totalAttendedTickets)} faltan por entrar
+                </p>
               </div>
-
-              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs">
-                <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-                  <span className="truncate">Función 4:00 PM</span>
-                  <div className="w-7 h-7 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
-                    <Clock className="w-4 h-4 text-amber-600" />
+              {[
+                ["Función 4:00 pm", stats.attended4pm, stats.tickets4pm, stats.percentAttended4pm],
+                ["Función 7:00 pm", stats.attended7pm, stats.tickets7pm, stats.percentAttended7pm],
+              ].map(([label, ing, tot, pct]) => (
+                <div key={label as string} className="lg:px-8">
+                  <p className="text-[13px] text-[#7b715d]">{label}</p>
+                  <p className="font-display mt-1 text-[38px] leading-none sm:text-[46px]">
+                    {ing}
+                    <span className="ml-1.5 font-body text-[14px] font-medium text-[#a79d86]">/ {tot}</span>
+                  </p>
+                  <div className="mt-3 h-[4px] w-full overflow-hidden rounded-full bg-[#e8e1d1]">
+                    <div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: `${pct}%` }} />
                   </div>
+                  <p className="mt-2 text-[12px] text-[#7b715d]">
+                    {pct}% ingresó · {Math.max(0, Number(tot) - Number(ing))} faltan
+                  </p>
                 </div>
-                <div className="font-display text-2xl sm:text-3xl lg:text-4xl text-slate-900 font-bold tracking-tight">
-                  {stats.attended4pm}{" "}
-                  <span className="text-sm sm:text-base text-slate-400 font-normal font-body">/ {stats.tickets4pm}</span>
-                </div>
-                <div className="w-full bg-slate-100 h-2 mt-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-amber-500 h-full transition-all"
-                    style={{ width: `${stats.percentAttended4pm}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] sm:text-[11px] text-slate-500 mt-1.5 font-medium">
-                  <span>{stats.percentAttended4pm}% ingresados</span>
-                  <span>{Math.max(0, stats.tickets4pm - stats.attended4pm)} faltan</span>
-                </div>
-              </div>
-
-              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs">
-                <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-                  <span className="truncate">Función 7:00 PM</span>
-                  <div className="w-7 h-7 rounded-full bg-sky-50 flex items-center justify-center shrink-0">
-                    <Clock className="w-4 h-4 text-sky-600" />
-                  </div>
-                </div>
-                <div className="font-display text-2xl sm:text-3xl lg:text-4xl text-slate-900 font-bold tracking-tight">
-                  {stats.attended7pm}{" "}
-                  <span className="text-sm sm:text-base text-slate-400 font-normal font-body">/ {stats.tickets7pm}</span>
-                </div>
-                <div className="w-full bg-slate-100 h-2 mt-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-sky-500 h-full transition-all"
-                    style={{ width: `${stats.percentAttended7pm}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] sm:text-[11px] text-slate-500 mt-1.5 font-medium">
-                  <span>{stats.percentAttended7pm}% ingresados</span>
-                  <span>{Math.max(0, stats.tickets7pm - stats.attended7pm)} faltan</span>
-                </div>
-              </div>
-
-              <div className="border border-slate-200 bg-white p-3.5 sm:p-5 rounded-xl shadow-xs">
-                <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-                  <span className="truncate">Órdenes / Grupos</span>
-                  <div className="w-7 h-7 rounded-full bg-purple-50 flex items-center justify-center shrink-0">
-                    <Ticket className="w-4 h-4 text-purple-600" />
-                  </div>
-                </div>
-                <div className="font-display text-2xl sm:text-3xl lg:text-4xl text-slate-900 font-bold tracking-tight">
-                  {stats.attendedOrdersCount}{" "}
-                  <span className="text-sm sm:text-base text-slate-400 font-normal font-body">
+              ))}
+              <div className="lg:pl-8">
+                <p className="text-[13px] text-[#7b715d]">Compras que ya entraron</p>
+                <p className="font-display mt-1 text-[38px] leading-none sm:text-[46px]">
+                  {stats.attendedOrdersCount}
+                  <span className="ml-1.5 font-body text-[14px] font-medium text-[#a79d86]">
                     / {reservations.filter((r) => r.estado !== "anulado").length}
                   </span>
-                </div>
-                <div className="text-[10px] sm:text-[11px] text-slate-500 mt-2 font-medium">
-                  Boletos / compras validadas en puerta
-                </div>
+                </p>
+                <p className="mt-2 text-[12px] text-[#7b715d]">Al menos una persona del grupo ya está adentro</p>
               </div>
             </div>
 
             {/* SECCIÓN VALIDADOR RÁPIDO EN PUERTA (ESCANEAR / DIGITAR) */}
-            <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white rounded-2xl p-4 sm:p-8 border border-slate-800 shadow-xl space-y-5">
+            <div className="space-y-5 rounded-2xl bg-[#14201a] p-4 text-white sm:p-8">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
-                    <ScanLine className="w-5 h-5" />
-                  </div>
+
                   <div>
                     <h3 className="font-display text-xl sm:text-2xl text-white font-bold tracking-wide">
                       Escanear o Validar Entrada
@@ -2755,7 +2388,26 @@ function AdminEntradasPage() {
               </div>
 
               {/* Formulario de Escaneo */}
-              <form onSubmit={handleValidateScan} className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => setCamaraAbierta(true)}
+                className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black uppercase tracking-wider text-sm rounded-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+              >
+                <ScanLine className="w-5 h-5" />
+                <span>Escanear QR con la cámara</span>
+              </button>
+              {camaraAbierta && (
+                <QrScanner
+                  onClose={() => setCamaraAbierta(false)}
+                  onResult={(texto) => {
+                    setCamaraAbierta(false);
+                    setScanQuery(texto);
+                    handleValidateScan(undefined, texto);
+                  }}
+                />
+              )}
+
+              <form onSubmit={(e) => handleValidateScan(e)} className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                   <ScanLine className="w-5 h-5 text-slate-400 absolute left-4 top-3.5" />
                   <input
@@ -2851,7 +2503,7 @@ function AdminEntradasPage() {
 
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-red-800/80 text-xs">
                     <span className="text-red-300">
-                      ⚠️ Se recomienda verificar el DNI físico del portador para comprobar si es el titular original o una captura duplicada.
+                      Se recomienda verificar el DNI físico del portador para comprobar si es el titular original o una captura duplicada.
                     </span>
                     {scanAlert.ticket && (
                       <button
@@ -2949,10 +2601,10 @@ function AdminEntradasPage() {
                         {isMarkingAttendance
                           ? "Registrando Ingreso en el Sistema..."
                           : scanSeat
-                          ? `✅ CONFIRMAR INGRESO · ENTRADA ${scanSeat} DE ${effectiveCount} (${getSeatCategory(scannedTicket, scanSeat).toUpperCase()})`
+                          ? `CONFIRMAR INGRESO · ENTRADA ${scanSeat} DE ${effectiveCount} (${getSeatCategory(scannedTicket, scanSeat).toUpperCase()})`
                           : pendCount === 1
-                          ? "✅ CONFIRMAR INGRESO · ADMITIR A 1 PERSONA"
-                          : `✅ REGISTRAR INGRESO · FALTAN ${pendCount} PERSONA(S)`}
+                          ? "CONFIRMAR INGRESO · ADMITIR A 1 PERSONA"
+                          : `REGISTRAR INGRESO · FALTAN ${pendCount} PERSONA(S)`}
                       </span>
                     </button>
                   </div>
@@ -3030,40 +2682,29 @@ function AdminEntradasPage() {
               {/* Filtros de la Lista de Asistencia */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 {/* Pestañas de Asistencia con scroll horizontal en móvil */}
-                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200/80 overflow-x-auto no-scrollbar whitespace-nowrap">
-                  <button
-                    type="button"
-                    onClick={() => setFiltroAsistenciaTab("todos")}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer shrink-0 ${
-                      filtroAsistenciaTab === "todos"
-                        ? "bg-white text-slate-900 shadow-2xs"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    Todos ({reservations.filter((r) => r.estado !== "anulado").length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFiltroAsistenciaTab("asistidos")}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer shrink-0 ${
-                      filtroAsistenciaTab === "asistidos"
-                        ? "bg-emerald-600 text-white shadow-2xs"
-                        : "text-slate-600 hover:text-emerald-700"
-                    }`}
-                  >
-                    🟢 En Sala ({stats.totalAttendedTickets})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFiltroAsistenciaTab("pendientes")}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer shrink-0 ${
-                      filtroAsistenciaTab === "pendientes"
-                        ? "bg-slate-800 text-white shadow-2xs"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    ⚪ Pendientes ({Math.max(0, stats.totalTickets - stats.totalAttendedTickets)})
-                  </button>
+                <div className="flex items-center gap-6 overflow-x-auto whitespace-nowrap no-scrollbar" role="tablist">
+                  {(
+                    [
+                      ["todos", "Todos", reservations.filter((r) => r.estado !== "anulado").length],
+                      ["asistidos", "En sala", stats.totalAttendedTickets],
+                      ["pendientes", "Pendientes", Math.max(0, stats.totalTickets - stats.totalAttendedTickets)],
+                    ] as const
+                  ).map(([k, label, n]) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setFiltroAsistenciaTab(k)}
+                      className={`relative shrink-0 cursor-pointer pb-2 text-[14px] transition-colors ${
+                        filtroAsistenciaTab === k ? "font-bold text-[#1f1d19]" : "font-medium text-[#8c8268] hover:text-[#4d4636]"
+                      }`}
+                    >
+                      {label} <span className="font-medium text-[#a79d86]">{n}</span>
+                      <span
+                        className="absolute inset-x-0 -bottom-px h-[3px] rounded-full"
+                        style={{ background: shrekTema ? "#4c8a1f" : "#dc2626", opacity: filtroAsistenciaTab === k ? 1 : 0 }}
+                      />
+                    </button>
+                  ))}
                 </div>
 
                 {/* Filtros secundarios: Función y Vendedor */}
@@ -3116,7 +2757,7 @@ function AdminEntradasPage() {
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2 mb-2">
-                          <span className="font-mono font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded text-[11px]">
+                          <span className="font-mono font-bold text-[#5d5644] text-[12px]">
                             #{r.ticketCode || r.id}
                           </span>
                           {isPartial ? (
@@ -3161,8 +2802,8 @@ function AdminEntradasPage() {
                               {effectiveCount} {effectiveCount === 1 ? "persona" : "personas"}
                             </span>
                             {(r.etapaPromo === "twoXone" || r.etapaPromo === "threeXtwo") && (
-                              <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-block mt-0.5">
-                                Promo {PROMOS_CONFIG[r.etapaPromo]?.tag || r.etapaPromo} · {describeEntradas(r)}
+                              <span className="text-[12px] text-[#7b715d] inline-block mt-0.5">
+                                {PROMOS_CONFIG[r.etapaPromo]?.tag || r.etapaPromo} · {describeEntradas(r).replace(/ \(.*\)$/, "")}
                               </span>
                             )}
                           </div>
@@ -3264,7 +2905,7 @@ function AdminEntradasPage() {
                             </td>
 
                             <td className="px-4 py-3.5">
-                              <span className="font-mono font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded text-[11px]">
+                              <span className="font-mono font-bold text-[#5d5644] text-[12px]">
                                 #{r.ticketCode || r.id}
                               </span>
                             </td>
@@ -3288,7 +2929,7 @@ function AdminEntradasPage() {
                             </td>
 
                             <td className="px-4 py-3.5 text-center">
-                              <div className="inline-block bg-slate-100 border border-slate-200 px-2.5 py-1 font-bold text-slate-800 rounded-md text-xs">
+                              <div className="inline-block font-bold text-slate-900 text-[15px]">
                                 {effectiveCount} pers.
                               </div>
                               {ingCount > 0 && (
@@ -3297,8 +2938,8 @@ function AdminEntradasPage() {
                                 </div>
                               )}
                               {(r.etapaPromo === "twoXone" || r.etapaPromo === "threeXtwo") && (
-                                <div className="text-[10px] text-amber-700 font-bold mt-0.5">
-                                  Promo {PROMOS_CONFIG[r.etapaPromo]?.tag || r.etapaPromo} · {describeEntradas(r)}
+                                <div className="text-[12px] text-[#7b715d] mt-0.5">
+                                  {PROMOS_CONFIG[r.etapaPromo]?.tag || r.etapaPromo} · {describeEntradas(r).replace(/ \(.*\)$/, "")}
                                 </div>
                               )}
                             </td>
@@ -3331,7 +2972,7 @@ function AdminEntradasPage() {
                                     type="button"
                                     onClick={() => handleConfirmAttendance(r)}
                                     disabled={isMarkingAttendance}
-                                    className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-2xs cursor-pointer"
+                                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[#d3c9b2] px-3 py-1.5 text-[13px] font-semibold text-[#3f3a2e] transition-colors hover:border-emerald-600 hover:text-emerald-700"
                                     title="Registrar ingreso de este boleto"
                                   >
                                     <UserCheck className="w-3.5 h-3.5" />
@@ -3368,11 +3009,7 @@ function AdminEntradasPage() {
             {/* Header de Configuración */}
             <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-red-50 text-red-700 border border-red-200 mb-2">
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                  Control Maestro del Evento
-                </div>
-                <h2 className="font-display text-2xl text-slate-900 tracking-tight font-bold">
+                                <h2 className="font-display text-2xl text-slate-900 tracking-tight font-bold">
                   Configuración de Precios, Promociones, Horarios y Aforo
                 </h2>
                 <p className="text-xs text-slate-500 mt-1 max-w-2xl">
@@ -3480,15 +3117,9 @@ function AdminEntradasPage() {
               </div>
 
               {/* Guía explicativa para Harold */}
-              <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 leading-relaxed">
-                💡 <strong>Regla de cálculo:</strong> Recuerda que el precio oficial por entrada es <strong>S/ 80.00</strong>.
-                <ul className="list-disc pl-5 mt-1 space-y-0.5 text-blue-800 text-[11px]">
-                  <li><strong>Preventa 2x1:</strong> El cliente paga por 1 boleto (ej: S/ 80.00) y recibe 2 asientos autorizados.</li>
-                  <li><strong>Preventa 3x2:</strong> El cliente paga por 2 boletos (ej: S/ 160.00) y recibe 3 asientos autorizados.</li>
-                  <li><strong>Preventa 20% Desc:</strong> Cada asiento cuesta S/ 64.00 (20% de descuento sobre S/ 80).</li>
-                  <li><strong>Tarifa Regular:</strong> Cada asiento cuesta S/ 80.00.</li>
-                </ul>
-              </div>
+              <p className="text-[13px] leading-relaxed text-[#7b715d]">
+                En 2x1 el cliente paga 1 promoción y recibe 2 entradas; en 3x2 paga 2 y recibe 3. Los precios de cada zona son <strong className="text-[#1f1d19]">por promoción</strong>; el 20% y el FULL son por entrada.
+              </p>
 
               {/* Grid de Zonas */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -4138,7 +3769,7 @@ function AdminEntradasPage() {
               <strong className="text-slate-900">{attendanceRevertTarget.clienteNombre}</strong>.
             </p>
             <p className="text-xs text-amber-800 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
-              ⚠️ El boleto volverá al estado <strong>PENDIENTE DE INGRESO</strong> y podrá ser canjeado nuevamente.
+              El boleto volverá al estado <strong>PENDIENTE DE INGRESO</strong> y podrá ser canjeado nuevamente.
             </p>
 
             <div className="flex items-center justify-end gap-2 pt-2">

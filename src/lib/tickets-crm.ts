@@ -835,6 +835,9 @@ export const HAROLD_AUTH_KEY = "chaplin_harold_auth_v1";
 
 export function getStoredHaroldAuth(): { username: string; password: string } | null {
   if (typeof window === "undefined") return null;
+  // Solo en desarrollo: modo demo para revisar el diseño del CRM sin credenciales reales.
+  // En producción esta rama no existe (Vite la elimina) y el servidor igual rechaza estas credenciales.
+  if (import.meta.env.DEV && localStorage.getItem("crm_demo") === "1") return { username: "demo", password: "demo" };
   try {
     const raw = localStorage.getItem(HAROLD_AUTH_KEY);
     if (!raw) return null;

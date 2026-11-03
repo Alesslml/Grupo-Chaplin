@@ -709,3 +709,32 @@
 @media (prefers-reduced-motion: reduce) {
   .shk-ticket-in, .shk-peek, .shk-stamp { animation: none !important; }
 }
+
+/* ── CRM: piel sobria (papel cálido, sin sombras ni etiquetas en mayúsculas gritonas) ── */
+.crm-skin { --crm-ink: #1f1d19; --crm-line: #e3dccb; --crm-line2: #d3c9b2; --crm-muted: #7b715d; }
+.crm-skin .shadow-xs, .crm-skin .shadow-2xs, .crm-skin .shadow-sm, .crm-skin .shadow-md,
+.crm-skin .shadow-lg, .crm-skin .shadow-xl, .crm-skin .shadow-2xl { box-shadow: none; }
+.crm-skin .bg-white { background-color: #fffdf8; }
+.crm-skin .bg-slate-50, .crm-skin .bg-slate-50\/50, .crm-skin .bg-slate-50\/60 { background-color: #f7f4ec; }
+.crm-skin .bg-slate-100, .crm-skin .bg-slate-100\/80 { background-color: #efe9da; }
+.crm-skin .bg-slate-200 { background-color: #e6dfcd; }
+.crm-skin .border-slate-100, .crm-skin .border-slate-200, .crm-skin .border-slate-200\/80 { border-color: var(--crm-line); }
+.crm-skin .border-slate-300 { border-color: var(--crm-line2); }
+.crm-skin .text-slate-900 { color: var(--crm-ink); }
+.crm-skin .text-slate-700, .crm-skin .text-slate-800 { color: #3f3a2e; }
+.crm-skin .text-slate-600 { color: #5d5644; }
+.crm-skin .text-slate-500, .crm-skin .text-slate-400 { color: var(--crm-muted); }
+.crm-skin .rounded-2xl, .crm-skin .rounded-xl { border-radius: 12px; }
+.crm-skin .uppercase { text-transform: none; letter-spacing: 0; }
+.crm-skin .tracking-wider, .crm-skin .tracking-widest, .crm-skin .tracking-wide { letter-spacing: 0; }
+.crm-skin [class*="tracking-["] { letter-spacing: 0.02em; }
+.crm-skin .font-extrabold, .crm-skin .font-black { font-weight: 700; }
+.crm-skin .animate-pulse { animation: none; }
+
+/* CRM con el evento Shrek: los botones principales usan el verde del pantano */
+.crm-shrek button.bg-red-600, .crm-shrek a.bg-red-600 { background-color: #3f7d1f; }
+.crm-shrek button.hover\:bg-red-700:hover, .crm-shrek a.hover\:bg-red-700:hover { background-color: #2f6217; }
+
+/* CRM: las "pastillas" de estado pasan a ser texto de color (sin fondo ni borde) */
+.crm-skin .inline-flex.rounded-full.border { background: transparent; border-color: transparent; padding-left: 0; padding-right: 0; }
+.crm-skin .inline-flex.rounded-full.border.font-bold { font-weight: 700; }
