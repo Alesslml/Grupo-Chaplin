@@ -30,6 +30,7 @@ import {
   EVENTOS,
 } from "@/lib/tickets-crm";
 import { Fireflies } from "@/components/shrek/Fireflies";
+import { ShrekTicket } from "@/components/shrek/ShrekTicket";
 
 export const Route = createFileRoute("/ticket/$id")({
   loader: async ({ params }) => {
@@ -184,6 +185,21 @@ function TicketPage() {
     month: "long",
     year: "numeric",
   });
+
+  // Los boletos de Shrek tienen su propio diseño (papel, perforación, QR y sello)
+  if (shrek) {
+    return (
+      <ShrekTicket
+        ticket={ticket}
+        copiedLink={copiedLink}
+        copiedCode={copiedCode}
+        onCopyLink={handleCopyLink}
+        onCopyCode={handleCopyCode}
+        onShare={handleShareWhatsApp}
+        onPrint={handlePrint}
+      />
+    );
+  }
 
   return (
     <div

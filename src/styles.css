@@ -698,3 +698,14 @@
   .shk-t-fill { width: 66%; }
   .shk-t-conf { display: none; }
 }
+
+/* ── Boleto de Shrek ── */
+.shk-ticket-in { animation: shk-ticket-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.shk-peek { animation: shk-peek 1s 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.shk-stamp { animation: shk-stamp 0.55s 0.9s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes shk-ticket-in { from { opacity: 0; transform: translateY(40px) rotate(-1.5deg); } to { opacity: 1; transform: none; } }
+@keyframes shk-peek { from { transform: translateY(60px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes shk-stamp { from { opacity: 0; transform: rotate(-8deg) scale(2.2); } to { opacity: 0.92; transform: rotate(-8deg) scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .shk-ticket-in, .shk-peek, .shk-stamp { animation: none !important; }
+}

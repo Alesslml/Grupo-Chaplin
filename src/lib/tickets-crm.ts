@@ -59,6 +59,28 @@ export interface TicketReservation {
 export interface IngresoLog {
   at: string; // ISO: fecha y hora exacta del ingreso
   cantidad: number; // personas que entraron en ese momento
+  n?: number[]; // si ingresaron escaneando el QR de una entrada concreta: sus números (1..total)
+}
+
+// Qué entradas (1..total) ya ingresaron. Los registros sin número (marcados a mano)
+// ocupan las primeras entradas libres.
+export function computeSeatUsage(log: IngresoLog[], total: number): boolean[] {
+  const used: boolean[] = Array.from({ length: total }, () => false);
+  let sueltos = 0;
+  for (const l of log) {
+    if (l.n && l.n.length) {
+      for (const i of l.n) if (i >= 1 && i <= total) used[i - 1] = true;
+    } else {
+      sueltos += l.cantidad;
+    }
+  }
+  for (let i = 0; i < total && sueltos > 0; i++) {
+    if (!used[i]) {
+      used[i] = true;
+      sueltos--;
+    }
+  }
+  return used;
 }
 
 function parseIngresos(raw: unknown): IngresoLog[] {
@@ -72,7 +94,10 @@ function parseIngresos(raw: unknown): IngresoLog[] {
   }
   if (!Array.isArray(v)) return [];
   return v
-    .map((i: any) => ({ at: String(i?.at || ""), cantidad: Number(i?.cantidad || 0) }))
+    .map((i: any) => {
+      const n = Array.isArray(i?.n) ? i.n.map(Number).filter((x: number) => Number.isFinite(x) && x >= 1) : undefined;
+      return { at: String(i?.at || ""), cantidad: Number(i?.cantidad || 0), ...(n && n.length ? { n } : {}) } as IngresoLog;
+    })
     .filter((i) => i.at && i.cantidad > 0);
 }
 
@@ -591,6 +616,7 @@ export const registerTicketEntryServer = createServerFn({ method: "POST" })
       id: string;
       cantidad: number; // personas que entran ahora; si undoLast, se ignora
       undoLast?: boolean;
+      entradaN?: number; // ingreso de una entrada concreta (QR individual): cuenta 1 persona
     }) => data
   )
   .handler(async ({ data }) => {
@@ -629,6 +655,19 @@ export const registerTicketEntryServer = createServerFn({ method: "POST" })
         return { ok: false as const, error: "NADA_QUE_DESHACER", ticket: null };
       }
       next = previous.slice(0, -1);
+    } else if (data.entradaN !== undefined && data.entradaN !== null) {
+      const n = Math.floor(Number(data.entradaN));
+      if (!Number.isFinite(n) || n < 1 || n > total) {
+        return { ok: false as const, error: "ENTRADA_INVALIDA", ticket: null };
+      }
+      const base =
+        previous.length === 0 && entered > 0
+          ? [{ at: row.asistio_at ? new Date(row.asistio_at).toISOString() : new Date().toISOString(), cantidad: entered }]
+          : previous;
+      if (computeSeatUsage(base, total)[n - 1]) {
+        return { ok: false as const, error: "ENTRADA_YA_USADA", ticket: null };
+      }
+      next = [...base, { at: new Date().toISOString(), cantidad: 1, n: [n] }];
     } else {
       const qty = Math.floor(Number(data.cantidad));
       if (!Number.isFinite(qty) || qty < 1) {
@@ -1215,10 +1254,22 @@ export function getIngresosLog(r: TicketReservation): IngresoLog[] {
   return [];
 }
 
+// Estado de cada entrada del ticket (true = ya ingresó) y su categoría.
+export function getSeatStatus(r: TicketReservation, promos?: EventPromoSetting[]): boolean[] {
+  return computeSeatUsage(getIngresosLog(r), getEffectiveTicketsCount(r, promos));
+}
+
+export function getSeatCategory(r: TicketReservation, n: number, promos?: EventPromoSetting[]): "Adulto" | "Niño" {
+  const total = getEffectiveTicketsCount(r, promos);
+  const base = Number(r.cantidad || 0) + Number(r.cantidadNino || 0);
+  const por = base > 0 ? total / base : 1;
+  return n <= Math.round(Number(r.cantidad || 0) * por) ? "Adulto" : "Niño";
+}
+
 export async function registerTicketEntry(
   idOrCode: string,
   cantidad: number,
-  options?: { undoLast?: boolean }
+  options?: { undoLast?: boolean; entradaN?: number }
 ): Promise<{ ok: boolean; ticket: TicketReservation | null; error?: string }> {
   const current = getStoredReservations();
   const idx = current.findIndex((r) => r.id === idOrCode || r.ticketCode === idOrCode);
@@ -1229,7 +1280,7 @@ export async function registerTicketEntry(
 
   try {
     const res = await registerTicketEntryServer({
-      data: { auth, id: current[idx].id, cantidad, undoLast: options?.undoLast },
+      data: { auth, id: current[idx].id, cantidad, undoLast: options?.undoLast, entradaN: options?.entradaN },
     });
     if (res && res.ok && res.ticket) {
       current[idx] = res.ticket;

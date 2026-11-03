@@ -64,6 +64,8 @@ import {
   getIngresadosCount,
   getPendientesIngresoCount,
   getIngresosLog,
+  getSeatStatus,
+  getSeatCategory,
   registerTicketEntry,
   getCRMStats,
   getPromosBreakdown,
@@ -174,6 +176,8 @@ function AdminEntradasPage() {
   const [attendanceRevertTarget, setAttendanceRevertTarget] = useState<TicketReservation | null>(null);
   const [entryTargetId, setEntryTargetId] = useState<string | null>(null);
   const [entryQty, setEntryQty] = useState(1);
+  // Entrada concreta (1..total) cuando se escanea el QR individual de una persona
+  const [scanSeat, setScanSeat] = useState<number | null>(null);
   const [filtroAsistenciaTab, setFiltroAsistenciaTab] = useState<"todos" | "asistidos" | "pendientes">("todos");
   const [filtroAsistenciaFuncion, setFiltroAsistenciaFuncion] = useState<string>("todas");
   const [filtroAsistenciaVendedor, setFiltroAsistenciaVendedor] = useState<string>("todos");
@@ -649,7 +653,18 @@ function AdminEntradasPage() {
   // Validador rápido de boletos en puerta (por código, DNI o nombre)
   const handleValidateScan = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const query = scanQuery.trim();
+    // El QR de cada entrada trae el enlace (…/ticket/CÓDIGO?e=3): se toma el código y el número de entrada
+    const rawQuery = scanQuery.trim();
+    let query = rawQuery;
+    let seatN: number | null = null;
+    if (rawQuery.includes("/ticket/")) {
+      const tail = rawQuery.split("/ticket/")[1];
+      const [path, qs = ""] = tail.split("?");
+      query = decodeURIComponent(path.split(/[#/]/)[0]);
+      const m = /(?:^|&)e=(\d+)/.exec(qs.split("#")[0]);
+      seatN = m ? Number(m[1]) : null;
+    }
+    setScanSeat(null);
     if (!query) return;
 
     const found =
@@ -676,6 +691,32 @@ function AdminEntradasPage() {
 
     setScannedTicket(found);
 
+    // QR individual: se valida esa entrada en particular
+    if (seatN !== null) {
+      const total = getEffectiveTicketsCount(found);
+      if (seatN < 1 || seatN > total) {
+        setScanAlert({ type: "not_found", message: `Este boleto no tiene una entrada número ${seatN} (solo tiene ${total}).` });
+        return;
+      }
+      const usada = getSeatStatus(found)[seatN - 1];
+      if (usada) {
+        setScanAlert({
+          type: "duplicate",
+          message: `¡ALERTA DE DUPLICADO! La entrada ${seatN} de ${total} (${getSeatCategory(found, seatN)}) YA ingresó.`,
+          ticket: found,
+          previousUsedAt: found.asistioAt,
+        });
+        return;
+      }
+      setScanSeat(seatN);
+      setScanAlert({
+        type: "success",
+        message: `Entrada ${seatN} de ${total} (${getSeatCategory(found, seatN)}) VÁLIDA. Confirma para registrar su ingreso.`,
+        ticket: found,
+      });
+      return;
+    }
+
     if (found.asistio && getPendientesIngresoCount(found) === 0) {
       setScanAlert({
         type: "duplicate",
@@ -696,10 +737,10 @@ function AdminEntradasPage() {
   };
 
   // Registrar ingreso de un ticket: si queda 1 persona se registra directo; si no, se pregunta cuántas entran
-  const submitEntry = async (target: TicketReservation, qty: number) => {
+  const submitEntry = async (target: TicketReservation, qty: number, entradaN?: number) => {
     setIsMarkingAttendance(true);
     try {
-      const result = await registerTicketEntry(target.id, qty);
+      const result = await registerTicketEntry(target.id, qty, entradaN ? { entradaN } : undefined);
       if (result.ok && result.ticket) {
         const t = result.ticket;
         const total = getEffectiveTicketsCount(t);
@@ -713,8 +754,12 @@ function AdminEntradasPage() {
           ticket: t,
         });
         setScannedTicket(t);
+        setScanSeat(null);
         setReservations(getStoredReservations());
         setEntryTargetId(null);
+      } else if (result.error === "ENTRADA_YA_USADA") {
+        alert("Esa entrada ya fue registrada: el QR no se puede usar otra vez.");
+        setReservations(getStoredReservations());
       } else if (result.error === "EXCEDE_ENTRADAS") {
         alert("Esa cantidad supera las entradas pendientes de este boleto.");
       } else if (result.error === "CONFLICTO_REINTENTAR") {
@@ -2895,7 +2940,7 @@ function AdminEntradasPage() {
                     {/* Botón Gigante de Confirmación de Ingreso */}
                     <button
                       type="button"
-                      onClick={() => handleConfirmAttendance(scannedTicket)}
+                      onClick={() => (scanSeat ? submitEntry(scannedTicket, 1, scanSeat) : handleConfirmAttendance(scannedTicket))}
                       disabled={isMarkingAttendance}
                       className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black uppercase tracking-wider text-base rounded-xl transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
@@ -2903,6 +2948,8 @@ function AdminEntradasPage() {
                       <span>
                         {isMarkingAttendance
                           ? "Registrando Ingreso en el Sistema..."
+                          : scanSeat
+                          ? `✅ CONFIRMAR INGRESO · ENTRADA ${scanSeat} DE ${effectiveCount} (${getSeatCategory(scannedTicket, scanSeat).toUpperCase()})`
                           : pendCount === 1
                           ? "✅ CONFIRMAR INGRESO · ADMITIR A 1 PERSONA"
                           : `✅ REGISTRAR INGRESO · FALTAN ${pendCount} PERSONA(S)`}
