@@ -1,446 +1,1102 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState, useEffect } from "react";
-import { MessageCircle, Minus, Plus, Calendar, Clock, MapPin, Users, ShieldCheck, Flame, AlertCircle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  getStoredReservations,
-  getZoneAvailability,
-  onCRMUpdate,
-  startVisiblePolling,
+  MapPin,
+  Users,
+  Minus,
+  Plus,
+  MessageCircle,
+  ChevronDown,
+  Sparkles,
+  AlertCircle,
+  Navigation,
+  Ticket,
+  Lock,
+  PartyPopper,
+} from "lucide-react";
+import {
+  EVENTOS,
   getActivePromoKey,
-  fetchPublicAvailabilityV2Server,
-  fetchPublicEventSettingsV2Server,
+  getPeruToday,
   getStoredEventSettings,
   saveStoredEventSettingsLocally,
-  type TicketReservation,
-  type ZoneAvailability,
+  setEvento,
+  startVisiblePolling,
+  fetchPublicAvailabilityV3Server,
+  fetchPublicEventSettingsV3Server,
   type EventSettings,
+  type EventZoneSetting,
+  type EventPromoSetting,
 } from "@/lib/tickets-crm";
-import flyerOficial from "@/assets/jesucristo-rockstar-flyer.jpg";
-import mapaZonas from "@/assets/jesucristo-rockstar-mapa.jpeg";
+import { SeatMap, type MapAvailability } from "@/components/shrek/SeatMap";
+import { Fireflies } from "@/components/shrek/Fireflies";
+import { Tutorial } from "@/components/shrek/Tutorial";
+import flyerOficial from "@/assets/shrek/flyer-oficial.jpg";
+import shrekPersonaje from "@/assets/shrek/shrek-personaje.png";
+
+const EV = EVENTOS.shrek;
 
 export const Route = createFileRoute("/entradas")({
   head: () => ({
     meta: [
-      { title: "Entradas · Jesucristo Rockstar · Chaplin Grupo Cultural" },
+      { title: "Entradas · Shrek, El inicio de la aventura · Chaplin Grupo Cultural" },
       {
         name: "description",
         content:
-          "Reserva tus entradas para Jesucristo Rockstar, domingo 18 de octubre, Auditorio del Colegio de Ingenieros de Ica. Funciones 4:00 pm y 7:00 pm.",
+          "Reserva tus entradas para SHREK, El inicio de la aventura: sábado 28 de noviembre, 4:00 pm y 7:00 pm, Auditorio del Colegio de Ingenieros de Ica. Preventa 2x1, 3x2 y 20% de descuento.",
+      },
+      { property: "og:title", content: "SHREK, El inicio de la aventura · Entradas" },
+      {
+        property: "og:description",
+        content: "Sábado 28 de noviembre · 4:00 pm y 7:00 pm · Auditorio del Colegio de Ingenieros de Ica. Preventa con promociones.",
+      },
+    ],
+    links: [
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Lilita+One&family=Cinzel:wght@700;900&display=swap",
       },
     ],
   }),
   component: EntradasPage,
 });
 
-const WHATSAPP_NUMBER = "51956060826";
+/* ─────────────────────────── contenido ─────────────────────────── */
 
-const funciones = ["4:00 pm", "7:00 pm"];
+const SINOPSIS =
+  "En esta superproducción familiar, el pantano de Shrek ha sido invadido y, para recuperarlo, deberá embarcarse en la aventura más grande de su vida. Junto a su inseparable y parlanchín amigo Burro, se enfrentará a dragones, villanos de cuentos y muchas locuras para rescatar a la hermosa y rebelde Princesa Fiona de su torre. Es la presentación final de nuestro taller montaje: una mezcla dinámica y explosiva de la película original y el musical de Broadway, con voces en vivo, coreografías increíbles y todo el humor del ogro más querido del mundo. ¡Una historia sobre la amistad, el amor y aprender a querernos tal como somos!";
 
-const sinopsis =
-  "Jesucristo Rockstar es una vibrante adaptación teatral que sumerge al público en los últimos siete días de la vida de Jesús de Nazaret, explorando su liderazgo y el profundo impacto en sus seguidores mediante una perspectiva profundamente humana y contemporánea. La obra resalta los dilemas internos y el conflicto de figuras clave como Judas ante la creciente marea de tensión política y religiosa, todo narrado con la fuerza, la rebeldía y la energía explosiva de una poderosa banda de rock en vivo, fusionando la solemnidad de la historia con la potencia sonora y la estética de un concierto inolvidable.";
-
-const fichaTecnica = [
+const FICHA = [
   { rol: "Dirección general", nombre: "Harold López" },
-  { rol: "Productor ejecutivo", nombre: "Jonathan López" },
-  { rol: "Coreografía", nombre: "Thian Ramos" },
-  { rol: "Productor musical", nombre: "Andre Bonifaz" },
+  { rol: "Dirección ejecutiva", nombre: "Jonathan López" },
+  { rol: "Dirección coreográfica", nombre: "Thian Ramos" },
   { rol: "Dirección vocal", nombre: "Dayana Navarrete" },
-  { rol: "Banda en vivo", nombre: "Black & White" },
+  { rol: "Asistentes de dirección", nombre: "Francia Reategui y Ángel López" },
 ];
 
-const elenco = [
-  "Yerson Luján", "Jacqui Arce", "Karina Félix", "Daniela Lengua", "Carlos Espino",
-  "Cesar Alvarado", "Alex Meza", "Katia Carrascal", "Kleber Martínez", "Francia Reategui",
-  "Keselhy Martínez", "Victoria Di Antonis", "Antoinette Hernández", "Marth Fernández",
-  "Mahylyn Cáceres", "Angelina Rosas", "Sofía Gonzales", "Ingrid Vicuña",
+const ELENCO = [
+  "Karina Félix",
+  "Kleber Martinez",
+  "Alex Meza",
+  "José Manuel García",
+  "Antoinette Hernández",
+  "Marth Fernández",
+  "Angelina Rosas",
+  "Anyeli",
+  "Victoria Di Antonis",
+  "Keselhy Martinez",
+  "Esteban Anicama",
+  "Valentino",
+  "Abraham",
+  "Patrick",
+  "Arianna",
+  "Gabriela",
+  "Sebastián",
 ];
 
-const detallesEvento = [
-  { icon: MapPin, label: "Auditorio del Colegio de Ingenieros de Ica" },
-  { icon: Calendar, label: "Domingo 18 de octubre" },
-  { icon: Clock, label: "120 minutos, incluye intermedio" },
-  { icon: Users, label: "Público recomendado: mayores de 14 años" },
+const FAQ: { q: string; a: ReactNode }[] = [
+  {
+    q: "¿Cómo reservo mis entradas?",
+    a: "Elige función, zona y cantidad en esta página, completa tus datos y toca “Reservar por WhatsApp”. El mensaje sale listo con todo tu pedido. Después envías tu captura de pago por el mismo chat y te confirmamos.",
+  },
+  {
+    q: "¿Cómo pago?",
+    a: "Plin: 969 821 836 (Yenny Huamani Huamani). Los demás medios de pago (como Yape) los coordinamos por WhatsApp al confirmar tu reserva.",
+  },
+  {
+    q: "¿Cómo funcionan el 2x1 y el 3x2?",
+    a: "Cada promoción que compras trae 2 entradas (2x1: pagas 1 y llevas 2) o 3 entradas (3x2: pagas 2 y llevas 3) de la misma categoría y zona. El precio aplica según la fecha en que compras, no la fecha de la función: mientras antes reservas, más ahorras.",
+  },
+  {
+    q: "¿Los niños pagan entrada?",
+    a: "Sí, hay entrada Niño con precio más bajo en todas las zonas. Si tienes dudas sobre la edad, escríbenos por WhatsApp y te ayudamos.",
+  },
+  {
+    q: "¿Cómo y cuándo recibo mi ticket?",
+    a: "Apenas validamos tu pago te enviamos por WhatsApp tu código de ticket y el enlace a tu boleto digital con código QR. El día de la función presentas tu boleto y tu DNI en boletería.",
+  },
+  {
+    q: "¿Puedo cambiar de horario?",
+    a: "Sí, los cambios de horario se pueden hacer hasta 48 horas antes de la función y según disponibilidad.",
+  },
+  {
+    q: "Mi grupo no llega junto, ¿qué hago?",
+    a: "No hay problema: en puerta registramos cuántas personas ingresan en cada momento. Las entradas restantes de tu ticket siguen vigentes hasta que llegue todo el grupo, siempre antes de que inicie la función.",
+  },
+  {
+    q: "¿Cuánto dura y para qué público es?",
+    a: "La función dura 100 minutos (incluyendo intermedio) y es apta para todo público.",
+  },
+  {
+    q: "¿Hay devoluciones?",
+    a: (
+      <>
+        Una vez confirmada la compra no hay devoluciones por arrepentimiento. Lee los{" "}
+        <a href="/terminos" target="_blank" rel="noopener noreferrer" className="text-[#caff55] underline underline-offset-2">
+          Términos y condiciones
+        </a>{" "}
+        para ver todos los casos.
+      </>
+    ),
+  },
 ];
 
-interface Zone {
-  key: string;
+/* ─────────────────────────── utilidades ─────────────────────────── */
+
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
+
+function fechaCorta(iso: string) {
+  const [, m, d] = iso.split("-").map(Number);
+  return `${d} ${MESES[m - 1].slice(0, 3)}`;
+}
+function fechaLarga(iso: string) {
+  const [, m, d] = iso.split("-").map(Number);
+  return `${d} de ${MESES[m - 1]}`;
+}
+function peruDate(iso: string, time = "00:00:00") {
+  return new Date(`${iso}T${time}-05:00`);
+}
+function diasEntre(aIso: string, bIso: string) {
+  return Math.round((Date.parse(`${bIso}T00:00:00Z`) - Date.parse(`${aIso}T00:00:00Z`)) / 86400000);
+}
+const soles = (n: number) => `S/${Number.isInteger(n) ? n : n.toFixed(2)}`;
+
+function useReveal<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      el.classList.add("is-in");
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("is-in");
+            io.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return ref;
+}
+
+function Reveal({ children, className = "", delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
+  const ref = useReveal<HTMLDivElement>();
+  return (
+    <div ref={ref} className={`shk-reveal ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </div>
+  );
+}
+
+// Borde de agua entre secciones (en lugar de cajas)
+function Wave({ flip = false, tone = "#0b2014" }: { flip?: boolean; tone?: string }) {
+  return (
+    <svg
+      viewBox="0 0 1440 80"
+      preserveAspectRatio="none"
+      aria-hidden
+      className={`block h-[40px] w-full sm:h-[64px] ${flip ? "rotate-180" : ""}`}
+    >
+      <path
+        d="M0 40 C 120 10, 240 70, 360 40 S 600 10, 720 40 S 960 70, 1080 40 S 1320 10, 1440 40 V80 H0 Z"
+        fill={tone}
+      />
+    </svg>
+  );
+}
+
+function SectionTitle({ eyebrow, title, sub }: { eyebrow: string; title: ReactNode; sub?: ReactNode }) {
+  return (
+    <Reveal className="mb-9 sm:mb-12 text-center max-w-3xl mx-auto">
+      <p className="shk-eyebrow mb-3">{eyebrow}</p>
+      <h2 className="shk-h2 text-[34px] sm:text-5xl lg:text-6xl">{title}</h2>
+      {sub && <p className="mt-4 text-white/65 text-[15px] sm:text-base leading-relaxed">{sub}</p>}
+    </Reveal>
+  );
+}
+
+/* ─────────────────────────── cuenta regresiva ─────────────────────────── */
+
+function Countdown({ target, now }: { target: Date; now: Date }) {
+  const ms = Math.max(0, target.getTime() - now.getTime());
+  const d = Math.floor(ms / 86400000);
+  const h = Math.floor((ms % 86400000) / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  const cell = (v: number, l: string) => (
+    <div className="text-center">
+      <div className="shk-digit w-[64px] sm:w-[84px] py-2 sm:py-3 text-[32px] sm:text-[46px] leading-none tabular-nums">
+        {String(v).padStart(2, "0")}
+      </div>
+      <p className="mt-2 text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-white/50">{l}</p>
+    </div>
+  );
+  return (
+    <div className="flex items-start justify-center gap-2.5 sm:gap-4">
+      {cell(d, "días")}
+      {cell(h, "horas")}
+      {cell(m, "min")}
+      {cell(s, "seg")}
+    </div>
+  );
+}
+
+/* ─────────────────────────── piezas del formulario ─────────────────────────── */
+
+function Stepper({
+  label,
+  sub,
+  value,
+  onChange,
+  max,
+  priceLabel,
+}: {
   label: string;
-  color: string;
-  seats: number;
-  prices: { twoXone: number; threeXtwo: number; twentyPct: number; regular: number };
-  sellable: true;
+  sub: string;
+  value: number;
+  onChange: (v: number) => void;
+  max: number;
+  priceLabel: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-white/10 py-4 last:border-b-0">
+      <div className="min-w-0">
+        <p className="text-[17px] font-bold leading-tight">{label}</p>
+        <p className="mt-0.5 text-[12px] leading-snug text-white/50">{sub}</p>
+        <p className="mt-1 text-[14px] font-bold text-[#f6c744]">{priceLabel}</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(0, value - 1))}
+          disabled={value <= 0}
+          className="grid h-11 w-11 place-items-center rounded-full border border-white/25 hover:bg-white/10 disabled:opacity-25 transition-colors"
+          aria-label={`Quitar ${label}`}
+        >
+          <Minus size={18} />
+        </button>
+        <span className="w-8 text-center text-[28px] font-black tabular-nums" style={{ fontFamily: "var(--shk-title)" }} aria-live="polite">
+          {value}
+        </span>
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(max, value + 1))}
+          disabled={value >= max}
+          className="grid h-11 w-11 place-items-center rounded-full bg-[#a6e22e] text-[#0b2504] hover:brightness-110 disabled:opacity-30 transition-all"
+          aria-label={`Agregar ${label}`}
+        >
+          <Plus size={18} />
+        </button>
+      </div>
+    </div>
+  );
 }
 
-const zonasVenta: Zone[] = [
-  {
-    key: "superstar",
-    label: "Zona Superstar",
-    color: "#fe0000",
-    seats: 60,
-    prices: { twoXone: 80, threeXtwo: 160, twentyPct: 64, regular: 80 },
-    sellable: true,
-  },
-  {
-    key: "getsemani",
-    label: "Zona Getsemaní",
-    color: "#f2d675",
-    seats: 47,
-    prices: { twoXone: 60, threeXtwo: 120, twentyPct: 48, regular: 60 },
-    sellable: true,
-  },
-  {
-    key: "hosanna",
-    label: "Zona Hosanna",
-    color: "#7dd3e8",
-    seats: 67,
-    prices: { twoXone: 40, threeXtwo: 80, twentyPct: 32, regular: 40 },
-    sellable: true,
-  },
-  {
-    key: "pueblo",
-    label: "Zona Pueblo (2do piso)",
-    color: "#2b3a8f",
-    seats: 80,
-    prices: { twoXone: 20, threeXtwo: 40, twentyPct: 16, regular: 20 },
-    sellable: true,
-  },
-];
-
-type TierKey = "twoXone" | "threeXtwo" | "twentyPct" | "regular";
-
-interface Tier {
-  key: TierKey;
+function Field({
+  label,
+  hint,
+  error,
+  children,
+}: {
   label: string;
-  detalle: string;
-  from: string;
-  to: string;
-  /** Cuántas entradas incluye cada precio listado (2 en 2x1, 3 en 3x2, 1 fuera de esas promos). */
-  entradasPorPrecio: number;
+  hint?: string;
+  error?: string | null;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 flex items-baseline justify-between gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">{label}</span>
+        {hint && <span className="text-[11px] text-white/35">{hint}</span>}
+      </span>
+      {children}
+      {error && <span className="mt-1.5 block text-[12px] text-[#ff8a8a]">{error}</span>}
+    </label>
+  );
 }
 
-const tiers: Tier[] = [
-  {
-    key: "twoXone",
-    label: "Preventa 2x1",
-    detalle: "Del 16 al 22 de setiembre · Llevas 2 entradas por este precio",
-    from: "2026-09-16",
-    to: "2026-09-22",
-    entradasPorPrecio: 2,
-  },
-  {
-    key: "threeXtwo",
-    label: "Preventa 3x2",
-    detalle: "Del 23 de setiembre al 2 de octubre · Llevas 3 entradas por este precio",
-    from: "2026-09-23",
-    to: "2026-10-02",
-    entradasPorPrecio: 3,
-  },
-  {
-    key: "twentyPct",
-    label: "Preventa 20% dto.",
-    detalle: "Del 3 al 11 de octubre · Precio por entrada",
-    from: "2026-10-03",
-    to: "2026-10-11",
-    entradasPorPrecio: 1,
-  },
-  {
-    key: "regular",
-    label: "Precio regular",
-    detalle: "Del 12 al 18 de octubre · Precio por entrada",
-    from: "2026-10-12",
-    to: "2026-10-18",
-    entradasPorPrecio: 1,
-  },
-];
-
-// La fecha se calcula en horario de Perú (America/Lima, UTC-5), no en UTC:
-// con el servidor en UTC, cualquier hora desde las 7pm hora Peru en adelante
-// ya cuenta como "el día siguiente" en UTC, lo que adelantaba la promo antes
-// de tiempo.
-function getPeruISODate(today: Date): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Lima",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(today);
+function StepHead({ n, title }: { n: number; title: string }) {
+  return (
+    <div className="mb-3 flex items-baseline gap-3">
+      <span className="text-[38px] leading-none text-[#f6c744]" style={{ fontFamily: "var(--shk-title)" }}>
+        {n}
+      </span>
+      <h3 className="shk-h2 text-[26px] sm:text-[30px]">{title}</h3>
+    </div>
+  );
 }
 
-function getActiveTier(today: Date): Tier {
-  const iso = getPeruISODate(today);
-  const found = tiers.find((t) => iso >= t.from && iso <= t.to);
-  if (found) return found;
-  return iso < tiers[0].from ? tiers[0] : tiers[tiers.length - 1];
-}
+/* ─────────────────────────── página ─────────────────────────── */
+
+type Disp = Record<string, Record<string, number>>;
 
 function EntradasPage() {
-  const [eventSettings, setEventSettings] = useState<EventSettings>(getStoredEventSettings);
-  // Misma regla que el CRM: la promo vigente sale de las fechas configuradas
-  const activeTier = useMemo(
-    () => tiers.find((t) => t.key === getActivePromoKey(eventSettings.promos)) ?? getActiveTier(new Date()),
-    [eventSettings.promos]
-  );
-  const [funcion, setFuncion] = useState<string | null>(null);
+  const [settings, setSettings] = useState<EventSettings>(() => EV.defaults);
+  const [sold, setSold] = useState<Disp | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
+
+  const [funcion, setFuncion] = useState<string>(EV.defaults.funciones[0]);
   const [zonaKey, setZonaKey] = useState<string | null>(null);
-  const [cantidad, setCantidad] = useState(1);
+  const [adultos, setAdultos] = useState(1);
+  const [ninos, setNinos] = useState(0);
   const [nombre, setNombre] = useState("");
   const [dni, setDni] = useState("");
+  const [celular, setCelular] = useState("");
+  const [nota, setNota] = useState("");
   const [vendedor, setVendedor] = useState("");
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [promoVista, setPromoVista] = useState<string | null>(null);
+  const [showMsg, setShowMsg] = useState(false);
+  // Solo en desarrollo (npm run dev): ?abierta=1 simula que la preventa ya abrió, para probar el flujo.
+  const [forzarAbierta, setForzarAbierta] = useState(false);
 
-  // CRM Live State (Conectado a Neon PostgreSQL en Tiempo Real)
-  const [crmReservations, setCrmReservations] = useState<TicketReservation[]>([]);
-  const [neonSoldMap, setNeonSoldMap] = useState<Record<string, Record<string, number>> | null>(null);
-
-  const activeFunciones = eventSettings.funciones;
-  const activeZonasVenta: Zone[] = useMemo(() => {
-    return eventSettings.zonas
-      .filter((z) => z.key !== "cortesia")
-      .map((z) => ({
-        key: z.key,
-        label: z.label,
-        color: z.color,
-        seats: z.seats,
-        prices: z.prices,
-        sellable: true,
-      }));
-  }, [eventSettings.zonas]);
-
-  const syncNeonStock = async () => {
-    try {
-      const res = await fetchPublicAvailabilityV2Server();
-      if (res && res.ok && res.soldMap) {
-        setNeonSoldMap(res.soldMap);
-      }
-    } catch {
-      // Fallback a almacenamiento local si no hay conexión
-    }
-  };
-
-  const syncNeonSettings = async () => {
-    try {
-      const res = await fetchPublicEventSettingsV2Server();
-      if (res && res.ok && res.settings) {
-        setEventSettings(res.settings);
-        saveStoredEventSettingsLocally(res.settings);
-      }
-    } catch {
-      // Fallback a almacenamiento local si no hay conexión
-    }
-  };
-
+  // Este navegador trabaja con el evento de Shrek
   useEffect(() => {
-    setCrmReservations(getStoredReservations());
-    setEventSettings(getStoredEventSettings());
-    syncNeonStock();
-    syncNeonSettings();
-
-    // Polling cada 30s, solo con la pestaña visible, sin solapamiento
-    const stopPolling = startVisiblePolling(
-      () => Promise.all([syncNeonStock(), syncNeonSettings()]),
-      30000
-    );
-
-    // El listener SOLO relee almacenamiento local: nunca vuelve a llamar al
-    // servidor (antes hacía sync -> guardar -> evento -> sync en bucle).
-    const unsubscribe = onCRMUpdate(() => {
-      setCrmReservations(getStoredReservations());
-      setEventSettings(getStoredEventSettings());
-    });
-
-    return () => {
-      stopPolling();
-      unsubscribe();
-    };
+    setEvento("shrek");
+    if (import.meta.env.DEV && new URLSearchParams(window.location.search).has("abierta")) setForzarAbierta(true);
+    setSettings(getStoredEventSettings("shrek"));
+    setNow(new Date());
+    const clock = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(clock);
   }, []);
 
-  const liveReservations = useMemo(() => {
-    if (!neonSoldMap) return crmReservations;
-    const synthetic: TicketReservation[] = [];
-    for (const [func, zones] of Object.entries(neonSoldMap)) {
-      for (const [zKey, count] of Object.entries(zones)) {
-        if (count > 0) {
-          synthetic.push({
-            id: `neon-${func}-${zKey}`,
-            createdAt: new Date().toISOString(),
-            clienteNombre: "Venta Confirmada",
-            clienteTelefono: "-",
-            funcion: func as any,
-            zonaKey: zKey as any,
-            cantidad: count,
-            etapaPromo: "regular",
-            totalPagado: 0,
-            vendedor: "Harold López",
-            estado: "confirmado",
-          });
-        }
+  // Stock y precios en vivo desde Neon (cada 30 s, solo con la pestaña visible)
+  useEffect(() => {
+    const syncStock = async () => {
+      try {
+        const res = await fetchPublicAvailabilityV3Server({ data: { evento: "shrek" } });
+        if (res && res.ok && res.soldMap) setSold(res.soldMap);
+      } catch {
+        /* sin conexión: se mantiene lo último que se vio */
       }
+    };
+    const syncSettings = async () => {
+      try {
+        const res = await fetchPublicEventSettingsV3Server({ data: { evento: "shrek" } });
+        if (res && res.ok && res.settings) {
+          setSettings(res.settings);
+          saveStoredEventSettingsLocally(res.settings);
+        }
+      } catch {
+        /* sin conexión */
+      }
+    };
+    syncStock();
+    syncSettings();
+    return startVisiblePolling(() => Promise.all([syncStock(), syncSettings()]), 30000);
+  }, []);
+
+  /* ── promoción vigente y estado de la venta ── */
+  const hoy = now ? getPeruToday(now) : getPeruToday();
+  const promos = settings.promos;
+  const activeKey = getActivePromoKey(promos, now ?? new Date());
+  const promo: EventPromoSetting = promos.find((p) => p.key === activeKey) ?? promos[0];
+  const per = promo.entradasPorPrecio;
+  const ventaDesde = promos[0].from;
+  const antes = hoy < ventaDesde && !forzarAbierta;
+  const finalizada = hoy > EV.fechaISO;
+  const ventaAbierta = !antes && !finalizada;
+
+  const zonasVenta = useMemo(() => settings.zonas.filter((z) => z.key !== "cortesia"), [settings.zonas]);
+  const zona = zonasVenta.find((z) => z.key === zonaKey) ?? null;
+
+  const precioAdulto = zona ? zona.prices[promo.key as keyof EventZoneSetting["prices"]] : 0;
+  const precioNino = zona ? (zona.pricesNino ?? zona.prices)[promo.key as keyof EventZoneSetting["prices"]] : 0;
+  const total = adultos * precioAdulto + ninos * precioNino;
+  const entradas = (adultos + ninos) * per;
+  const totalFull = zona
+    ? per * adultos * zona.prices.regular + per * ninos * (zona.pricesNino ?? zona.prices).regular
+    : 0;
+  const ahorro = Math.max(0, totalFull - total);
+
+  /* ── disponibilidad por zona para la función elegida ── */
+  const disp: Record<string, MapAvailability> | null = useMemo(() => {
+    if (!sold) return null;
+    const out: Record<string, MapAvailability> = {};
+    for (const z of zonasVenta) {
+      const vendidos = sold[funcion]?.[z.key] ?? 0;
+      const available = Math.max(0, z.seats - vendidos);
+      out[z.key] = { available, total: z.seats, soldOut: available <= 0 };
     }
-    // Si Neon está conectado, usar la información directa de Neon PostgreSQL
-    return neonSoldMap !== null ? synthetic : crmReservations;
-  }, [neonSoldMap, crmReservations]);
+    return out;
+  }, [sold, funcion, zonasVenta]);
 
-  const currentZoneAvail = useMemo(() => {
-    if (!zonaKey || !funcion) return null;
-    const targetZ = activeZonasVenta.find((item) => item.key === zonaKey);
-    return getZoneAvailability(liveReservations, funcion, zonaKey, targetZ?.seats);
-  }, [liveReservations, funcion, zonaKey, activeZonasVenta]);
+  const dispZona = zona && disp ? disp[zona.key] : null;
+  const maxEntradas = dispZona ? dispZona.available : 999;
+  const sinCupo = Boolean(dispZona && (dispZona.soldOut || entradas > dispZona.available));
 
-  const zona = activeZonasVenta.find((z) => z.key === zonaKey) ?? null;
-  const precioPorUnidad = zona ? zona.prices[activeTier.key] : null;
-  const total = precioPorUnidad != null ? precioPorUnidad * cantidad : null;
-  const entradasTotales = cantidad * activeTier.entradasPorPrecio;
-  const esPaquete = activeTier.entradasPorPrecio > 1;
+  const totalPorFuncion = (f: string) =>
+    sold ? zonasVenta.reduce((n, z) => n + Math.max(0, z.seats - (sold[f]?.[z.key] ?? 0)), 0) : null;
 
-  const noHayCupo = Boolean(
-    currentZoneAvail && (currentZoneAvail.isSoldOut || entradasTotales > currentZoneAvail.availableSeats)
-  );
+  /* ── validación ── */
+  const errNombre = nombre.trim().length >= 3 ? null : "Escribe tus nombres y apellidos";
+  const errDni = /^\d{8,9}$/.test(dni.trim()) ? null : "El DNI debe tener 8 dígitos";
+  const errCel = /^9\d{8}$/.test(celular.replace(/\s/g, "")) ? null : "Escribe tu celular de 9 dígitos";
+  const listo = ventaAbierta && Boolean(zona) && entradas > 0 && !sinCupo && !errNombre && !errDni && !errCel;
 
-  const puedeReservar = Boolean(
-    funcion && zona && nombre.trim() && dni.trim() && !noHayCupo
-  );
+  /* ── mensaje de WhatsApp (mismo orden del formulario de Chaplin) ── */
+  const categoria = adultos > 0 && ninos > 0 ? "Adulto y Niño" : ninos > 0 ? "Niño" : "Adulto";
+  const sufijo = per > 1 ? ` (${per} entradas c/promo ${promo.tag})` : "";
+  const mensaje = zona
+    ? `Hola Chaplin 👋 Quiero reservar para *SHREK, EL INICIO DE LA AVENTURA* 💚\n\n` +
+      `👤 *Nombres y apellidos:* ${nombre.trim() || "—"}\n\n` +
+      `🆔 *DNI:* ${dni.trim() || "—"}\n\n` +
+      `🎟️ *Zona elegida:* ${zona.label.replace(/^Zona /, "")}\n\n` +
+      `👨‍👩‍👧 *Categoría:* ${categoria}\n\n` +
+      `⏰ *Horario de función:* ${funcion.toUpperCase()} · ${EV.fechaLarga}\n\n` +
+      `🔢 *Cantidad de entradas:*\n` +
+      `_Adulto:_ ${adultos}${adultos > 0 ? sufijo : ""}\n` +
+      `_Niño:_ ${ninos}${ninos > 0 ? sufijo : ""}\n` +
+      `_Total de entradas:_ ${entradas}\n\n` +
+      `📱 *Número de celular:* ${celular.replace(/\s/g, "") || "—"}\n\n` +
+      `📌 *Nota importante:* ${nota.trim() || "Recibiré las entradas yo mismo/a."}\n\n` +
+      `💰 *Total a pagar:* ${soles(total)} (${promo.label})${ahorro > 0 ? ` · ahorro ${soles(ahorro)}` : ""}\n` +
+      (vendedor.trim() ? `🧑‍💼 *Vendedor:* ${vendedor.trim()}\n` : "") +
+      `\nEnviaré mi captura de pago por este chat. ¡Gracias! 🍃`
+    : "";
+  const waUrl = (text: string) => `https://api.whatsapp.com/send?phone=${EV.whatsapp}&text=${encodeURIComponent(text)}`;
 
-  const cantidadLinea = esPaquete
-    ? `CANTIDAD: ${cantidad} promoción(es) ${activeTier.label} = ${entradasTotales} entradas`
-    : `CANTIDAD: ${cantidad} entrada(s)`;
+  const avisoMsg =
+    "Hola Chaplin 👋 Quiero que me avisen apenas abra la preventa de *SHREK, EL INICIO DE LA AVENTURA* 💚🍃";
 
-  const mensaje =
-    zona && total != null
-      ? encodeURIComponent(
-          `Hola, quiero reservar entradas para JESUCRISTO ROCKSTAR (Dom 18 de octubre):\n\n` +
-            `NOMBRE: ${nombre.trim()}\n` +
-            `DNI: ${dni.trim()}\n` +
-            `${cantidadLinea}\n` +
-            `ZONA: ${zona.label.toUpperCase()}\n` +
-            `HORARIO DE FUNCIÓN: ${funcion}\n` +
-            `MONTO: S/${total} SOLES (${activeTier.label.toUpperCase()})\n` +
-            `VENDEDOR: ${vendedor.trim() || "Venta directa (web)"}\n\n` +
-            `Quedo atento/a para enviar mi comprobante de pago. ¡Gracias!`
-        )
-      : "";
+  const irAReservar = () => document.getElementById("reservar")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  /* ── fechas para las cuentas regresivas ── */
+  const objetivoPrincipal = antes
+    ? { fecha: peruDate(ventaDesde), titulo: "La preventa abre en" }
+    : finalizada
+    ? null
+    : { fecha: peruDate(promo.to, "23:59:59"), titulo: `La promo ${promo.tag} termina en` };
+  const diasFuncion = Math.max(0, diasEntre(hoy, EV.fechaISO));
+
+  const estadoPromo = (p: EventPromoSetting, i: number) => {
+    if (hoy > p.to) return "pasada" as const;
+    if (p.key === promo.key && !antes) return "activa" as const;
+    if (antes && i === 0) return "proxima" as const;
+    return "futura" as const;
+  };
 
   return (
-    <div className="bg-negro text-blanco overflow-x-hidden">
-      <header className="border-b border-gris-textura sticky top-0 z-20 bg-negro/90 backdrop-blur-md">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-12 py-3.5 sm:py-4 flex items-center">
-          <Link to="/entradas" className="flex items-center group" aria-label="Chaplin Grupo Cultural">
+    <div className="shk-root min-h-screen pb-24 font-body lg:pb-0">
+      {/* ─────────── barra superior ─────────── */}
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#06120b]/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
+          <Link to="/" className="flex items-center gap-3" aria-label="Chaplin Grupo Cultural">
             <img
               src="/logo-chaplin.png"
               alt="Chaplin Grupo Cultural"
-              className="h-9 sm:h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              className="h-9 w-auto object-contain"
               style={{ filter: "invert(1) hue-rotate(180deg)" }}
             />
           </Link>
+          <button onClick={irAReservar} className="shk-btn !px-5 !py-2.5 !text-[16px]">
+            Reservar
+          </button>
         </div>
       </header>
 
-      <section className="relative pt-12 pb-14 sm:pt-16 sm:pb-16 lg:pt-20 lg:pb-20 overflow-hidden bg-negro grain">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-12 relative z-10">
-          <p className="font-body uppercase tracking-[0.3em] sm:tracking-[0.4em] text-rojo text-[11px] sm:text-xs mb-4 sm:mb-6">Temporada 2026 · Preventa</p>
-          <h1 className="font-display text-blanco text-[40px] sm:text-[64px] md:text-[80px] lg:text-[108px] leading-[0.92] mb-4 sm:mb-6">
-            JESUCRISTO
-            <br />
-            <span className="text-rojo">ROCKSTAR</span>
-          </h1>
-          <p className="font-body text-blanco/60 text-sm sm:text-base md:text-lg max-w-2xl leading-[1.7] sm:leading-[1.8]">
-            Domingo 18 de octubre · Funciones {activeFunciones.join(" y ")} · Auditorio del Colegio de Ingenieros de Ica · Dirección general: Harold López
-          </p>
-          <div className="linea-roja mt-6 sm:mt-8" style={{ transformOrigin: "left center" }} />
+      {/* ─────────── hero ─────────── */}
+      <section className="relative overflow-hidden">
+        <Fireflies count={22} />
+        <div className="mx-auto grid max-w-[1240px] items-center gap-10 px-4 pb-14 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-[1fr_0.9fr] lg:gap-10 lg:px-10 lg:pb-20 lg:pt-14">
+          {/* Flyer oficial: trae el logo de Shrek. En celular va primero. */}
+          <Reveal delay={100} className="relative z-10 order-1 mx-auto w-full max-w-[380px] lg:order-2 lg:max-w-[440px]">
+            <div className="absolute -inset-8 rounded-full bg-[radial-gradient(circle,rgba(166,226,46,0.34),transparent_65%)] blur-2xl" />
+            <div className="shk-poster relative">
+              <h1 className="sr-only">SHREK, El inicio de la aventura</h1>
+              <img
+                src={flyerOficial}
+                alt="Flyer oficial: Chaplin Grupo Cultural presenta Shrek, el inicio de la aventura. Sábado 28 de noviembre, 4:00 y 7:00 pm, Auditorio del Colegio de Ingenieros de Ica"
+                className="w-full rounded-[20px] shadow-[0_40px_90px_-20px_rgba(0,0,0,0.9),0_0_80px_-10px_rgba(166,226,46,0.45)]"
+                fetchPriority="high"
+              />
+              <span className="absolute -right-2 -top-3 rotate-6 rounded-full bg-[#e11d2e] px-4 py-2 text-[13px] font-black uppercase tracking-wider text-white shadow-lg">
+                {antes ? "¡Mañana inicia!" : finalizada ? "Función realizada" : "Preventa"}
+              </span>
+            </div>
+          </Reveal>
+
+          <div className="relative z-10 order-2 text-center lg:order-1 lg:text-left">
+            <Reveal>
+              <p className="shk-eyebrow mb-4">Preventa de entradas</p>
+              <p className="text-[42px] leading-[0.95] sm:text-[60px] lg:text-[68px]" style={{ fontFamily: "var(--shk-title)" }}>
+                Sábado 28
+                <br />
+                de noviembre
+              </p>
+              <p className="mt-4 text-[20px] font-bold text-[#caff55] sm:text-2xl">{settings.funciones.join("  ·  ")}</p>
+              <p className="mt-3 flex items-center justify-center gap-2 text-[14px] text-white/65 lg:justify-start">
+                <MapPin size={15} className="shrink-0 text-[#a6e22e]" />
+                Auditorio del Colegio de Ingenieros de Ica
+              </p>
+            </Reveal>
+
+            <Reveal delay={120}>
+              <p className="mx-auto mt-6 max-w-lg text-[15px] leading-relaxed text-white/65 sm:text-base lg:mx-0">
+                La presentación final de nuestro taller montaje: voces en vivo, coreografías increíbles y todo el humor del ogro más
+                querido del mundo. Apta para todo público.
+              </p>
+              <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
+                <button onClick={irAReservar} className="shk-btn">
+                  <Ticket size={22} /> {antes ? "Ver cómo reservar" : "Reservar mis entradas"}
+                </button>
+                <a href="#precios" className="text-[15px] font-bold text-[#f6c744] underline-offset-4 hover:underline">
+                  Ver todos los precios →
+                </a>
+              </div>
+            </Reveal>
+          </div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-rojo/20" />
+
+        {/* Cuenta regresiva: un solo bloque, sin caja */}
+        {now && !finalizada && objetivoPrincipal && (
+          <Reveal className="relative z-10 mx-auto max-w-[760px] px-4 pb-20 text-center sm:px-6">
+            <p className="shk-eyebrow mb-5">{objetivoPrincipal.titulo}</p>
+            <Countdown target={objetivoPrincipal.fecha} now={now} />
+            <p className="mt-6 text-[14px] text-white/55">
+              {diasFuncion === 0 ? "¡La función es hoy!" : `Faltan ${diasFuncion} días para la función`}
+            </p>
+          </Reveal>
+        )}
       </section>
 
-      <section className="bg-negro grain relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_20%,rgba(254,0,0,0.16),transparent_60%)] pointer-events-none" />
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 pt-20 pb-16 relative z-10">
-          <div className="relative max-w-xl mx-auto mb-16 group">
-            <div className="absolute -inset-4 bg-rojo/25 blur-3xl rounded-full pointer-events-none" />
-            <img
-              src={flyerOficial}
-              alt={`Jesucristo Rockstar — Chaplin Grupo Cultural — Dom 18 de octubre, funciones ${activeFunciones.join(" y ")}, Auditorio del Colegio de Ingenieros de Ica`}
-              className="relative w-full border-2 border-rojo shadow-[0_30px_80px_-20px_rgba(254,0,0,0.45)] transition-transform duration-500 group-hover:scale-[1.02]"
-            />
-          </div>
+      <Wave tone="#0a1f13" />
 
-          {/* Detalles del evento */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-            {detallesEvento.map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-start gap-3 border border-gris-textura px-5 py-4">
-                <Icon size={18} className="text-rojo shrink-0 mt-0.5" />
-                <span className="font-body text-blanco/80 text-sm leading-snug">{label}</span>
+      {/* ─────────── línea de promociones ─────────── */}
+      <section className="bg-[#0a1f13] px-4 py-14 sm:px-6 sm:py-20 lg:px-10">
+        <div className="mx-auto max-w-[1100px]">
+          <SectionTitle
+            eyebrow="Preventa"
+            title={
+              <>
+                Mientras antes reservas,
+                <br />
+                <span className="shk-gold !font-normal" style={{ fontFamily: "var(--shk-title)" }}>
+                  más ahorras
+                </span>
+              </>
+            }
+            sub="Cada etapa dura pocos días. Pagas el precio de la fecha en que reservas."
+          />
+
+          {/* Línea de tiempo: vertical en celular, horizontal en pantallas grandes */}
+          <ol className="relative mx-auto max-w-[460px] space-y-9 pl-9 sm:max-w-none sm:space-y-0 sm:pl-0 sm:grid sm:grid-cols-4 sm:gap-6">
+            <span aria-hidden className="absolute bottom-3 left-[11px] top-3 w-[2px] bg-gradient-to-b from-[#a6e22e]/60 via-[#a6e22e]/25 to-transparent sm:hidden" />
+            <span aria-hidden className="absolute left-0 right-0 top-[11px] hidden h-[2px] bg-gradient-to-r from-[#a6e22e]/60 via-[#a6e22e]/30 to-[#a6e22e]/10 sm:block" />
+            {promos.map((p, i) => {
+              const st = estadoPromo(p, i);
+              const dias = diasEntre(hoy, p.to);
+              const titulo =
+                p.key === "twoXone"
+                  ? "2 entradas por el precio de 1"
+                  : p.key === "threeXtwo"
+                  ? "3 entradas por el precio de 2"
+                  : p.key === "twentyPct"
+                  ? "20% de descuento en cada entrada"
+                  : "Precio FULL por entrada";
+              return (
+                <Reveal key={p.key} delay={i * 90} className="relative">
+                  <span
+                    aria-hidden
+                    className={`absolute -left-9 top-1 h-[24px] w-[24px] rounded-full border-[3px] border-[#0a1f13] sm:left-0 sm:top-0 ${
+                      st === "activa"
+                        ? "bg-[#caff55] shadow-[0_0_0_6px_rgba(166,226,46,0.25),0_0_22px_rgba(190,255,70,0.8)]"
+                        : st === "pasada"
+                        ? "bg-white/25"
+                        : "bg-[#3a6b2a]"
+                    }`}
+                  />
+                  <div className="sm:pt-9">
+                    <p
+                      className={`shk-title text-[52px] sm:text-[58px] ${st === "pasada" ? "!opacity-40 !drop-shadow-none" : ""} ${
+                        st === "activa" ? "" : st === "pasada" ? "" : "!opacity-80"
+                      }`}
+                    >
+                      {p.tag.replace(" dto", "")}
+                    </p>
+                    <p className={`mt-2 text-[15px] font-bold leading-snug ${st === "pasada" ? "text-white/40 line-through" : "text-white"}`}>
+                      {titulo}
+                    </p>
+                    <p className="mt-1.5 text-[13px] text-white/50">
+                      {fechaLarga(p.from)} al {fechaLarga(p.to)}
+                    </p>
+                    {st === "activa" && (
+                      <p className="mt-2.5 text-[13px] font-black uppercase tracking-wider text-[#caff55]">
+                        ● Hoy · {dias <= 0 ? "último día" : `quedan ${dias + 1} días`}
+                      </p>
+                    )}
+                    {st === "proxima" && (
+                      <p className="mt-2.5 text-[13px] font-black uppercase tracking-wider text-[#f6c744]">Abre el {fechaLarga(p.from)}</p>
+                    )}
+                    {st === "pasada" && <p className="mt-2.5 text-[12px] uppercase tracking-wider text-white/35">Finalizada</p>}
+                  </div>
+                </Reveal>
+              );
+            })}
+          </ol>
+        </div>
+      </section>
+
+      <Wave flip tone="#0a1f13" />
+
+      {/* ─────────── reservar ─────────── */}
+      <section id="reservar" className="relative scroll-mt-20 px-4 py-14 sm:px-6 sm:py-20 lg:px-10">
+        <Fireflies count={12} />
+        <div className="relative mx-auto max-w-[1240px]">
+          <SectionTitle
+            eyebrow="Reserva en 2 minutos"
+            title="Elige tu lugar en el pantano"
+            sub="Toca una zona en el mapa o en la lista. El stock se actualiza en vivo."
+          />
+
+          {!ventaAbierta && (
+            <Reveal className="mx-auto mb-12 max-w-xl text-center">
+              <span className="mx-auto mb-3 grid h-12 w-12 place-items-center text-[#f6c744]">
+                {finalizada ? <PartyPopper size={34} /> : <Lock size={32} />}
+              </span>
+              <p className="shk-h2 text-[28px] sm:text-[34px]">
+                {finalizada ? "La función ya se realizó" : `La preventa abre el ${fechaLarga(ventaDesde)}`}
+              </p>
+              <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-white/60">
+                {finalizada
+                  ? "¡Gracias por apoyar el teatro de Ica! Síguenos para conocer nuestras próximas producciones."
+                  : "Mira el mapa y los precios desde ya. Te avisamos por WhatsApp apenas se abra la venta."}
+              </p>
+              {!finalizada && (
+                <a href={waUrl(avisoMsg)} target="_blank" rel="noopener noreferrer" className="shk-btn mt-6 !text-[18px]">
+                  <MessageCircle size={20} /> Avísame cuando abra
+                </a>
+              )}
+            </Reveal>
+          )}
+
+          <div className="grid items-start gap-12 lg:grid-cols-[1fr_minmax(0,520px)] lg:gap-16">
+            {/* Mapa (sin caja) */}
+            <Reveal className="lg:sticky lg:top-24">
+              <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                <p className="shk-h2 text-[28px]">Mapa de asientos</p>
+                <span className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[#caff55]">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-[#a6e22e]" />
+                  {sold ? `En vivo · ${funcion}` : "Cargando…"}
+                </span>
               </div>
-            ))}
-          </div>
+              <SeatMap
+                zonas={zonasVenta.map((z) => ({ key: z.key, label: z.label, color: z.color }))}
+                availability={disp}
+                selected={zonaKey}
+                onSelect={setZonaKey}
+              />
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[13px] text-white/50">
+                <span>Los asientos son por orden de llegada dentro de tu zona.</span>
+                <a
+                  href="https://maps.google.com/?q=Colegio+de+Ingenieros+del+Peru+CD+Ica"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 font-bold text-[#f6c744] hover:underline"
+                >
+                  <Navigation size={14} /> Cómo llegar
+                </a>
+              </div>
+            </Reveal>
 
-          {/* Sinopsis */}
-          <div className="max-w-3xl mb-16">
-            <h2 className="font-display text-blanco text-3xl mb-6">De qué trata</h2>
-            <p className="font-body text-blanco/70 text-base leading-relaxed mb-10">{sinopsis}</p>
-
-            <h2 className="font-display text-blanco text-3xl mb-6">Ficha técnica</h2>
-            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 mb-10">
-              {fichaTecnica.map((f) => (
-                <div key={f.rol} className="border-b border-gris-textura pb-3">
-                  <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/50">{f.rol}</p>
-                  <p className="font-body text-blanco text-base">{f.nombre}</p>
+            {/* Formulario: un solo panel, secciones separadas por líneas finas */}
+            <Reveal delay={100}>
+              <div className={`rounded-[26px] bg-white/[0.045] p-5 sm:p-8 ${!ventaAbierta ? "opacity-85" : ""}`}>
+                {/* 1 · Función */}
+                <StepHead n={1} title="Elige la función" />
+                <div className="mb-9 grid grid-cols-2 gap-6 border-b border-white/10 pb-1">
+                  {settings.funciones.map((f) => {
+                    const quedan = totalPorFuncion(f);
+                    const activa = funcion === f;
+                    return (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => setFuncion(f)}
+                        aria-pressed={activa}
+                        className={`relative pb-4 text-left transition-opacity ${activa ? "opacity-100" : "opacity-50 hover:opacity-80"}`}
+                      >
+                        <p className="shk-h2 whitespace-nowrap text-[30px] sm:text-[36px]">{f.toUpperCase()}</p>
+                        {quedan != null && (
+                          <p className={`mt-1 text-[13px] font-bold ${quedan <= 30 ? "text-[#ffb86b]" : "text-[#caff55]"}`}>
+                            {quedan <= 0 ? "Agotada" : `Quedan ${quedan}`}
+                          </p>
+                        )}
+                        <span
+                          className={`absolute -bottom-px left-0 h-[3px] rounded-full bg-[#caff55] shadow-[0_0_14px_rgba(190,255,70,0.8)] transition-all duration-300 ${
+                            activa ? "w-full" : "w-0"
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
+
+                {/* 2 · Zona */}
+                <StepHead n={2} title="Elige tu zona" />
+                <div className="mb-9">
+                  {zonasVenta.map((z) => {
+                    const av = disp?.[z.key];
+                    const activa = zonaKey === z.key;
+                    const pA = z.prices[promo.key as keyof EventZoneSetting["prices"]];
+                    const pN = (z.pricesNino ?? z.prices)[promo.key as keyof EventZoneSetting["prices"]];
+                    const pct = av ? Math.round(((av.total - av.available) / av.total) * 100) : 0;
+                    return (
+                      <button
+                        key={z.key}
+                        type="button"
+                        onClick={() => !av?.soldOut && setZonaKey(z.key)}
+                        disabled={Boolean(av?.soldOut)}
+                        aria-pressed={activa}
+                        className={`relative w-full border-t border-white/10 px-4 py-4 text-left transition-colors first:border-t-0 disabled:cursor-not-allowed disabled:opacity-40 ${
+                          activa ? "bg-gradient-to-r from-[#a6e22e]/16 to-transparent" : "hover:bg-white/[0.04]"
+                        }`}
+                      >
+                        <span
+                          className={`absolute bottom-3 left-0 top-3 w-[4px] rounded-full bg-[#caff55] shadow-[0_0_14px_rgba(190,255,70,0.8)] transition-opacity ${
+                            activa ? "opacity-100" : "opacity-0"
+                          }`}
+                        />
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <span className="h-4 w-4 shrink-0 rounded-full" style={{ background: z.color, boxShadow: `0 0 12px ${z.color}` }} />
+                            <div>
+                              <p className="text-[17px] font-bold leading-tight">{z.label.replace(" (2do piso)", "")}</p>
+                              <p className="mt-0.5 text-[12px] text-white/50">
+                                {z.key === "pantano" ? "2.º piso" : "1.er piso"} · {z.seats} asientos
+                              </p>
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-right leading-tight">
+                            <p className="text-[14px] font-bold text-[#f6c744]">Adulto {soles(pA)}</p>
+                            <p className="mt-0.5 text-[13px] text-white/60">Niño {soles(pN)}</p>
+                          </div>
+                        </div>
+                        {av && (
+                          <div className="mt-3 pl-7">
+                            <div className="h-[3px] overflow-hidden rounded-full bg-white/10">
+                              <span
+                                className="block h-full rounded-full transition-all duration-700"
+                                style={{
+                                  width: `${pct}%`,
+                                  background: av.soldOut
+                                    ? "#6b7280"
+                                    : av.available <= 15
+                                    ? "linear-gradient(90deg,#f59e0b,#ef4444)"
+                                    : "linear-gradient(90deg,#4f9a1a,#a6e22e)",
+                                }}
+                              />
+                            </div>
+                            <p
+                              className={`mt-1.5 text-[12px] font-semibold ${
+                                av.soldOut ? "text-white/45" : av.available <= 15 ? "text-[#ffb86b]" : "text-white/55"
+                              }`}
+                            >
+                              {av.soldOut
+                                ? "AGOTADA"
+                                : av.available <= 15
+                                ? `🔥 ¡Últimos ${av.available} asientos!`
+                                : `${av.available} disponibles`}
+                            </p>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {per > 1 && (
+                    <p className="mt-2 px-4 text-[12px] leading-snug text-[#ffe38a]/85">
+                      Los precios son <strong>por promoción {promo.tag}</strong>: cada una trae {per} entradas.
+                    </p>
+                  )}
+                </div>
+
+                {/* 3 · Entradas */}
+                <StepHead n={3} title="¿Cuántas entradas?" />
+                <div className="mb-2">
+                  <Stepper
+                    label="Adulto"
+                    sub={per > 1 ? `Cada promo ${promo.tag} = ${per} entradas` : "Entrada por persona"}
+                    value={adultos}
+                    onChange={setAdultos}
+                    max={Math.max(0, Math.floor(maxEntradas / per) - ninos)}
+                    priceLabel={zona ? `${soles(precioAdulto)}${per > 1 ? " por promo" : " c/u"}` : "Elige una zona"}
+                  />
+                  <Stepper
+                    label="Niño"
+                    sub={per > 1 ? `Cada promo ${promo.tag} = ${per} entradas` : "Entrada por persona"}
+                    value={ninos}
+                    onChange={setNinos}
+                    max={Math.max(0, Math.floor(maxEntradas / per) - adultos)}
+                    priceLabel={zona ? `${soles(precioNino)}${per > 1 ? " por promo" : " c/u"}` : "Elige una zona"}
+                  />
+                </div>
+                {per > 1 && entradas > 0 ? (
+                  <p className="mb-9 mt-2 text-[14px] font-bold text-[#caff55]">
+                    🎉 Llevas {entradas} entradas ({adultos > 0 ? `${adultos * per} Adulto` : ""}
+                    {adultos > 0 && ninos > 0 ? " + " : ""}
+                    {ninos > 0 ? `${ninos * per} Niño` : ""}) pagando {adultos + ninos} promo{adultos + ninos === 1 ? "" : "s"}
+                  </p>
+                ) : (
+                  <div className="mb-9" />
+                )}
+
+                {/* 4 · Datos */}
+                <StepHead n={4} title="Tus datos" />
+                <div className="mb-9 grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <Field label="Nombres y apellidos" error={touched.nombre ? errNombre : null}>
+                      <input
+                        className={`shk-input ${touched.nombre && errNombre ? "is-bad" : ""}`}
+                        value={nombre}
+                        onChange={(e) => setNombre(e.target.value)}
+                        onBlur={() => setTouched((t) => ({ ...t, nombre: true }))}
+                        placeholder="Como aparece en tu DNI"
+                        autoComplete="name"
+                      />
+                    </Field>
+                  </div>
+                  <Field label="DNI" error={touched.dni ? errDni : null}>
+                    <input
+                      className={`shk-input ${touched.dni && errDni ? "is-bad" : ""}`}
+                      value={dni}
+                      inputMode="numeric"
+                      maxLength={9}
+                      onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
+                      onBlur={() => setTouched((t) => ({ ...t, dni: true }))}
+                      placeholder="8 dígitos"
+                    />
+                  </Field>
+                  <Field label="Celular" error={touched.cel ? errCel : null}>
+                    <input
+                      className={`shk-input ${touched.cel && errCel ? "is-bad" : ""}`}
+                      value={celular}
+                      inputMode="tel"
+                      maxLength={11}
+                      onChange={(e) => setCelular(e.target.value.replace(/[^\d ]/g, ""))}
+                      onBlur={() => setTouched((t) => ({ ...t, cel: true }))}
+                      placeholder="9XX XXX XXX"
+                      autoComplete="tel"
+                    />
+                  </Field>
+                  <div className="sm:col-span-2">
+                    <Field label="¿Quién recogerá las entradas?" hint="Opcional">
+                      <input
+                        className="shk-input"
+                        value={nota}
+                        onChange={(e) => setNota(e.target.value)}
+                        placeholder="Nombre y celular de quien las recibirá"
+                      />
+                    </Field>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field label="Vendedor" hint="Si alguien del equipo te ayudó">
+                      <input className="shk-input" value={vendedor} onChange={(e) => setVendedor(e.target.value)} placeholder="Opcional" />
+                    </Field>
+                  </div>
+                </div>
+
+                {/* Resumen: texto grande, sin caja */}
+                <div id="resumen" className="scroll-mt-24 border-t border-white/15 pt-6">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-white/50">Total a pagar</p>
+                      <p className="mt-1 text-[13px] text-white/55">
+                        {zona ? `${entradas} entrada${entradas === 1 ? "" : "s"} · ${promo.label}` : "Elige zona y cantidad"}
+                      </p>
+                    </div>
+                    <p className="shk-h2 text-[54px] leading-none text-[#f6c744]" aria-live="polite">
+                      {zona ? soles(total) : "—"}
+                    </p>
+                  </div>
+                  {ahorro > 0 && (
+                    <p className="mt-3 flex items-center gap-2 text-[14px] font-black text-[#caff55]">
+                      <Sparkles size={16} /> ¡Ahorras {soles(ahorro)} frente al precio FULL!
+                    </p>
+                  )}
+                </div>
+
+                {sinCupo && dispZona && (
+                  <p className="mt-4 flex items-start gap-2 text-[13px] font-semibold text-[#ffb3b3]">
+                    <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                    {dispZona.soldOut
+                      ? `${zona?.label} está agotada para las ${funcion}. Elige otro horario u otra zona.`
+                      : `Solo quedan ${dispZona.available} asientos en ${zona?.label} para las ${funcion}. Reduce la cantidad.`}
+                  </p>
+                )}
+
+                {listo ? (
+                  <a href={waUrl(mensaje)} target="_blank" rel="noopener noreferrer" className="shk-btn mt-6 w-full !text-[22px]">
+                    <MessageCircle size={24} /> Reservar por WhatsApp
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={!ventaAbierta || !zona}
+                    onClick={() => setTouched({ nombre: true, dni: true, cel: true })}
+                    className="shk-btn mt-6 w-full !text-[20px]"
+                  >
+                    <MessageCircle size={22} />
+                    {!ventaAbierta ? "La preventa aún no abre" : !zona ? "Elige una zona" : "Completa tus datos"}
+                  </button>
+                )}
+
+                {listo && (
+                  <button
+                    type="button"
+                    onClick={() => setShowMsg((v) => !v)}
+                    className="mt-3 flex w-full items-center justify-center gap-1 text-[12px] text-white/50 hover:text-white/80"
+                  >
+                    Ver el mensaje que se enviará <ChevronDown size={14} className={`transition-transform ${showMsg ? "rotate-180" : ""}`} />
+                  </button>
+                )}
+                {listo && showMsg && (
+                  <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-xl bg-black/40 p-3 font-body text-[12px] leading-relaxed text-white/75">
+                    {mensaje}
+                  </pre>
+                )}
+
+                <div className="mt-7 space-y-3 text-[12.5px] leading-relaxed text-white/50">
+                  <p>
+                    La reserva se confirma con nuestro equipo por WhatsApp. Cupos sujetos a disponibilidad en tiempo real.
+                  </p>
+                  <p>
+                    <strong className="text-white/80">Medios de pago:</strong> Plin 969 821 836 (Yenny Huamani Huamani). Los demás medios,
+                    como Yape, los coordinamos por WhatsApp al confirmar.
+                  </p>
+                  <p>
+                    Al reservar aceptas nuestros{" "}
+                    <a href="/terminos" target="_blank" rel="noopener noreferrer" className="text-[#caff55] underline underline-offset-2">
+                      Términos y condiciones
+                    </a>
+                    .
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────── tabla de precios (el único panel de madera, como en el flyer) ─────────── */}
+      <section id="precios" className="scroll-mt-20 px-4 py-14 sm:px-6 sm:py-20 lg:px-10">
+        <div className="mx-auto max-w-[1100px]">
+          <SectionTitle
+            eyebrow="Tarifas oficiales"
+            title="Todos los precios"
+            sub={
+              <>
+                La promo de hoy aparece resaltada. En 2x1 y 3x2 el precio es <strong className="text-white">por promoción</strong> (trae 2 o 3
+                entradas).
+              </>
+            }
+          />
+          <Reveal>
+            {/* Celular: eliges la promo y ves los precios de todas las zonas, sin desplazarte hacia los lados */}
+            <div className="sm:hidden">
+              <div className="mb-6 grid grid-cols-4 border-b border-white/10">
+                {promos.map((p) => {
+                  const vista = (promoVista ?? promo.key) === p.key;
+                  return (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setPromoVista(p.key)}
+                      className={`relative pb-3 text-center transition-colors ${vista ? "text-white" : "text-white/40"}`}
+                    >
+                      <span className="block text-[26px] leading-none" style={{ fontFamily: "var(--shk-title)" }}>
+                        {p.tag.replace(" dto", "")}
+                      </span>
+                      <span className="mt-1 block text-[10px] font-semibold">{fechaCorta(p.from)}</span>
+                      {p.key === promo.key && ventaAbierta && (
+                        <span className="mt-0.5 block text-[9px] font-black uppercase tracking-wider text-[#caff55]">Hoy</span>
+                      )}
+                      <span
+                        className={`absolute -bottom-px left-1 right-1 h-[3px] rounded-full bg-[#caff55] shadow-[0_0_12px_rgba(190,255,70,0.8)] transition-opacity ${
+                          vista ? "opacity-100" : "opacity-0"
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+              {(() => {
+                const pv = promos.find((x) => x.key === (promoVista ?? promo.key)) ?? promo;
+                return (
+                  <div>
+                    <p className="mb-4 text-center text-[13px] text-white/55">
+                      {pv.detalle.split("·")[0].trim()}
+                      {pv.entradasPorPrecio > 1 && <span className="text-[#ffe38a]"> · precio por promo de {pv.entradasPorPrecio} entradas</span>}
+                    </p>
+                    {zonasVenta.map((z) => {
+                      const pa = z.prices[pv.key as keyof EventZoneSetting["prices"]];
+                      const pn = (z.pricesNino ?? z.prices)[pv.key as keyof EventZoneSetting["prices"]];
+                      return (
+                        <button
+                          key={z.key}
+                          type="button"
+                          onClick={() => {
+                            setZonaKey(z.key);
+                            irAReservar();
+                          }}
+                          className="flex w-full items-center justify-between gap-3 border-t border-white/10 py-4 text-left first:border-t-0"
+                        >
+                          <span className="flex items-center gap-3">
+                            <span className="h-4 w-4 rounded-full" style={{ background: z.color, boxShadow: `0 0 12px ${z.color}` }} />
+                            <span>
+                              <span className="block text-[18px] font-bold leading-tight">{z.label.replace("Zona ", "").replace(" (2do piso)", "")}</span>
+                              <span className="block text-[12px] text-white/45">{z.key === "pantano" ? "2.º piso" : "1.er piso"}</span>
+                            </span>
+                          </span>
+                          <span className="flex gap-5 text-right">
+                            <span>
+                              <span className="block text-[10px] uppercase tracking-wider text-white/45">Adulto</span>
+                              <span className="block text-[22px] font-black leading-none text-[#f6c744]">{soles(pa)}</span>
+                              {pv.entradasPorPrecio > 1 && <span className="block text-[10px] text-white/40">{soles(pa / pv.entradasPorPrecio)} c/u</span>}
+                            </span>
+                            <span>
+                              <span className="block text-[10px] uppercase tracking-wider text-white/45">Niño</span>
+                              <span className="block text-[22px] font-black leading-none">{soles(pn)}</span>
+                              {pv.entradasPorPrecio > 1 && <span className="block text-[10px] text-white/40">{soles(pn / pv.entradasPorPrecio)} c/u</span>}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
 
-            <h2 className="font-display text-blanco text-3xl mb-6">Elenco</h2>
-            <p className="font-body text-blanco/70 text-sm leading-relaxed">{elenco.join(" · ")}</p>
-          </div>
-
-          {/* Banda de promo activa */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-rojo text-negro px-6 py-4 mb-16">
-            <span className="font-body font-bold text-sm uppercase tracking-[0.2em]">
-              {activeTier.label} vigente
-            </span>
-            <span className="font-body text-xs uppercase tracking-[0.15em]">{activeTier.detalle}</span>
-          </div>
-
-          {/* Precios por zona (ancho completo y 100% responsive) */}
-          <div className="mb-20">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+            {/* Pantallas grandes: el panel de madera del flyer */}
+            <div className="hidden shk-wood p-5 sm:block">
               <div>
-                <h2 className="font-display text-blanco text-3xl md:text-4xl">Precios por zona</h2>
-                <p className="font-body text-blanco/60 text-sm mt-1">
-                  Consulta todas las etapas de preventa y tarifas oficiales. Toca una zona para seleccionarla.
-                </p>
-              </div>
-              <div className="text-xs font-body text-blanco/40 uppercase tracking-[0.15em] shrink-0">
-                * Precios en Soles (PEN)
-              </div>
-            </div>
-
-            {/* Tabla para Desktop (md y superior con columnas amplias y badges completos) */}
-            <div className="hidden md:block border border-gris-textura bg-negro relative overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[680px]">
+                <table className="w-full border-separate border-spacing-1.5 text-center">
                   <thead>
-                    <tr className="border-b border-gris-textura bg-blanco/[0.02]">
-                      <th className="font-body text-[11px] uppercase tracking-[0.18em] text-blanco/60 px-5 md:px-6 py-4 sticky left-0 bg-negro z-20 border-r border-gris-textura/50 w-[24%] min-w-[170px]">
+                    <tr>
+                      <th className="w-[26%] px-2 py-3 text-left text-[14px] uppercase tracking-wider text-[#fdf0c4]" style={{ fontFamily: "var(--shk-title)" }}>
                         Zona
                       </th>
-                      {tiers.map((t) => {
-                        const isActive = t.key === activeTier.key;
+                      {promos.map((p) => {
+                        const on = p.key === promo.key && ventaAbierta;
                         return (
                           <th
-                            key={t.key}
-                            className={`font-body px-5 py-4 transition-colors w-[19%] min-w-[145px] relative ${
-                              isActive ? "bg-rojo/10 text-rojo" : "text-blanco/70"
-                            }`}
+                            key={p.key}
+                            className={`rounded-xl px-2 py-2.5 transition-all ${on ? "bg-[#a6e22e] text-[#0b2504] shadow-[0_0_24px_rgba(166,226,46,0.7)]" : "text-[#fdf0c4]"}`}
                           >
-                            {isActive && (
-                              <div className="inline-flex items-center gap-1.5 bg-rojo text-negro text-[9px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 mb-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-negro animate-pulse" />
-                                Vigente hoy
-                              </div>
-                            )}
-                            <div className={`text-xs uppercase tracking-[0.15em] font-bold ${isActive ? "text-rojo" : "text-blanco"}`}>
-                              {t.label}
-                            </div>
-                            <span className="block font-normal normal-case tracking-normal text-[11px] text-blanco/50 mt-1 leading-snug">
-                              {t.detalle}
+                            <span className="block text-2xl leading-none" style={{ fontFamily: "var(--shk-title)" }}>
+                              {p.tag.replace(" dto", "")}
+                            </span>
+                            <span className="mt-1 block text-[10px] font-semibold normal-case opacity-80">
+                              {fechaCorta(p.from)} – {fechaCorta(p.to)}
                             </span>
                           </th>
                         );
@@ -448,542 +1104,212 @@ function EntradasPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {activeZonasVenta.map((z) => {
-                      const isSelected = zonaKey === z.key;
-                      return (
+                    {zonasVenta.flatMap((z) =>
+                      [
+                        { cat: "Adulto", set: z.prices },
+                        { cat: "Niño", set: z.pricesNino ?? z.prices },
+                      ].map(({ cat, set }, ci) => (
                         <tr
-                          key={z.key}
-                          onClick={() => setZonaKey(z.key)}
-                          className={`group border-b border-gris-textura last:border-0 cursor-pointer transition-colors ${
-                            isSelected ? "bg-rojo/15" : "hover:bg-blanco/[0.04]"
-                          }`}
+                          key={`${z.key}-${cat}`}
+                          className="cursor-pointer"
+                          onClick={() => {
+                            setZonaKey(z.key);
+                            irAReservar();
+                          }}
                         >
-                          <td
-                            className={`px-5 md:px-6 py-4 sticky left-0 z-10 border-r border-gris-textura/50 transition-colors ${
-                              isSelected ? "bg-zinc-950" : "bg-negro group-hover:bg-zinc-950"
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="w-3.5 h-3.5 shrink-0" style={{ backgroundColor: z.color }} />
-                              <div>
-                                <span className={`font-body font-semibold text-sm ${isSelected ? "text-rojo" : "text-blanco"}`}>
-                                  {z.label}
-                                </span>
-                                <span className="block font-body text-[11px] text-blanco/40">
-                                  {z.seats} asientos
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-                          {tiers.map((t) => {
-                            const isActive = t.key === activeTier.key;
+                          {ci === 0 && (
+                            <td rowSpan={2} className="px-3 py-3 text-left align-middle">
+                              <span className="flex items-center gap-2 text-[#fdf0c4]" style={{ fontFamily: "var(--shk-title)", fontSize: 22 }}>
+                                <span className="h-3.5 w-3.5 rounded-full ring-2 ring-white/30" style={{ background: z.color }} />
+                                {z.label.replace("Zona ", "").replace(" (2do piso)", "")}
+                              </span>
+                              <span className="mt-0.5 block text-[11px] text-[#fdf0c4]/70">{z.key === "pantano" ? "2.º piso" : "1.er piso"}</span>
+                            </td>
+                          )}
+                          {promos.map((p) => {
+                            const price = set[p.key as keyof typeof set];
+                            const on = p.key === promo.key && ventaAbierta;
                             return (
                               <td
-                                key={t.key}
-                                className={`font-body px-5 py-4 ${
-                                  isActive
-                                    ? "bg-rojo/10 text-rojo font-bold"
-                                    : "text-blanco/80"
-                                }`}
+                                key={p.key}
+                                className={`shk-cream rounded-xl px-2 py-2.5 transition-all ${on ? "ring-4 ring-[#a6e22e] shadow-[0_0_22px_rgba(166,226,46,0.55)]" : p.key !== promo.key ? "opacity-85" : ""}`}
                               >
-                                <span className="text-sm font-normal text-blanco/40 mr-0.5">S/</span>
-                                <span className="text-base md:text-lg font-bold">{z.prices[t.key]}</span>
+                                <span className="block text-[11px] font-bold uppercase text-[#6b4a1a]">{cat}</span>
+                                <span className="block text-[22px] font-black leading-none">{soles(price)}</span>
+                                {p.entradasPorPrecio > 1 && (
+                                  <span className="mt-0.5 block text-[10px] font-semibold text-[#7a5a22]">
+                                    {soles(price / p.entradasPorPrecio)} c/u
+                                  </span>
+                                )}
                               </td>
                             );
                           })}
                         </tr>
-                      );
-                    })}
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
+            <p className="mt-4 text-center text-[12px] text-white/45">Precios en soles (PEN). Toca una zona para elegirla.</p>
+          </Reveal>
+        </div>
+      </section>
 
-            {/* Vista adaptada para Celular / Móvil: 100% en una sola carga, sin deslizar horizontalmente */}
-            <div className="md:hidden border border-gris-textura bg-negro overflow-hidden">
-              <table className="w-full text-center border-collapse table-fixed">
-                <thead>
-                  <tr className="border-b border-gris-textura bg-blanco/[0.02]">
-                    <th className="font-body text-[10px] uppercase tracking-wider text-blanco/50 py-3 pl-2.5 pr-1 text-left w-[28%]">
-                      Zona
-                    </th>
-                    {tiers.map((t) => {
-                      const isActive = t.key === activeTier.key;
-                      const title1 =
-                        t.key === "twoXone" ? "PREVENTA" :
-                        t.key === "threeXtwo" ? "PREVENTA" :
-                        t.key === "twentyPct" ? "PREVENTA" : "PRECIO";
-                      const title2 =
-                        t.key === "twoXone" ? "2X1" :
-                        t.key === "threeXtwo" ? "3X2" :
-                        t.key === "twentyPct" ? "20% DTO." : "REGULAR";
-                      const dateText =
-                        t.key === "twoXone" ? "16-22 set." :
-                        t.key === "threeXtwo" ? "23 set.-2 oct." :
-                        t.key === "twentyPct" ? "3-11 oct." : "12-18 oct.";
+      <Wave tone="#0a1f13" />
 
-                      return (
-                        <th
-                          key={t.key}
-                          className={`font-body py-2.5 px-0.5 transition-colors w-[18%] relative ${
-                            isActive ? "bg-rojo/15 text-rojo border-x border-rojo/30" : "text-blanco/70"
-                          }`}
-                        >
-                          {isActive && (
-                            <div className="inline-block bg-rojo text-negro text-[7px] font-bold uppercase tracking-wider px-1 py-0.2 rounded-xs mb-1">
-                              HOY
-                            </div>
-                          )}
-                          <div className={`text-[9px] font-bold uppercase leading-none ${isActive ? "text-rojo" : "text-blanco"}`}>
-                            {title1}
-                          </div>
-                          <div className={`text-[10px] font-extrabold uppercase leading-tight mt-0.5 ${isActive ? "text-rojo" : "text-blanco"}`}>
-                            {title2}
-                          </div>
-                          <span className={`block font-body text-[7px] tracking-tight mt-1 leading-none ${isActive ? "text-rojo font-semibold" : "text-blanco/40"}`}>
-                            {dateText}
-                          </span>
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeZonasVenta.map((z) => {
-                    const isSelected = zonaKey === z.key;
-                    return (
-                      <tr
-                        key={z.key}
-                        onClick={() => setZonaKey(z.key)}
-                        className={`border-b border-gris-textura last:border-0 cursor-pointer transition-colors ${
-                          isSelected ? "bg-rojo/15" : "hover:bg-blanco/[0.04]"
-                        }`}
-                      >
-                        <td className="py-3 pl-2.5 pr-1 text-left">
-                          <div className="flex items-start gap-1.5">
-                            <span
-                              className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
-                              style={{ backgroundColor: z.color }}
-                            />
-                            <div className="min-w-0">
-                              <span className={`font-body font-semibold text-[11px] block leading-tight ${isSelected ? "text-rojo" : "text-blanco"}`}>
-                                {z.label}
-                              </span>
-                              <span className="block font-body text-[9px] text-blanco/40 leading-none mt-0.5">
-                                {z.seats} asientos
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-                        {tiers.map((t) => {
-                          const isActive = t.key === activeTier.key;
-                          return (
-                            <td
-                              key={t.key}
-                              className={`font-body py-3 px-0.5 ${
-                                isActive
-                                  ? "bg-rojo/10 text-rojo font-bold border-x border-rojo/20"
-                                  : "text-blanco/80"
-                              }`}
-                            >
-                              <div className="flex items-baseline justify-center">
-                                <span className="text-[9px] font-normal text-blanco/40 mr-0.5">S/</span>
-                                <span className={`font-bold ${isActive ? "text-sm text-rojo" : "text-xs text-blanco"}`}>
-                                  {z.prices[t.key]}
-                                </span>
-                              </div>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+      {/* ─────────── tutorial ─────────── */}
+      <section className="bg-[#0a1f13] px-4 py-14 sm:px-6 sm:py-20 lg:px-10">
+        <div className="mx-auto max-w-[1100px]">
+          <SectionTitle
+            eyebrow="Paso a paso"
+            title="Así de fácil es vivir la aventura"
+            sub="Mira cómo comprar, cómo recibes tu ticket y cómo usarlo el día de la función."
+          />
+          <Reveal>
+            <Tutorial />
+          </Reveal>
+        </div>
+      </section>
 
-              {/* Detalle completo de cada etapa y preventa para móvil */}
-              <div className="border-t border-gris-textura bg-blanco/[0.02] p-3 space-y-2 text-left font-body">
-                <div className="text-[10px] uppercase tracking-wider text-blanco/40 font-semibold mb-1 flex items-center justify-between">
-                  <span>Detalle de etapas y promociones:</span>
-                  <span className="text-blanco/40 normal-case text-[10px]">Toca una zona para seleccionar</span>
-                </div>
-                <div className="grid grid-cols-1 gap-1.5">
-                  {tiers.map((t) => {
-                    const isActive = t.key === activeTier.key;
-                    return (
-                      <div
-                        key={t.key}
-                        className={`p-2.5 transition-colors border ${
-                          isActive
-                            ? "bg-rojo/10 border-rojo/40 text-blanco"
-                            : "bg-negro/50 border-gris-textura/50 text-blanco/70"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5">
-                            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-rojo animate-pulse" />}
-                            <span className={`font-bold uppercase tracking-wider text-[11px] ${isActive ? "text-rojo" : "text-blanco"}`}>
-                              {t.label}
-                            </span>
-                          </div>
-                          {isActive && (
-                            <span className="bg-rojo text-negro text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5">
-                              Vigente hoy
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-blanco/60 mt-1 leading-snug">
-                          {t.detalle}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+      <Wave flip tone="#0a1f13" />
+
+      {/* ─────────── sobre la obra ─────────── */}
+      <section className="relative px-4 py-14 sm:px-6 sm:py-20 lg:px-10">
+        <div className="mx-auto max-w-[1100px]">
+          <SectionTitle eyebrow="La obra" title="¿De qué trata?" />
+          <div className="grid gap-12 lg:grid-cols-[1.25fr_1fr] lg:gap-16">
+            <Reveal>
+              <p className="text-[16px] leading-[1.9] text-white/80 sm:text-[17px]">{SINOPSIS}</p>
+              <p className="mt-6 text-[13px] font-semibold uppercase tracking-[0.18em] text-[#caff55]">
+                100 min con intermedio · Apta para todo público
+              </p>
+            </Reveal>
+            <Reveal delay={120}>
+              <p className="shk-h2 mb-4 text-[26px]">Ficha técnica</p>
+              <dl>
+                {FICHA.map((f) => (
+                  <div key={f.rol} className="border-t border-white/10 py-3 first:border-t-0">
+                    <dt className="text-[10px] uppercase tracking-[0.2em] text-white/45">{f.rol}</dt>
+                    <dd className="mt-0.5 text-[16px] font-semibold">{f.nombre}</dd>
+                  </div>
+                ))}
+              </dl>
+            </Reveal>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
-            {/* Mapa de zonas */}
-            <div className="min-w-0">
-              <h2 className="font-display text-blanco text-3xl mb-8">Mapa de zonas</h2>
-              <img
-                src={mapaZonas}
-                alt="Mapa de asistencia Jesucristo Rockstar: Zona Superstar, Zona Cortesía, Zona Getsemaní, Zona Hosanna y 2do piso Zona Pueblo"
-                className="w-full border border-gris-textura mb-6"
-              />
-              <div className="border border-gris-textura">
-                {activeZonasVenta.slice(0, 1).map((z) => {
-                  const avail = funcion ? getZoneAvailability(liveReservations, funcion, z.key, z.seats) : undefined;
-                  return (
-                    <ZoneRow
-                      key={z.key}
-                      zone={z}
-                      selected={zonaKey === z.key}
-                      availability={avail}
-                      onSelect={() => setZonaKey(z.key)}
-                    />
-                  );
-                })}
-                {/* Zona Cortesía - Fila referencial del mapa (14 asientos) */}
-                <div className="w-full flex items-center justify-between px-6 py-4 border-t border-gris-textura text-left bg-blanco/[0.02]">
-                  <div className="flex items-center gap-4">
-                    <span className="w-5 h-5 shrink-0" style={{ backgroundColor: "#c59a58" }} />
-                    <div>
-                      <span className="font-body font-semibold uppercase tracking-[0.1em] text-sm text-blanco/80">
-                        Zona Cortesía
-                      </span>
-                      <span className="block text-[10px] text-amber-300/80 font-medium mt-0.5">
-                        Fila reservada para invitados especiales y producción
-                      </span>
+          <Reveal className="mt-14 text-center">
+            <p className="shk-h2 mb-5 text-[28px]">
+              <Users className="mr-2 -mt-1 inline text-[#a6e22e]" size={22} />
+              Elenco de lujo
+            </p>
+            <p className="mx-auto max-w-3xl text-[16px] leading-[2] text-white/75">
+              {ELENCO.map((n, i) => (
+                <span key={n}>
+                  {n}
+                  {i < ELENCO.length - 1 && <span className="mx-2.5 text-[#a6e22e]">•</span>}
+                </span>
+              ))}
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ─────────── preguntas frecuentes ─────────── */}
+      <section className="px-4 pb-14 pt-4 sm:px-6 sm:pb-20 lg:px-10">
+        <div className="mx-auto max-w-[780px]">
+          <SectionTitle eyebrow="Dudas" title="Preguntas frecuentes" />
+          <div>
+            {FAQ.map((f, i) => {
+              const open = openFaq === i;
+              return (
+                <Reveal key={f.q} delay={i * 30}>
+                  <div className="border-t border-white/10 last:border-b">
+                    <button
+                      type="button"
+                      onClick={() => setOpenFaq(open ? null : i)}
+                      aria-expanded={open}
+                      className="flex w-full items-center justify-between gap-4 py-5 text-left"
+                    >
+                      <span className={`text-[16px] font-bold transition-colors sm:text-[17px] ${open ? "text-[#caff55]" : ""}`}>{f.q}</span>
+                      <ChevronDown size={20} className={`shrink-0 text-[#a6e22e] transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
+                    </button>
+                    <div className={`grid transition-all duration-300 ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                      <div className="overflow-hidden">
+                        <p className="pb-5 pr-8 text-[15px] leading-relaxed text-white/65">{f.a}</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="font-body text-blanco/80 text-xs font-semibold block">
-                      14 asientos
-                    </span>
-                    <span className="font-body text-blanco/40 text-[10px]">por función</span>
-                  </div>
-                </div>
-                {activeZonasVenta.slice(1).map((z) => {
-                  const avail = funcion ? getZoneAvailability(liveReservations, funcion, z.key, z.seats) : undefined;
-                  return (
-                    <ZoneRow
-                      key={z.key}
-                      zone={z}
-                      selected={zonaKey === z.key}
-                      availability={avail}
-                      onSelect={() => setZonaKey(z.key)}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Formulario */}
-            <div className="min-w-0">
-              <h2 className="font-display text-blanco text-3xl mb-6">Arma tu reserva</h2>
-              <div className="space-y-8">
-                <div>
-                  <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-3">Función</p>
-                  <div className="flex flex-wrap gap-3">
-                    {activeFunciones.map((f) => (
-                      <button
-                        key={f}
-                        type="button"
-                        onClick={() => setFuncion(f)}
-                        className={`font-body text-sm uppercase tracking-[0.1em] px-5 py-2.5 border transition-colors ${
-                          funcion === f
-                            ? "bg-rojo text-negro border-rojo font-bold"
-                            : "border-gris-textura text-blanco hover:border-rojo"
-                        }`}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60">Zona</p>
-                    {funcion && (
-                      <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">
-                        ● Stock en vivo ({funcion})
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    {activeZonasVenta.map((z) => {
-                      const avail = funcion ? getZoneAvailability(liveReservations, funcion, z.key, z.seats) : undefined;
-                      const isSoldOut = Boolean(avail?.isSoldOut);
-                      return (
-                        <button
-                          key={z.key}
-                          type="button"
-                          disabled={isSoldOut}
-                          onClick={() => setZonaKey(z.key)}
-                          className={`font-body text-sm uppercase tracking-[0.1em] px-4 py-2.5 border transition-all flex items-center gap-2 ${
-                            isSoldOut
-                              ? "border-zinc-800 bg-zinc-900/40 text-zinc-600 cursor-not-allowed line-through"
-                              : zonaKey === z.key
-                              ? "bg-rojo text-negro border-rojo font-bold"
-                              : "border-gris-textura text-blanco hover:border-rojo"
-                          }`}
-                        >
-                          <span>{z.label}</span>
-                          {avail && (
-                            <span
-                              className={`text-[9px] font-bold px-1.5 py-0.5 ${
-                                isSoldOut
-                                  ? "bg-rose-950 text-rose-400 no-underline"
-                                  : avail.isLowStock
-                                  ? "bg-amber-400 text-negro animate-pulse"
-                                  : zonaKey === z.key
-                                  ? "bg-negro/30 text-negro"
-                                  : "bg-blanco/10 text-blanco/70"
-                              }`}
-                            >
-                              {isSoldOut ? "AGOTADO" : `${avail.availableSeats} disp.`}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className={esPaquete ? "bg-yellow-400/10 border border-yellow-400 px-4 py-4" : ""}>
-                  <p
-                    className={`font-body text-[11px] uppercase tracking-[0.2em] mb-3 ${
-                      esPaquete ? "text-yellow-400 font-bold" : "text-blanco/60"
-                    }`}
-                  >
-                    {esPaquete ? `Promociones ${activeTier.label}` : "Cantidad de entradas"}
-                  </p>
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => setCantidad((c) => Math.max(1, c - 1))}
-                      className="w-10 h-10 flex items-center justify-center border border-gris-textura text-blanco hover:border-rojo transition-colors"
-                      aria-label="Restar"
-                    >
-                      <Minus size={16} />
-                    </button>
-                    <span className="font-display text-blanco text-2xl w-8 text-center">{cantidad}</span>
-                    <button
-                      type="button"
-                      onClick={() => setCantidad((c) => Math.min(10, c + 1))}
-                      className="w-10 h-10 flex items-center justify-center border border-gris-textura text-blanco hover:border-rojo transition-colors"
-                      aria-label="Sumar"
-                    >
-                      <Plus size={16} />
-                    </button>
-                    {esPaquete && (
-                      <span className="font-body font-bold text-negro text-sm bg-yellow-400 px-3 py-1.5">
-                        = {entradasTotales} entrada{entradasTotales === 1 ? "" : "s"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-3">Nombres y apellidos</p>
-                    <input
-                      type="text"
-                      value={nombre}
-                      onChange={(e) => setNombre(e.target.value)}
-                      placeholder="Tu nombre completo"
-                      className="w-full bg-transparent border border-gris-textura text-blanco font-body text-sm px-4 py-3 focus:outline-none focus:border-rojo transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-3">DNI</p>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={dni}
-                      onChange={(e) => setDni(e.target.value)}
-                      placeholder="Tu DNI"
-                      className="w-full bg-transparent border border-gris-textura text-blanco font-body text-sm px-4 py-3 focus:outline-none focus:border-rojo transition-colors"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-3">
-                      Vendedor <span className="normal-case text-blanco/40">(si un integrante del equipo te está ayudando con la compra)</span>
-                    </p>
-                    <input
-                      type="text"
-                      value={vendedor}
-                      onChange={(e) => setVendedor(e.target.value)}
-                      placeholder="Opcional"
-                      className="w-full bg-transparent border border-gris-textura text-blanco font-body text-sm px-4 py-3 focus:outline-none focus:border-rojo transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div className="border-t border-gris-textura pt-6 flex items-baseline justify-between">
-                  <div>
-                    <span className="font-body text-blanco/60 text-sm uppercase tracking-[0.15em] block">Total estimado</span>
-                    {zona && (
-                      <span className="font-body text-blanco/50 text-xs">
-                        {entradasTotales} entrada{entradasTotales === 1 ? "" : "s"} en total · {activeTier.label}
-                      </span>
-                    )}
-                  </div>
-                  <span className="font-display text-rojo text-4xl">{total != null ? `S/${total}` : "—"}</span>
-                </div>
-
-                {puedeReservar ? (
-                  <a
-                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${mensaje}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-rojo w-full flex items-center justify-center gap-3"
-                  >
-                    <MessageCircle size={18} />
-                    Reservar por WhatsApp
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    disabled
-                    className="w-full flex items-center justify-center gap-3 font-body font-bold text-sm uppercase tracking-[0.2em] px-9 py-3.5 bg-gris-textura text-blanco/40 cursor-not-allowed"
-                  >
-                    <MessageCircle size={18} />
-                    Reservar por WhatsApp
-                  </button>
-                )}
-
-                {noHayCupo && currentZoneAvail && (
-                  <div className="p-3 bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                    <span>
-                      {currentZoneAvail.isSoldOut
-                        ? `Esta zona (${zona?.label}) está agotada para la función de las ${funcion}. Por favor selecciona otro horario u otra zona.`
-                        : `Solo quedan ${currentZoneAvail.availableSeats} asientos en ${zona?.label} para las ${funcion}. Reduce la cantidad para continuar.`}
-                    </span>
-                  </div>
-                )}
-
-                <p className="font-body text-blanco/60 text-xs leading-relaxed">
-                  Al reservar aceptas nuestros{" "}
-                  <a
-                    href="/terminos"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-rojo underline underline-offset-2 hover:text-blanco transition-colors"
-                  >
-                    Términos y condiciones
-                  </a>
-                  .
-                </p>
-
-                <p className="font-body text-blanco/50 text-xs leading-relaxed">
-                  {noHayCupo
-                    ? "El aforo solicitado supera la disponibilidad en vivo."
-                    : puedeReservar
-                    ? "La reserva se confirma directamente con nuestro equipo por WhatsApp. Cupos sujetos a disponibilidad en tiempo real."
-                    : "Completa función, zona, nombre y DNI para continuar."}
-                </p>
-
-                <div className="border border-gris-textura px-5 py-4">
-                  <p className="font-body text-[11px] uppercase tracking-[0.2em] text-blanco/60 mb-2">Medios de pago</p>
-                  <p className="font-body text-blanco/70 text-sm leading-relaxed">
-                    Plin: <span className="text-blanco font-semibold">969 821 836</span> (Yenny Huamani Huamani).
-                    Coordinamos el resto de medios de pago por WhatsApp al confirmar tu reserva.
-                  </p>
-                </div>
-              </div>
-            </div>
+                </Reveal>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-gris-textura py-8">
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 text-center">
-          <p className="font-body text-blanco/40 text-xs uppercase tracking-[0.2em]">
-            Chaplin Grupo Cultural · Ica, Perú
+      {/* ─────────── cierre ─────────── */}
+      <section className="relative overflow-hidden px-4 py-20 sm:px-6 lg:px-10">
+        <Fireflies count={16} />
+        <Reveal className="relative mx-auto max-w-3xl text-center">
+          <img
+            src={shrekPersonaje}
+            alt="Shrek"
+            loading="lazy"
+            className="shk-t-bounce mx-auto h-44 w-auto drop-shadow-[0_20px_30px_rgba(120,220,40,0.35)] sm:h-60"
+          />
+          <h2 className="shk-title mt-3 text-[48px] sm:text-[72px]">¡NOS VEMOS EN EL PANTANO!</h2>
+          <p className="mx-auto mt-4 max-w-xl text-white/65">
+            {EV.fechaLarga} · {settings.funciones.join(" y ")} · Auditorio del Colegio de Ingenieros de Ica
           </p>
-          <p className="font-body text-blanco/40 text-xs mt-3 space-x-4">
-            <a href="/terminos" className="hover:text-rojo transition-colors underline underline-offset-2">
+          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <button onClick={irAReservar} className="shk-btn">
+              <Ticket size={22} /> Reservar mis entradas
+            </button>
+            <a
+              href={`https://wa.me/${EV.whatsapp}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-[15px] font-bold text-[#f6c744] underline-offset-4 hover:underline"
+            >
+              <MessageCircle size={18} /> Consultas: 956 060 826
+            </a>
+          </div>
+        </Reveal>
+      </section>
+
+      <footer className="border-t border-white/10 px-4 py-8">
+        <div className="mx-auto max-w-[1100px] text-center">
+          <p className="text-[12px] uppercase tracking-[0.2em] text-white/45">Chaplin Grupo Cultural · Ica, Perú</p>
+          <p className="mt-3 space-x-5 text-[12px] text-white/45">
+            <a href="/terminos" className="underline underline-offset-2 hover:text-[#caff55]">
               Términos y condiciones
             </a>
+            <Link to="/" className="underline underline-offset-2 hover:text-[#caff55]">
+              Ir al sitio de Chaplin
+            </Link>
           </p>
         </div>
       </footer>
+
+      {/* ─────────── barra fija en celular ─────────── */}
+      {ventaAbierta && zona && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#06120b]/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md lg:hidden">
+          <div className="mx-auto flex max-w-[520px] items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-[0.15em] text-white/50">
+                {zona ? `${entradas} entrada${entradas === 1 ? "" : "s"} · ${promo.tag}` : "Total"}
+              </p>
+              <p className="shk-h2 text-[28px] leading-none text-[#f6c744]">{zona ? soles(total) : "—"}</p>
+            </div>
+            <button
+              onClick={() => document.getElementById("resumen")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+              className="shk-btn !px-6 !py-3 !text-[18px]"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-function ZoneRow({
-  zone,
-  selected,
-  onSelect,
-  availability,
-}: {
-  zone: Zone;
-  selected: boolean;
-  onSelect: () => void;
-  availability?: ZoneAvailability;
-}) {
-  const isSoldOut = Boolean(availability?.isSoldOut);
-  const isLowStock = Boolean(availability?.isLowStock);
-
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      disabled={isSoldOut}
-      className={`w-full flex items-center justify-between px-6 py-5 border-t border-gris-textura text-left transition-colors ${
-        selected ? "bg-rojo/10" : "hover:bg-blanco/5"
-      } ${isSoldOut ? "opacity-40 cursor-not-allowed bg-rose-950/10" : ""}`}
-    >
-      <div className="flex items-center gap-4">
-        <span className="w-5 h-5 shrink-0" style={{ backgroundColor: zone.color }} />
-        <div>
-          <span className={`font-body font-semibold uppercase tracking-[0.1em] text-sm ${selected ? "text-rojo" : "text-blanco"}`}>
-            {zone.label}
-          </span>
-          {isSoldOut ? (
-            <span className="block text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-0.5">
-              ● Agotado para esta función
-            </span>
-          ) : isLowStock ? (
-            <span className="block text-[10px] text-amber-400 font-bold uppercase tracking-wider mt-0.5 animate-pulse">
-              🔥 ¡Últimos {availability?.availableSeats} asientos disponibles!
-            </span>
-          ) : null}
-        </div>
-      </div>
-      <div className="text-right">
-        <span className="font-body text-blanco/80 text-xs font-semibold block">
-          {availability ? `${availability.availableSeats} disponibles` : `${zone.seats} asientos`}
-        </span>
-        <span className="font-body text-blanco/40 text-[10px]">de {zone.seats} totales</span>
-      </div>
-    </button>
-  );
-}
-

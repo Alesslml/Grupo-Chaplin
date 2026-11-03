@@ -7,7 +7,7 @@ import { PageHero } from "@/components/chaplin/PageHero";
 import musical from "@/assets/show-musical.jpg";
 import drama from "@/assets/show-drama.jpg";
 import family from "@/assets/show-family.jpg";
-import shrekFlyer from "@/assets/shrek-flyer.jpg";
+import shrekFlyer from "@/assets/shrek/flyer-oficial.jpg";
 import comedy from "@/assets/show-comedy.jpg";
 import jesucristoFlyer from "@/assets/jesucristo-rockstar-flyer.jpg";
 import heathersCard from "@/assets/prod-heathers-card.jpg";
@@ -63,23 +63,21 @@ const obras: Obra[] = [
     tipo: "Familiar",
     img: shrekFlyer,
     tag: "PRÓXIMA",
-    fecha: "Diciembre 2026",
+    fecha: "Sáb 28 de noviembre · 4:00 y 7:00 pm",
     autores: "Basado en DreamWorks",
     director: "Harold López Segovia",
     sinopsis:
-      "El ogro más querido del cine llega al escenario iqueño en una aventura familiar sobre la amistad, la aceptación y encontrar la belleza donde menos se espera. Diciembre de 2026.",
+      "El ogro más querido del cine llega al escenario iqueño en una aventura familiar sobre la amistad, la aceptación y encontrar la belleza donde menos se espera. Sábado 28 de noviembre de 2026, 4:00 pm y 7:00 pm.",
   },
   {
     title: "Jesucristo Rockstar",
     year: "2026",
     tipo: "Musical",
     img: jesucristoFlyer,
-    tag: "PRÓXIMA",
-    fecha: "Dom 18 de octubre · 4:00 pm y 7:00 pm",
     autores: "Andrew Lloyd Webber y Tim Rice",
     director: "Harold López Segovia",
     sinopsis:
-      "El clásico rock-ópera que narra los últimos días de Jesucristo desde la mirada humana de sus discípulos, especialmente Judas. Rock, fe y escena en una sola noche. Octubre de 2026.",
+      "El clásico rock-ópera que narra los últimos días de Jesucristo desde la mirada humana de sus discípulos, especialmente Judas. Rock, fe y escena en una sola noche. Se presentó el domingo 18 de octubre de 2026.",
   },
   {
     title: "SING, Ven y Canta",

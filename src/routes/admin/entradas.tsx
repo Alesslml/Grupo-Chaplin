@@ -68,6 +68,11 @@ import {
   getCRMStats,
   getPromosBreakdown,
   buildWhatsAppReservationMessage,
+  describeEntradas,
+  EVENTOS,
+  getEvento,
+  setEvento,
+  type EventoKey,
   getStoredEventSettings,
   saveEventSettings,
   syncEventSettingsWithNeon,
@@ -93,7 +98,7 @@ const fmtIngreso = (iso: string) =>
 export const Route = createFileRoute("/admin/entradas")({
   head: () => ({
     meta: [
-      { title: "Panel CRM · Jesucristo Rockstar · Chaplin Grupo Cultural" },
+      { title: "Panel CRM · Chaplin Grupo Cultural" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
@@ -120,6 +125,8 @@ function AdminEntradasPage() {
 
   // Configuración en vivo del evento (Precios, Promos, Horarios, Aforo)
   const [eventSettings, setEventSettings] = useState<EventSettings>(() => getStoredEventSettings());
+  const [evento, setEventoState] = useState<EventoKey>(() => getEvento());
+  const cfgEvento = EVENTOS[evento];
   const activePromoKey = getActivePromoKey(eventSettings.promos);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState<string | null>(null);
@@ -132,6 +139,7 @@ function AdminEntradasPage() {
   const [editFuncion, setEditFuncion] = useState("");
   const [editZona, setEditZona] = useState("");
   const [editCantidad, setEditCantidad] = useState(1);
+  const [editCantidadNino, setEditCantidadNino] = useState(0);
   const [editPromo, setEditPromo] = useState<string>(() => getActivePromoKey());
   const [editTotal, setEditTotal] = useState<number>(80);
   const [editMetodo, setEditMetodo] = useState<MetodoPago>("yape");
@@ -178,6 +186,7 @@ function AdminEntradasPage() {
   // La zona inicia en null para que RECIÉN al seleccionarla se muestre el aforo disponible
   const [formZona, setFormZona] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState(1);
+  const [cantidadNino, setCantidadNino] = useState(0);
   const [promo, setPromo] = useState<string>(() => getActivePromoKey());
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("yape");
   const [vendedor, setVendedor] = useState("");
@@ -204,6 +213,24 @@ function AdminEntradasPage() {
       setCopiedId(res.id);
       setTimeout(() => setCopiedId(null), 2500);
     }
+  };
+
+  // Cambia de evento (Shrek / Jesucristo): recarga reservas y configuración de ese evento
+  const cambiarEvento = (k: EventoKey) => {
+    if (k === evento) return;
+    setEvento(k);
+    setEventoState(k);
+    const st = getStoredEventSettings(k);
+    setReservations(getStoredReservations(k));
+    setEventSettings(st);
+    setPromo(getActivePromoKey(st.promos));
+    setFormZona(null);
+    setFormFuncion(st.funciones[0] ?? "4:00 pm");
+    setSelectedFuncion(st.funciones[0] ?? "4:00 pm");
+    setCantidad(1);
+    setCantidadNino(0);
+    setTotalManual(null);
+    setLastRegistered(null);
   };
 
   // Cargar y sincronizar datos
@@ -238,7 +265,7 @@ function AdminEntradasPage() {
       unsubscribe();
       stopPolling();
     };
-  }, [auth]);
+  }, [auth, evento]);
 
   // Manejador de Login
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -341,8 +368,9 @@ function AdminEntradasPage() {
     if (formZona === "cortesia" || promo === "cortesia") return 0;
     const z = eventSettings.zonas.find((item) => item.key === formZona);
     const base = z?.prices[promo as keyof EventZoneSetting["prices"]] ?? (PRECIOS_POR_DEFECTO[formZona]?.[promo] || 80);
-    return cantidad * base;
-  }, [formZona, promo, cantidad, eventSettings.zonas]);
+    const baseNino = (z?.pricesNino ?? z?.prices)?.[promo as keyof EventZoneSetting["prices"]] ?? base;
+    return cantidad * base + cantidadNino * baseNino;
+  }, [formZona, promo, cantidad, cantidadNino, eventSettings.zonas]);
 
   const [totalManual, setTotalManual] = useState<number | null>(null);
   const totalFinal = isCortesiaSelected ? 0 : (totalManual !== null ? totalManual : precioSugerido);
@@ -356,6 +384,7 @@ function AdminEntradasPage() {
     setEditFuncion(r.funcion);
     setEditZona(r.zonaKey);
     setEditCantidad(r.cantidad);
+    setEditCantidadNino(Number(r.cantidadNino || 0));
     setEditPromo(r.etapaPromo);
     setEditTotal(Number(r.totalPagado));
     setEditMetodo((r.metodoPago || "yape") as MetodoPago);
@@ -371,8 +400,9 @@ function AdminEntradasPage() {
     if (!editZona || editZona === "cortesia" || editPromo === "cortesia") return 0;
     const z = eventSettings.zonas.find((item) => item.key === editZona);
     const base = z?.prices[editPromo as keyof EventZoneSetting["prices"]] ?? (PRECIOS_POR_DEFECTO[editZona]?.[editPromo] || 80);
-    return editCantidad * base;
-  }, [editZona, editPromo, editCantidad, eventSettings.zonas]);
+    const baseNino = (z?.pricesNino ?? z?.prices)?.[editPromo as keyof EventZoneSetting["prices"]] ?? base;
+    return editCantidad * base + editCantidadNino * baseNino;
+  }, [editZona, editPromo, editCantidad, editCantidadNino, eventSettings.zonas]);
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -391,7 +421,8 @@ function AdminEntradasPage() {
         clienteDni: editDni.trim() || undefined,
         funcion: editFuncion,
         zonaKey: editZona,
-        cantidad: Number(editCantidad) || 1,
+        cantidad: Number(editCantidad) || 0,
+        cantidadNino: Number(editCantidadNino) || 0,
         etapaPromo: finalPromo,
         totalPagado: finalTotal,
         metodoPago: finalMetodo,
@@ -440,6 +471,17 @@ function AdminEntradasPage() {
     } finally {
       setIsSavingSettings(false);
     }
+  };
+
+  const handleZonePriceNinoChange = (zoneKey: string, promoKey: string, value: number) => {
+    setEventSettings((prev) => ({
+      ...prev,
+      zonas: prev.zonas.map((z) =>
+        z.key === zoneKey
+          ? { ...z, pricesNino: { ...(z.pricesNino ?? z.prices), [promoKey]: Math.max(0, value) } }
+          : z
+      ),
+    }));
   };
 
   const handleZonePriceChange = (zoneKey: string, promoKey: string, value: number) => {
@@ -514,7 +556,9 @@ function AdminEntradasPage() {
         clienteDni: dni.trim() || undefined,
         funcion: formFuncion,
         zonaKey: formZona as any,
-        cantidad: Number(cantidad) || 1,
+        cantidad: Number(cantidad) || 0,
+        cantidadNino: Number(cantidadNino) || 0,
+        evento,
         etapaPromo: finalPromo,
         totalPagado: finalTotal,
         metodoPago: finalMetodo,
@@ -530,6 +574,8 @@ function AdminEntradasPage() {
       setVendedor("");
       setNotas("");
       setFormZona(null); // Resetea la zona para el siguiente registro
+      setCantidad(1);
+      setCantidadNino(0);
       setPromo(activePromoKey);
       setMetodoPago("yape");
       setTotalManual(null);
@@ -762,7 +808,7 @@ function AdminEntradasPage() {
               Acceso Exclusivo · Harold López
             </div>
             <h1 className="font-display text-2xl text-slate-900 tracking-tight font-bold">
-              CRM · Jesucristo Rockstar
+              CRM · Chaplin Grupo Cultural
             </h1>
             <p className="text-xs text-slate-500 mt-1.5">
               Ingresa tus credenciales autorizadas para gestionar el aforo y las reservas en tiempo real.
@@ -861,7 +907,7 @@ function AdminEntradasPage() {
               <div>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="bg-red-600 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.16em] px-1.5 sm:px-2 py-0.5 rounded-xs">
-                    CRM · Rockstar
+                    CRM · {cfgEvento.nombreCorto}
                   </span>
                   <span className="flex items-center gap-1 text-emerald-700 text-[10px] sm:text-xs font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -871,6 +917,20 @@ function AdminEntradasPage() {
                 <h1 className="font-display text-slate-900 text-lg sm:text-2xl tracking-wide leading-tight mt-0.5">
                   Panel de Control de Harold
                 </h1>
+                <div className="mt-1.5 inline-flex overflow-hidden rounded-md border border-slate-300 text-[11px] font-bold" role="group" aria-label="Evento">
+                  {Object.values(EVENTOS).map((e) => (
+                    <button
+                      key={e.key}
+                      type="button"
+                      onClick={() => cambiarEvento(e.key)}
+                      className={`px-3 py-1 transition-colors cursor-pointer ${
+                        evento === e.key ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      {e.nombreCorto}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -1606,9 +1666,9 @@ function AdminEntradasPage() {
                             <span className="font-extrabold text-slate-900 text-sm">
                               {effectiveTickets} {effectiveTickets === 1 ? "asiento" : "asientos"}
                             </span>
-                            {r.etapaPromo === "twoXone" && (
+                            {(r.etapaPromo === "twoXone" || r.etapaPromo === "threeXtwo" || (r.cantidadNino ?? 0) > 0) && (
                               <span className="text-[10px] text-amber-700 font-bold block">
-                                ({r.cantidad} promo 2x1)
+                                ({describeEntradas(r)})
                               </span>
                             )}
                           </div>
@@ -1785,9 +1845,9 @@ function AdminEntradasPage() {
                                 <span className="bg-slate-100 border border-slate-200 px-2.5 py-1 font-bold text-slate-800 rounded-md text-xs">
                                   {effectiveTickets} {effectiveTickets === 1 ? "asiento" : "asientos"}
                                 </span>
-                                {r.etapaPromo === "twoXone" && (
+                                {(r.etapaPromo === "twoXone" || r.etapaPromo === "threeXtwo" || (r.cantidadNino ?? 0) > 0) && (
                                   <span className="text-[10px] text-amber-700 font-semibold mt-0.5">
-                                    ({r.cantidad} promo 2x1)
+                                    ({describeEntradas(r)})
                                   </span>
                                 )}
                               </div>
@@ -1974,7 +2034,7 @@ function AdminEntradasPage() {
               </button>
 
               <span className="text-xs text-slate-500 font-medium">
-                Jesucristo Rockstar · Confirmación WhatsApp
+                {cfgEvento.nombreCorto} · Confirmación WhatsApp
               </span>
             </div>
 
@@ -2281,27 +2341,51 @@ function AdminEntradasPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs uppercase tracking-wider text-slate-700 font-bold mb-1.5">
-                      {entradasPorPromoForm > 1 ? `Cantidad de Promos ${promoTagForm} Compradas *` : "Número de Entradas a Descontar *"}
+                      {cfgEvento.tieneCategorias
+                        ? entradasPorPromoForm > 1
+                          ? `Adultos · Promos ${promoTagForm} *`
+                          : "Entradas Adulto *"
+                        : entradasPorPromoForm > 1
+                        ? `Cantidad de Promos ${promoTagForm} Compradas *`
+                        : "Número de Entradas a Descontar *"}
                     </label>
                     <input
                       type="number"
-                      min="1"
+                      min={cfgEvento.tieneCategorias ? 0 : 1}
                       max={formZoneAvail ? Math.max(1, Math.floor(formZoneAvail.availableSeats / entradasPorPromoForm)) : 50}
                       value={cantidad}
-                      onChange={(e) => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
+                      onChange={(e) => setCantidad(Math.max(cfgEvento.tieneCategorias ? 0 : 1, parseInt(e.target.value) || 0))}
                       className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 font-bold focus:outline-hidden focus:border-red-600 focus:ring-1 focus:ring-red-600"
                     />
+
+                    {cfgEvento.tieneCategorias && (
+                      <div className="mt-3">
+                        <label className="block text-xs uppercase tracking-wider text-slate-700 font-bold mb-1.5">
+                          {entradasPorPromoForm > 1 ? `Niños · Promos ${promoTagForm}` : "Entradas Niño"}
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max={formZoneAvail ? Math.max(0, Math.floor(formZoneAvail.availableSeats / entradasPorPromoForm)) : 50}
+                          value={cantidadNino}
+                          onChange={(e) => setCantidadNino(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 font-bold focus:outline-hidden focus:border-red-600 focus:ring-1 focus:ring-red-600"
+                        />
+                        <p className="mt-1 text-[11px] text-slate-500">
+                          Total: <strong>{(cantidad + cantidadNino) * entradasPorPromoForm} asientos</strong> ({cantidad} Adulto{cantidad === 1 ? "" : "s"} + {cantidadNino} Niño{cantidadNino === 1 ? "" : "s"}
+                          {entradasPorPromoForm > 1 ? ` · ×${entradasPorPromoForm} por promo` : ""})
+                        </p>
+                      </div>
+                    )}
 
                     {entradasPorPromoForm > 1 && (
                       <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
                         <div className="font-bold flex items-center gap-1.5 text-amber-800">
                           <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                          <span>Promo {promoTagForm}: {cantidad} paquete(s) = {cantidad * entradasPorPromoForm} asientos a entregar</span>
+                          <span>Promo {promoTagForm}: {cantidad + cantidadNino} paquete(s) = {(cantidad + cantidadNino) * entradasPorPromoForm} asientos a entregar</span>
                         </div>
                         <p className="mt-1 text-[11px] text-amber-800">
-                          📌 Si el cliente pagó por <strong>{entradasPorPromoForm} asientos</strong>, coloca <strong>Cantidad = 1</strong> (1 promo {promoTagForm}).
-                          <br />
-                          📌 Si pagó por <strong>{entradasPorPromoForm * 2} asientos</strong>, coloca <strong>Cantidad = 2</strong> (2 promos {promoTagForm}).
+                          📌 Cada promo {promoTagForm} que pagó el cliente son <strong>{entradasPorPromoForm} asientos</strong>. Si pagó 1 promo, coloca <strong>1</strong>; si pagó 2, coloca <strong>2</strong>.
                         </p>
                       </div>
                     )}
@@ -2442,7 +2526,7 @@ function AdminEntradasPage() {
 
                 <button
                   type="submit"
-                  disabled={!formZona || isSubmitting}
+                  disabled={!formZona || isSubmitting || cantidad + cantidadNino < 1}
                   className={`w-full py-3.5 font-bold uppercase tracking-wider text-sm rounded-lg transition-all flex items-center justify-center gap-2 mt-4 shadow-sm ${
                     formZona && !isSubmitting
                       ? isCortesiaSelected
@@ -2456,11 +2540,11 @@ function AdminEntradasPage() {
                     {isSubmitting
                       ? "Registrando en el Sistema..."
                       : isCortesiaSelected
-                      ? `Confirmar Pase de Cortesía (${cantidad} Asientos · S/ 0.00)`
+                      ? `Confirmar Pase de Cortesía (${cantidad + cantidadNino} Asientos · S/ 0.00)`
                       : formZona
                       ? entradasPorPromoForm > 1
-                        ? `Confirmar Venta ${promoTagForm} y Descontar ${cantidad * entradasPorPromoForm} Asientos (${cantidad} promo = ${cantidad * entradasPorPromoForm} entradas)`
-                        : `Confirmar Venta y Descontar ${cantidad} Asientos (${ZONAS_CONFIG[formZona]?.label})`
+                        ? `Confirmar Venta ${promoTagForm} y Descontar ${(cantidad + cantidadNino) * entradasPorPromoForm} Asientos (${cantidad + cantidadNino} promo = ${(cantidad + cantidadNino) * entradasPorPromoForm} entradas)`
+                        : `Confirmar Venta y Descontar ${cantidad + cantidadNino} Asientos (${ZONAS_CONFIG[formZona]?.label})`
                       : "Selecciona una zona arriba para continuar"}
                   </span>
                 </button>
@@ -2479,7 +2563,7 @@ function AdminEntradasPage() {
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2">
                   <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Control de Acceso en Puerta · Jesucristo Rockstar</span>
+                  <span>Control de Acceso en Puerta · {cfgEvento.nombreCorto}</span>
                 </div>
                 <h2 className="font-display text-2xl sm:text-3xl text-slate-900 tracking-wide font-bold">
                   Validador de Boletos & Lista de Asistencia
@@ -2614,7 +2698,7 @@ function AdminEntradasPage() {
                       Escanear o Validar Entrada
                     </h3>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Ingresa el código oficial (ej. <strong className="text-white">JR-4PM-SUP-001</strong>), el <strong className="text-white">DNI</strong> o el nombre.
+                      Ingresa el código oficial (ej. <strong className="text-white">{cfgEvento.codePrefix}-4PM-{Object.values(cfgEvento.zonePrefix)[0]}-001</strong>), el <strong className="text-white">DNI</strong> o el nombre.
                     </p>
                   </div>
                 </div>
@@ -2800,9 +2884,9 @@ function AdminEntradasPage() {
                             Ya ingresaron {ingCount} · Faltan {pendCount}
                           </span>
                         )}
-                        {scannedTicket.etapaPromo === "twoXone" && (
+                        {(scannedTicket.etapaPromo === "twoXone" || scannedTicket.etapaPromo === "threeXtwo" || (scannedTicket.cantidadNino ?? 0) > 0) && (
                           <span className="text-[11px] text-emerald-200 block font-normal mt-0.5">
-                            ({scannedTicket.cantidad} compras en promo 2x1 = {effectiveCount} entradas)
+                            ({describeEntradas(scannedTicket)})
                           </span>
                         )}
                       </div>
@@ -3031,7 +3115,7 @@ function AdminEntradasPage() {
                             </span>
                             {(r.etapaPromo === "twoXone" || r.etapaPromo === "threeXtwo") && (
                               <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-block mt-0.5">
-                                Promo {PROMOS_CONFIG[r.etapaPromo]?.tag || r.etapaPromo} ({r.cantidad})
+                                Promo {PROMOS_CONFIG[r.etapaPromo]?.tag || r.etapaPromo} · {describeEntradas(r)}
                               </span>
                             )}
                           </div>
@@ -3167,7 +3251,7 @@ function AdminEntradasPage() {
                               )}
                               {(r.etapaPromo === "twoXone" || r.etapaPromo === "threeXtwo") && (
                                 <div className="text-[10px] text-amber-700 font-bold mt-0.5">
-                                  Promo {PROMOS_CONFIG[r.etapaPromo]?.tag || r.etapaPromo} ({r.cantidad})
+                                  Promo {PROMOS_CONFIG[r.etapaPromo]?.tag || r.etapaPromo} · {describeEntradas(r)}
                                 </div>
                               )}
                             </td>
@@ -3468,6 +3552,37 @@ function AdminEntradasPage() {
                               />
                             </div>
                           </div>
+
+                          {cfgEvento.tieneCategorias && (
+                            <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-2">
+                              <span className="mb-1.5 block text-[11px] font-bold text-emerald-800">Precios Niño</span>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {(
+                                  [
+                                    ["twoXone", "2x1"],
+                                    ["threeXtwo", "3x2"],
+                                    ["twentyPct", "-20%"],
+                                    ["regular", "FULL"],
+                                  ] as const
+                                ).map(([k, label]) => (
+                                  <label key={k} className="flex items-center justify-between gap-1 rounded bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 border border-slate-200">
+                                    {label}
+                                    <span className="flex items-center gap-1">
+                                      <span className="text-slate-400">S/</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        value={(z.pricesNino ?? z.prices)[k]}
+                                        onChange={(e) => handleZonePriceNinoChange(z.key, k, Number(e.target.value) || 0)}
+                                        className="w-14 px-1.5 py-0.5 bg-slate-50 border border-slate-300 rounded text-right text-xs font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                                      />
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -3677,13 +3792,25 @@ function AdminEntradasPage() {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Cantidad Comprada
+                      {cfgEvento.tieneCategorias ? "Entradas / Promos Adulto" : "Cantidad Comprada"}
                     </label>
+                    {cfgEvento.tieneCategorias && (
+                      <div className="mb-2">
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">Entradas / Promos Niño</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={editCantidadNino}
+                          onChange={(e) => setEditCantidadNino(Math.max(0, Number(e.target.value) || 0))}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                        />
+                      </div>
+                    )}
                     <input
                       type="number"
-                      min="1"
+                      min={cfgEvento.tieneCategorias ? 0 : 1}
                       value={editCantidad}
-                      onChange={(e) => setEditCantidad(Math.max(1, Number(e.target.value) || 1))}
+                      onChange={(e) => setEditCantidad(Math.max(cfgEvento.tieneCategorias ? 0 : 1, Number(e.target.value) || 0))}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
                       required
                     />
@@ -3783,7 +3910,7 @@ function AdminEntradasPage() {
                       type="text"
                       value={editTicketCode}
                       onChange={(e) => setEditTicketCode(e.target.value.toUpperCase())}
-                      placeholder="Ej: JR-4PM-SUP-001"
+                      placeholder={`Ej: ${cfgEvento.codePrefix}-4PM-${Object.values(cfgEvento.zonePrefix)[0]}-001`}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
                     />
                   </div>

@@ -2,8 +2,7 @@ import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "@tanstack/react-router";
-import jesucristoFlyer from "@/assets/jesucristo-rockstar-flyer.jpg";
-import shrekFlyer from "@/assets/shrek-flyer.jpg";
+import shrekFlyer from "@/assets/shrek/flyer-oficial.jpg";
 import { Calendar } from "lucide-react";
 
 if (typeof window !== "undefined") {
@@ -12,15 +11,9 @@ if (typeof window !== "undefined") {
 
 const temporada = [
   {
-    title: "JESUCRISTO",
-    subtitle: "Rockstar",
-    fecha: "Domingo 18 de octubre · 4:00 pm y 7:00 pm",
-    img: jesucristoFlyer,
-  },
-  {
     title: "SHREK",
     subtitle: "El inicio de la aventura · Dir. Harold López",
-    fecha: "Diciembre",
+    fecha: "Sábado 28 de noviembre · 4:00 pm y 7:00 pm",
     img: shrekFlyer,
   },
 ];
@@ -69,11 +62,11 @@ export function ProximaFuncion() {
         </span>
 
         <h2 className="px-fade font-display text-blanco text-[44px] sm:text-[60px] lg:text-[76px] leading-[0.95] mb-14 max-w-3xl">
-          PRÓXIMOS ESTRENOS<br />
-          <span className="text-rojo">TE ESPERAN.</span>
+          PRÓXIMO ESTRENO<br />
+          <span className="text-rojo">TE ESPERA.</span>
         </h2>
 
-        <div className="grid sm:grid-cols-2 gap-6 max-w-3xl">
+        <div className="grid gap-6 max-w-sm">
           {temporada.map((t) => (
             <div key={t.title} className="px-card group relative aspect-[3/4] overflow-hidden">
               <img
@@ -93,10 +86,10 @@ export function ProximaFuncion() {
                 <h3 className="font-display text-blanco text-3xl leading-none mb-1">{t.title}</h3>
                 <p className="font-body text-blanco/70 text-sm mb-4">{t.subtitle}</p>
                 <Link
-                  to="/producciones"
+                  to="/entradas"
                   className="font-body text-[11px] uppercase tracking-[0.25em] text-blanco hover:text-rojo transition-colors duration-300"
                 >
-                  Más información →
+                  Reservar entradas →
                 </Link>
               </div>
             </div>

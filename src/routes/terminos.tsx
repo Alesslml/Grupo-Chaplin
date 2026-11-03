@@ -16,7 +16,7 @@ export const Route = createFileRoute("/terminos")({
   component: TerminosPage,
 });
 
-const ACTUALIZADO = "12 de octubre de 2026";
+const ACTUALIZADO = "3 de noviembre de 2026";
 const WHATSAPP = "956 060 826";
 
 interface Seccion {
@@ -32,7 +32,7 @@ const secciones: Seccion[] = [
     titulo: "Información general",
     items: [
       "Estos términos regulan la compra de entradas de Chaplin Grupo Cultural (en adelante, “Chaplin”), con sede en Ica, Perú.",
-      "Se aplican a la venta de entradas de “Jesucristo Rockstar” (domingo 18 de octubre de 2026, funciones de 4:00 pm y 7:00 pm, Auditorio del Colegio de Ingenieros de Ica) y a las demás funciones que Chaplin ponga a la venta, salvo que se indique otra cosa.",
+      "Se aplican a la venta de entradas de “SHREK, El inicio de la aventura” (sábado 28 de noviembre de 2026, funciones de 4:00 pm y 7:00 pm, Auditorio del Colegio de Ingenieros de Ica) y a las demás funciones que Chaplin ponga a la venta, salvo que se indique otra cosa.",
       "Al reservar o pagar una entrada, el comprador declara haber leído y aceptado estos términos y condiciones.",
     ],
   },
@@ -51,7 +51,7 @@ const secciones: Seccion[] = [
     id: "precios",
     titulo: "Precios y promociones",
     items: [
-      "El precio de cada entrada depende de la zona elegida y de la etapa de preventa vigente el día en que se realiza la compra: promoción 2x1, promoción 3x2, descuento del 20 % y precio regular.",
+      "El precio de cada entrada depende de la zona elegida y de la etapa de preventa vigente el día en que se realiza la compra: promoción 2x1, promoción 3x2, descuento del 20 % y precio FULL. Las entradas de categoría Niño tienen un precio distinto al de las de Adulto.",
       "En las promociones 2x1 y 3x2, el precio publicado corresponde a una promoción que da derecho a 2 o 3 entradas, respectivamente, en la misma zona y función.",
       "El precio aplicable es el vigente en la fecha de compra, no en la fecha de la función. Una vez confirmada la compra no se puede cambiar a otra etapa de promoción.",
       "Las promociones y precios pueden modificarse o terminar sin previo aviso; no afectan a las compras ya confirmadas.",
@@ -67,7 +67,7 @@ const secciones: Seccion[] = [
       "Una vez iniciada la función no se permite el ingreso.",
       "Si el grupo no llega junto, las entradas pueden usarse por partes: cada ingreso queda registrado con fecha y hora, y el resto de entradas del mismo ticket sigue vigente hasta completar las personas compradas.",
       "No se permite la grabación ni la toma de fotografías una vez iniciada la función.",
-      "Público recomendado: mayores de 14 años.",
+      "Público recomendado: el indicado para cada función. Shrek, El inicio de la aventura es apta para todo público.",
     ],
   },
   {

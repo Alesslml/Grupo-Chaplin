@@ -26,7 +26,10 @@ import {
   buildWhatsAppReservationMessage,
   getEffectiveTicketsCount,
   onCRMUpdate,
+  describeEntradas,
+  EVENTOS,
 } from "@/lib/tickets-crm";
+import { Fireflies } from "@/components/shrek/Fireflies";
 
 export const Route = createFileRoute("/ticket/$id")({
   loader: async ({ params }) => {
@@ -37,16 +40,23 @@ export const Route = createFileRoute("/ticket/$id")({
       return { ticket: null, ticketId: params.id };
     }
   },
-  head: ({ loaderData }) => ({
-    meta: [
-      {
-        title: loaderData?.ticket
-          ? `Boleto Oficial #${loaderData.ticket.ticketCode || loaderData.ticket.id} · ${loaderData.ticket.clienteNombre} · Jesucristo Rockstar`
-          : "Boleto Digital · Jesucristo Rockstar · Chaplin Grupo Cultural",
-      },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
-  }),
+  head: ({ loaderData }) => {
+    const ev = EVENTOS[loaderData?.ticket?.evento ?? "jesucristo"];
+    return {
+      meta: [
+        {
+          title: loaderData?.ticket
+            ? `Boleto Oficial #${loaderData.ticket.ticketCode || loaderData.ticket.id} · ${loaderData.ticket.clienteNombre} · ${ev.nombreCorto}`
+            : "Boleto Digital · Chaplin Grupo Cultural",
+        },
+        { name: "robots", content: "noindex, nofollow" },
+      ],
+      links:
+        ev.key === "shrek"
+          ? [{ rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Lilita+One&family=Cinzel:wght@700;900&display=swap" }]
+          : [],
+    };
+  },
   component: TicketPage,
 });
 
@@ -85,6 +95,11 @@ function TicketPage() {
       unsubscribe();
     };
   }, [ticketId]);
+
+  const evento = ticket?.evento ?? "jesucristo";
+  const cfg = EVENTOS[evento];
+  const shrek = evento === "shrek";
+  const fechaTicket = shrek ? "Sáb. 28 de Noviembre" : "Dom. 18 de Octubre";
 
   const isCortesia =
     ticket?.etapaPromo === "cortesia" ||
@@ -144,7 +159,7 @@ function TicketPage() {
           </div>
           <div className="pt-2 space-y-3 font-body">
             <a
-              href="https://wa.me/51956060826?text=Hola,%20tengo%20una%20consulta%20sobre%20mi%20boleto%20de%20Jesucristo%20Rockstar"
+              href="https://wa.me/51956060826?text=Hola,%20tengo%20una%20consulta%20sobre%20mi%20boleto%20de%20Chaplin"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-rojo w-full justify-center flex items-center gap-2 text-xs py-3"
@@ -171,10 +186,62 @@ function TicketPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#070709] text-blanco overflow-x-hidden font-body selection:bg-rojo selection:text-white pb-20">
+    <div
+      className={`min-h-screen ${shrek ? "bg-[#06120b]" : "bg-[#070709]"} text-blanco overflow-x-hidden font-body selection:bg-rojo selection:text-white pb-20`}
+      style={shrek ? ({ "--rojo": "#8fd21c", "--rojo-oscuro": "#3d7a0b" } as React.CSSProperties) : undefined}
+    >
       {/* ─────────────────────────────────────────────────────────────────────────────
           1. ESCENOGRAFÍA TEATRAL: TELÓN DE TEATRO (VELVET CURTAINS & SPOTLIGHTS)
           ───────────────────────────────────────────────────────────────────────────── */}
+      {shrek && (
+        <div className="relative w-full overflow-hidden bg-[radial-gradient(900px_420px_at_50%_-10%,rgba(120,200,60,0.35),transparent_60%),linear-gradient(180deg,#0b2a14_0%,#07170d_60%,#06120b_100%)] pt-8 pb-12 print:hidden">
+          <Fireflies count={16} />
+          <div className="relative z-20 mx-auto max-w-3xl px-6 pt-6 text-center">
+            <Link to="/" className="mb-3 inline-block" aria-label="Chaplin Grupo Cultural">
+              <img
+                src="/logo-chaplin.png"
+                alt="Chaplin Grupo Cultural"
+                className="mx-auto h-12 w-auto object-contain sm:h-16"
+                style={{ filter: "invert(1) hue-rotate(180deg)" }}
+              />
+            </Link>
+            <p className="font-body text-[10px] sm:text-xs uppercase tracking-[0.35em] text-[#f6c744] font-semibold">
+              Chaplin Grupo Cultural presenta
+            </p>
+            <h1
+              className="mt-1 text-[64px] leading-none sm:text-[92px]"
+              style={{
+                fontFamily: "'Lilita One', 'Bebas Neue', sans-serif",
+                background: "linear-gradient(180deg,#d9ff7a 0%,#a6e22e 45%,#5da514 100%)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                color: "transparent",
+                filter: "drop-shadow(0 4px 0 rgba(20,60,8,0.85)) drop-shadow(0 12px 24px rgba(120,220,40,0.3))",
+              }}
+            >
+              SHREK
+            </h1>
+            <p
+              className="text-[16px] sm:text-[24px] tracking-[0.06em]"
+              style={{
+                fontFamily: "'Cinzel', serif",
+                fontWeight: 900,
+                background: "linear-gradient(180deg,#ffe38a,#f6c744 50%,#c98a0c)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                color: "transparent",
+              }}
+            >
+              EL INICIO DE LA AVENTURA
+            </p>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#a6e22e]/40 bg-[#a6e22e]/10 px-3.5 py-1 text-[11px] font-semibold text-[#caff55]">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Boleto Digital Oficial · Entrada Confirmada</span>
+            </div>
+          </div>
+        </div>
+      )}
+      {!shrek && (
       <div className="relative w-full overflow-hidden bg-gradient-to-b from-[#1a0002] via-[#0d0204] to-[#070709] pt-8 pb-12 print:hidden">
         {/* Luces cenitales / Reflectores teatrales */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse_at_top,rgba(254,0,0,0.35),rgba(200,16,46,0.15)_40%,transparent_75%)] pointer-events-none blur-2xl" />
@@ -235,6 +302,7 @@ function TicketPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ─────────────────────────────────────────────────────────────────────────────
           2. TARJETA PRINCIPAL DEL BOLETO (E-TICKET CARD)
@@ -242,7 +310,7 @@ function TicketPage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 relative z-30 -mt-2 sm:-mt-4">
         <div className="bg-[#111114] border-2 border-[#d4af37]/50 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_40px_rgba(212,175,55,0.15)] overflow-hidden relative print:border-black print:shadow-none print:bg-white print:text-black">
           {/* Cinta superior del ticket */}
-          <div className="bg-gradient-to-r from-[#99000a] via-rojo to-[#99000a] p-3 sm:p-4 text-white flex items-center justify-between border-b border-[#d4af37]/60 gap-2">
+          <div className={`${shrek ? "bg-gradient-to-r from-[#1f5a12] via-[#3f8f1c] to-[#1f5a12]" : "bg-gradient-to-r from-[#99000a] via-rojo to-[#99000a]"} p-3 sm:p-4 text-white flex items-center justify-between border-b border-[#d4af37]/60 gap-2`}>
             <div className="flex items-center gap-2 min-w-0">
               <TicketIcon className="w-5 h-5 text-yellow-300 shrink-0" />
               <div className="min-w-0">
@@ -372,7 +440,7 @@ function TicketPage() {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase tracking-wider text-blanco/40 block font-bold">Fecha</span>
-                  <span className="text-xs sm:text-sm font-bold text-blanco">Dom. 18 de Octubre</span>
+                  <span className="text-xs sm:text-sm font-bold text-blanco">{fechaTicket}</span>
                 </div>
               </div>
 
@@ -395,9 +463,9 @@ function TicketPage() {
                   <span className="text-xs sm:text-sm font-extrabold text-emerald-300 block">
                     {effectiveTickets} {effectiveTickets === 1 ? "asiento" : "asientos"}
                   </span>
-                  {(ticket.etapaPromo === "twoXone" || ticket.etapaPromo === "threeXtwo") && (
+                  {(ticket.etapaPromo === "twoXone" || ticket.etapaPromo === "threeXtwo" || (ticket.cantidadNino ?? 0) > 0) && (
                     <span className="text-[10px] text-amber-300 font-semibold block">
-                      ({ticket.cantidad} promo {PROMOS_CONFIG[ticket.etapaPromo]?.tag})
+                      ({describeEntradas(ticket).replace(/ \(.*\)$/, "")}{ticket.etapaPromo === "twoXone" || ticket.etapaPromo === "threeXtwo" ? ` · promo ${PROMOS_CONFIG[ticket.etapaPromo]?.tag}` : ""}
                     </span>
                   )}
                 </div>
@@ -523,7 +591,7 @@ function TicketPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-sm">👥</span>
-                  <span>Público recomendado: Apto para mayores de 14 años.</span>
+                  <span>{shrek ? "Público recomendado: Apto para todos." : "Público recomendado: Apto para mayores de 14 años."}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-sm">🚪</span>
@@ -557,7 +625,7 @@ function TicketPage() {
                   Muchas gracias 👍🏽 por apoyar el arte y la cultura, en especial el teatro 🎭...
                 </p>
                 <p className="font-display text-xl text-rojo tracking-wider pt-1">
-                  ¡LOS ESPERAMOS PARA ROCKEAR! 🤘🔥
+                  {shrek ? "¡NOS VEMOS EN EL PANTANO! 🍃💚" : "¡LOS ESPERAMOS PARA ROCKEAR! 🤘🔥"}
                 </p>
                 <p className="text-[11px] text-[#ffd700] uppercase tracking-widest font-semibold">
                   Chaplin Grupo Cultural, pasión por el teatro 🎭
@@ -608,7 +676,7 @@ function TicketPage() {
             {/* Asistencia Directa */}
             <div className="text-center pt-2 print:hidden">
               <a
-                href="https://wa.me/51956060826?text=Hola%20Chaplin,%20tengo%20una%20consulta%20sobre%20mi%20boleto%20de%20Jesucristo%20Rockstar"
+                href={`https://wa.me/51956060826?text=${encodeURIComponent(`Hola Chaplin, tengo una consulta sobre mi boleto de ${cfg.nombreCorto}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs text-blanco/50 hover:text-rojo transition-colors"
