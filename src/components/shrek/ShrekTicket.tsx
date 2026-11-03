@@ -10,7 +10,6 @@ import {
   getIngresadosCount,
   getIngresosLog,
   getSeatStatus,
-  getSeatCategory,
   type TicketReservation,
 } from "@/lib/tickets-crm";
 import { Fireflies } from "@/components/shrek/Fireflies";
@@ -50,35 +49,24 @@ const BULLETS = [
 ];
 
 export function ShrekTicket({ ticket, copiedLink, copiedCode, onCopyLink, onCopyCode, onShare, onPrint }: Props) {
-  const [qrs, setQrs] = useState<string[]>([]);
-  const [resaltada, setResaltada] = useState<number | null>(null);
+  const [qr, setQr] = useState<string>("");
 
   const code = ticket.ticketCode || ticket.id;
   const url = typeof window !== "undefined" ? `${window.location.origin}/ticket/${code}` : `https://chaplingrupocultural.com/ticket/${code}`;
 
   const totalEntradas = getEffectiveTicketsCount(ticket);
 
-  // Un QR distinto por cada entrada (por persona). Se generan aquí, en el celular: sin costo.
+  // Un solo QR por boleto (se dibuja aquí, en el celular: sin costo). En puerta se registra
+  // cuántas personas de este boleto entran en cada momento.
   useEffect(() => {
     let vivo = true;
-    Promise.all(
-      Array.from({ length: Math.max(1, totalEntradas) }, (_, i) =>
-        QRCode.toString(`${url}?e=${i + 1}`, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#1d2a12", light: "#0000" } })
-      )
-    )
-      .then((list) => vivo && setQrs(list))
-      .catch(() => vivo && setQrs([]));
+    QRCode.toString(url, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#1d2a12", light: "#0000" } })
+      .then((svg) => vivo && setQr(svg))
+      .catch(() => vivo && setQr(""));
     return () => {
       vivo = false;
     };
-  }, [url, totalEntradas]);
-
-  // Si se abre desde el QR de una entrada (?e=3), esa entrada se resalta
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const n = Number(new URLSearchParams(window.location.search).get("e"));
-    if (Number.isFinite(n) && n >= 1) setResaltada(n);
-  }, []);
+  }, [url]);
 
   const zona = ZONAS_CONFIG[ticket.zonaKey] ?? { label: "Zona", color: SWAMP, totalSeats: 0, key: ticket.zonaKey };
   const zonaCorta = zona.label.replace("Zona ", "").replace(" (2do piso)", "");
@@ -279,63 +267,51 @@ export function ShrekTicket({ ticket, copiedLink, copiedCode, onCopyLink, onCopy
               </button>
               <p className="mt-1.5 text-[12px] leading-snug" style={{ color: "#6b4a1a" }}>
                 {total > 1
-                  ? `Cada persona entra con su propio QR: son ${total} entradas y cada una sirve una sola vez.`
-                  : "Muestra este QR en boletería junto con tu DNI. Sirve una sola vez."}
+                  ? "Un solo QR para todo el grupo. En puerta registran cuántas personas entran en cada momento; pueden llegar por partes."
+                  : "Muestra este QR en boletería junto con tu DNI."}
               </p>
               </div>
               <div
-                className="shk-stamp mt-1 shrink-0 rotate-[-8deg] rounded-md border-[3px] px-3 py-1 text-[18px] uppercase tracking-[0.1em] mix-blend-multiply"
+                className="shk-stamp mt-1 shrink-0 rotate-[-8deg] mr-1 rounded-md border-[3px] px-2.5 py-0.5 text-[16px] uppercase tracking-[0.04em] mix-blend-multiply"
                 style={{ borderColor: sello.color, color: sello.color, fontFamily: "var(--shk-title)", boxShadow: `inset 0 0 0 2px ${sello.color}33` }}
               >
                 {sello.txt}
               </div>
             </div>
 
-            {/* Un QR por entrada */}
-            <ul className="mt-5">
-              {Array.from({ length: Math.max(1, total) }, (_, i) => {
-                const n = i + 1;
-                const usada = Boolean(seatUsed[i]);
-                const cat = getSeatCategory(ticket, n);
-                return (
-                  <li
-                    key={n}
-                    className={`flex items-center gap-4 border-t-2 border-dotted py-4 first:border-t-0 ${
-                      resaltada === n ? "rounded-lg bg-[#a6e22e]/25 px-2" : ""
-                    }`}
-                    style={{ borderColor: "rgba(80,50,10,0.3)" }}
-                  >
-                    <div className={`relative h-[108px] w-[108px] shrink-0 rounded-[10px] bg-white/70 p-2 shadow-[inset_0_0_0_2px_rgba(80,50,10,0.18)] ${usada ? "opacity-35 grayscale" : ""}`}>
-                      {qrs[i] ? (
-                        <div className="h-full w-full [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qrs[i] }} />
-                      ) : (
-                        <div className="h-full w-full animate-pulse rounded bg-black/10" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: "#7a5a22" }}>
-                        Entrada {n} de {total}
-                      </p>
-                      <p className="mt-0.5 text-[30px] leading-none" style={{ fontFamily: "var(--shk-title)" }}>
-                        {cat.toUpperCase()}
-                      </p>
-                      <p className="mt-1 font-mono text-[11px] font-bold" style={{ color: "#5a3f12" }}>
-                        {code}-{n}
-                      </p>
-                      {usada ? (
-                        <p className="mt-1.5 inline-block rounded border-2 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider" style={{ borderColor: "#a52a1f", color: "#a52a1f" }}>
-                          Ya ingresó
-                        </p>
-                      ) : (
-                        <p className="mt-1.5 text-[11px] font-black uppercase tracking-wider" style={{ color: SWAMP }}>
-                          ● Lista para usar
-                        </p>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            {/* QR único del boleto */}
+            <div className="mt-6 flex flex-col items-center">
+              <div className="relative h-[196px] w-[196px] rounded-[12px] bg-white/70 p-3 shadow-[inset_0_0_0_2px_rgba(80,50,10,0.18)]">
+                {qr ? (
+                  <div className="h-full w-full [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr }} />
+                ) : (
+                  <div className="h-full w-full animate-pulse rounded bg-black/10" />
+                )}
+              </div>
+
+              {/* Cuántas personas de este boleto ya entraron */}
+              <div className="mt-5 w-full text-center">
+                <p className="text-[15px] font-black">
+                  {completo
+                    ? "Ya ingresaron todas las personas"
+                    : ingresaron > 0
+                    ? `Han ingresado ${ingresaron} de ${total} personas`
+                    : `${total} ${total === 1 ? "persona puede ingresar" : "personas pueden ingresar"}`}
+                </p>
+                <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5" aria-hidden>
+                  {Array.from({ length: Math.max(1, total) }, (_, i) => (
+                    <span
+                      key={i}
+                      className="h-[14px] w-[14px] rounded-full border-2"
+                      style={{
+                        borderColor: SWAMP,
+                        background: seatUsed[i] ? SWAMP : "transparent",
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
 
             {/* Estado de ingreso */}
             {(completo || parcial) && (

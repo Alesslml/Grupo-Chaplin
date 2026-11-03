@@ -656,7 +656,7 @@ function AdminEntradasPage() {
   }, [reservations, filtroAsistenciaTab, filtroAsistenciaFuncion, filtroAsistenciaVendedor]);
 
   // Validador rápido de boletos en puerta (por código, DNI o nombre)
-  const handleValidateScan = (e?: React.FormEvent, textoDirecto?: string) => {
+  const handleValidateScan = (e?: React.FormEvent, textoDirecto?: string, abrirCantidad?: boolean) => {
     if (e) e.preventDefault();
     // El QR de cada entrada trae el enlace (…/ticket/CÓDIGO?e=3): se toma el código y el número de entrada
     const rawQuery = (textoDirecto ?? scanQuery).trim();
@@ -738,6 +738,12 @@ function AdminEntradasPage() {
             : `Boleto VÁLIDO. Listo para autorizar el ingreso de ${getEffectiveTicketsCount(found)} persona(s).`,
         ticket: found,
       });
+      // Tras leer el QR con la cámara: si el boleto tiene varias personas pendientes, se pregunta
+      // de inmediato cuántas entran ahora (por defecto, todas las que faltan).
+      if (abrirCantidad && getPendientesIngresoCount(found) > 1) {
+        setEntryQty(getPendientesIngresoCount(found));
+        setEntryTargetId(found.id);
+      }
     }
   };
 
@@ -2402,7 +2408,7 @@ function AdminEntradasPage() {
                   onResult={(texto) => {
                     setCamaraAbierta(false);
                     setScanQuery(texto);
-                    handleValidateScan(undefined, texto);
+                    handleValidateScan(undefined, texto, true);
                   }}
                 />
               )}
