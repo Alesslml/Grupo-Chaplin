@@ -758,3 +758,8 @@
 .crm-shrek .crm-paper .border-slate-200 { border-color: rgba(120, 85, 25, 0.22); }
 .crm-shrek .crm-paper .border-slate-300 { border-color: rgba(120, 85, 25, 0.35); }
 .crm-shrek .crm-paper .bg-slate-100 { background-color: rgba(120, 85, 25, 0.1); }
+
+/* Ecualizador del botón de música */
+.shk-eq { transform-origin: bottom; animation: shk-eq 0.9s ease-in-out infinite; }
+@keyframes shk-eq { 0%, 100% { transform: scaleY(0.25); } 50% { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .shk-eq { animation: none; transform: scaleY(0.7); } }
