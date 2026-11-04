@@ -11,13 +11,26 @@ const VOLUMEN = 0.45;
 export const MUSICA_SCRIPT = `(function(){try{
 if(localStorage.getItem('${MUSICA_CLAVE_APAGADA}')==='1')return;
 var a=new Audio('${MUSICA_SRC}');a.loop=true;a.preload='auto';a.volume=${VOLUMEN};window.__shkAudio=a;
+fetch('${MUSICA_SRC}').then(function(r){return r.blob()}).then(function(b){
+window.__shkBlobUrl=URL.createObjectURL(b);
+if(a.paused){a.src=window.__shkBlobUrl;a.load();}
+}).catch(function(){});
 var p=a.play();
 if(p&&p.catch){p.catch(function(){
 var ev=['pointerdown','touchend','click','keydown'];
-function go(){ev.forEach(function(e){window.removeEventListener(e,go,true)});a.play().catch(function(){});}
+function go(){ev.forEach(function(e){window.removeEventListener(e,go,true)});
+if(window.__shkBlobUrl&&a.paused&&a.src!==window.__shkBlobUrl){a.src=window.__shkBlobUrl;}
+a.play().catch(function(){});}
 ev.forEach(function(e){window.addEventListener(e,go,true)});
 });}
 }catch(e){}})();`;
+
+// Si la canción ya se descargó completa en segundo plano, se reproduce esa copia local
+// (el primer toque suena al instante, sin esperar a la red).
+function usarCopiaLocal(a: HTMLAudioElement) {
+  const url = (window as unknown as { __shkBlobUrl?: string }).__shkBlobUrl;
+  if (url && a.paused && a.src !== url) a.src = url;
+}
 
 type Estado = "inicio" | "sonando" | "pausada" | "bloqueada";
 
@@ -57,6 +70,7 @@ export function MusicaAmbiente() {
       setEstado("sonando");
     } else {
       // Si todavía no empezó, se intenta aquí también; si el navegador lo bloquea, se avisa
+      usarCopiaLocal(a);
       a.play().catch(() => setEstado("bloqueada"));
       const t = setTimeout(() => {
         if (a && a.paused) setEstado("bloqueada");
@@ -64,6 +78,7 @@ export function MusicaAmbiente() {
       const eventos = ["pointerdown", "touchend", "click", "keydown"] as const;
       const alToque = () => {
         eventos.forEach((e) => window.removeEventListener(e, alToque, true));
+        if (a) usarCopiaLocal(a);
         void a?.play().catch(() => {});
       };
       eventos.forEach((e) => window.addEventListener(e, alToque, true));
@@ -113,6 +128,7 @@ export function MusicaAmbiente() {
         /* sin almacenamiento */
       }
       a.volume = VOLUMEN;
+      usarCopiaLocal(a);
       await a.play().catch(() => setEstado("bloqueada"));
     }
   };
