@@ -4,6 +4,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import amareLogo from "@/assets/aliados/amare.png";
 import saborMilagrosoLogo from "@/assets/aliados/sabor-milagroso.png";
 import laCarteleraLogo from "@/assets/aliados/la-cartelera.png";
+import trueAimosLogo from "@/assets/aliados/trueaimos.jpg";
 
 interface Aliado {
   nombre: string;
@@ -16,6 +17,7 @@ const aliados: Aliado[] = [
   { nombre: "AMARÉ", logo: amareLogo, href: "https://instagram.com/amarestudio.pe", fondoCompleto: true },
   { nombre: "EL SABOR MILAGROSO", logo: saborMilagrosoLogo, href: "https://www.instagram.com/elsabormilagroso" },
   { nombre: "LA CARTELERA", logo: laCarteleraLogo, href: "https://www.youtube.com/@lacartelera1076", fondoCompleto: true },
+  { nombre: "TRUEAIMOS", logo: trueAimosLogo, href: "https://trueaimos.com" },
   ...[
     "LA TÍA", "ARCSUR", "CINCO PIEDRAS",
     "LIMÓN Y SAL", "RESPIRA", "VILLA DEL SOL", "OLIMPO",
