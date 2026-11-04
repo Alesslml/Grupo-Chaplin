@@ -36,8 +36,8 @@ const SHAPES: Record<string, { paths: string[]; label: { x: number; y: number };
     short: "OGRO",
   },
   pantano: {
-    paths: ["M0 462 H758 V556 H0 Z"],
-    label: { x: 379, y: 516 },
+    paths: ["M0 506 H758 V612 H0 Z"],
+    label: { x: 379, y: 562 },
     short: "PANTANO",
   },
 };
@@ -48,7 +48,7 @@ export function SeatMap({ zonas, availability, selected, onSelect }: Props) {
 
   return (
     <svg
-      viewBox="0 0 758 570"
+      viewBox="0 0 758 628"
       role="group"
       aria-label="Mapa de asientos del Auditorio del Colegio de Ingenieros de Ica"
       className="w-full h-auto select-none"
@@ -95,6 +95,36 @@ export function SeatMap({ zonas, availability, selected, onSelect }: Props) {
       <text x="555" y="303" textAnchor="middle" fontSize="14" fill="#e5e7eb" fillOpacity="0.85" letterSpacing="3">
         PASILLO
       </text>
+
+      {/* Primer piso: rótulo lateral */}
+      <text
+        transform="translate(22 302) rotate(-90)"
+        textAnchor="middle"
+        fontSize="15"
+        letterSpacing="5"
+        fill="#caff55"
+        fillOpacity="0.9"
+        style={{ fontFamily: "var(--shk-serif)", fontWeight: 900 }}
+      >
+        PRIMER PISO
+      </text>
+
+      {/* Separación entre pisos */}
+      <line x1="0" x2="758" y1="470" y2="470" stroke="#f6c744" strokeOpacity="0.55" strokeWidth="2" strokeDasharray="6 7" />
+      <g>
+        <rect x="199" y="452" width="360" height="38" rx="19" fill="#f6c744" />
+        <text
+          x="379"
+          y="478"
+          textAnchor="middle"
+          fontSize="19"
+          letterSpacing="4"
+          fill="#2a1a00"
+          style={{ fontFamily: "var(--shk-serif)", fontWeight: 900 }}
+        >
+          ▲ SEGUNDO PISO ▲
+        </text>
+      </g>
 
       {/* Zonas */}
       {Object.entries(SHAPES).map(([key, shape]) => {
@@ -150,24 +180,17 @@ export function SeatMap({ zonas, availability, selected, onSelect }: Props) {
               {shape.short}
             </text>
             {key === "pantano" && (
-              <text
-                x="379"
-                y="484"
-                textAnchor="middle"
-                fontSize="18"
-                fill="#fff"
-                stroke="#04130a"
-                strokeWidth="4"
-                paintOrder="stroke"
-                letterSpacing="4"
-              >
-                2.º PISO
-              </text>
+              <g aria-hidden>
+                <line x1="0" x2="758" y1="514" y2="514" stroke="#fff" strokeOpacity="0.55" strokeWidth="3" />
+                {Array.from({ length: 31 }, (_, i) => (
+                  <line key={i} x1={12 + i * 24.5} x2={12 + i * 24.5} y1="514" y2="528" stroke="#fff" strokeOpacity="0.4" strokeWidth="2" />
+                ))}
+              </g>
             )}
             {av && (
               <text
                 x={shape.label.x}
-                y={shape.label.y + (key === "pantano" ? 30 : 36)}
+                y={shape.label.y + 34}
                 textAnchor="middle"
                 fontSize="24"
                 fill={soldOut ? "#fecaca" : "#fff"}

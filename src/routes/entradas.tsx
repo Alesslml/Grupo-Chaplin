@@ -696,7 +696,7 @@ function EntradasPage() {
                 onSelect={setZonaKey}
               />
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[13px] text-white/50">
-                <span>Los asientos son por orden de llegada dentro de tu zona.</span>
+                <span>Duloc y Ogro están en el 1.er piso; Pantano está en el 2.º piso (balcón). Los asientos son por orden de llegada dentro de tu zona.</span>
                 <a
                   href="https://maps.google.com/?q=Colegio+de+Ingenieros+del+Peru+CD+Ica"
                   target="_blank"
