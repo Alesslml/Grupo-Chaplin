@@ -1,145 +1,154 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 
-const CLAVE_APAGADA = "shk_musica_apagada";
+export const MUSICA_SRC = "/audio/all-star.m4a";
+export const MUSICA_CLAVE_APAGADA = "shk_musica_apagada";
 const VOLUMEN = 0.45;
 
-// Música de ambiente de la ticketera. Intenta sonar apenas se entra; los navegadores no
-// permiten audio automático sin un toque del usuario, así que si lo bloquean, empieza con
-// el primer toque en cualquier parte de la página. Siempre hay un botón para silenciarla.
+// Script que se ejecuta en la cabecera de la página, apenas llega el HTML (antes de que cargue
+// el resto del sitio), para que la música empiece lo antes posible y a volumen normal.
+// Si el navegador bloquea el audio automático, empieza con el primer toque en la página.
+export const MUSICA_SCRIPT = `(function(){try{
+if(localStorage.getItem('${MUSICA_CLAVE_APAGADA}')==='1')return;
+var a=new Audio('${MUSICA_SRC}');a.loop=true;a.preload='auto';a.volume=${VOLUMEN};window.__shkAudio=a;
+var p=a.play();
+if(p&&p.catch){p.catch(function(){
+var ev=['pointerdown','touchend','click','keydown'];
+function go(){ev.forEach(function(e){window.removeEventListener(e,go,true)});a.play().catch(function(){});}
+ev.forEach(function(e){window.addEventListener(e,go,true)});
+});}
+}catch(e){}})();`;
+
+type Estado = "inicio" | "sonando" | "pausada" | "bloqueada";
+
+// Música de ambiente de la ticketera. Siempre hay un botón para silenciarla.
 export function MusicaAmbiente() {
-  const ref = useRef<HTMLAudioElement>(null);
-  const quiereSonar = useRef(true);
-  const sonandoRef = useRef(false);
-  const [sonando, setSonando] = useState(false);
-  const [bloqueada, setBloqueada] = useState(false);
-
-  useEffect(() => {
-    sonandoRef.current = sonando;
-  }, [sonando]);
-
-  const subirVolumen = useCallback(() => {
-    const a = ref.current;
-    if (!a) return;
-    a.volume = 0;
-    let v = 0;
-    const paso = setInterval(() => {
-      v = Math.min(VOLUMEN, v + 0.03);
-      a.volume = v;
-      if (v >= VOLUMEN) clearInterval(paso);
-    }, 80);
-  }, []);
-
-  const iniciar = useCallback(async () => {
-    const a = ref.current;
-    if (!a) return false;
-    try {
-      a.volume = 0;
-      await a.play();
-      setSonando(true);
-      setBloqueada(false);
-      subirVolumen();
-      return true;
-    } catch {
-      setBloqueada(true);
-      return false;
-    }
-  }, [subirVolumen]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [estado, setEstado] = useState<Estado>("inicio");
 
   useEffect(() => {
     let apagada = false;
     try {
-      apagada = localStorage.getItem(CLAVE_APAGADA) === "1";
+      apagada = localStorage.getItem(MUSICA_CLAVE_APAGADA) === "1";
     } catch {
       /* sin almacenamiento */
     }
+
+    const w = window as unknown as { __shkAudio?: HTMLAudioElement };
+    let a = w.__shkAudio;
+    if (!a) {
+      a = new Audio(MUSICA_SRC);
+      a.loop = true;
+      a.preload = "auto";
+      w.__shkAudio = a;
+    }
+    a.volume = VOLUMEN;
+    audioRef.current = a;
+
+    const alPlay = () => setEstado("sonando");
+    const alPause = () => setEstado((e) => (e === "bloqueada" ? e : "pausada"));
+    a.addEventListener("playing", alPlay);
+    a.addEventListener("pause", alPause);
+
     if (apagada) {
-      quiereSonar.current = false;
-      return;
+      a.pause();
+      setEstado("pausada");
+    } else if (!a.paused) {
+      setEstado("sonando");
+    } else {
+      // Si todavía no empezó, se intenta aquí también; si el navegador lo bloquea, se avisa
+      a.play().catch(() => setEstado("bloqueada"));
+      const t = setTimeout(() => {
+        if (a && a.paused) setEstado("bloqueada");
+      }, 1200);
+      const eventos = ["pointerdown", "touchend", "click", "keydown"] as const;
+      const alToque = () => {
+        eventos.forEach((e) => window.removeEventListener(e, alToque, true));
+        void a?.play().catch(() => {});
+      };
+      eventos.forEach((e) => window.addEventListener(e, alToque, true));
+      return () => {
+        clearTimeout(t);
+        eventos.forEach((e) => window.removeEventListener(e, alToque, true));
+        a?.removeEventListener("playing", alPlay);
+        a?.removeEventListener("pause", alPause);
+        a?.pause();
+      };
     }
 
-    const eventos = ["pointerdown", "touchend", "click", "keydown"] as const;
-    const alToque = () => {
-      eventos.forEach((e) => window.removeEventListener(e, alToque, true));
-      if (quiereSonar.current) void iniciar();
-    };
-
-    iniciar().then((ok) => {
-      if (!ok) eventos.forEach((e) => window.addEventListener(e, alToque, true));
-    });
-
-    // Si la pestaña pasa a segundo plano, se pausa; al volver, sigue
-    const visibilidad = () => {
-      const a = ref.current;
-      if (!a) return;
-      if (document.hidden) a.pause();
-      else if (quiereSonar.current && sonandoRef.current) void a.play().catch(() => {});
-    };
-    document.addEventListener("visibilitychange", visibilidad);
-
     return () => {
-      eventos.forEach((e) => window.removeEventListener(e, alToque, true));
-      document.removeEventListener("visibilitychange", visibilidad);
-      ref.current?.pause();
+      a?.removeEventListener("playing", alPlay);
+      a?.removeEventListener("pause", alPause);
+      a?.pause();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Se pausa si la pestaña pasa a segundo plano y sigue al volver
+  useEffect(() => {
+    const visibilidad = () => {
+      const a = audioRef.current;
+      if (!a) return;
+      if (document.hidden) a.pause();
+      else if (estado === "sonando" || estado === "inicio") void a.play().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", visibilidad);
+    return () => document.removeEventListener("visibilitychange", visibilidad);
+  }, [estado]);
+
   const alternar = async () => {
-    const a = ref.current;
+    const a = audioRef.current;
     if (!a) return;
     if (!a.paused) {
       a.pause();
-      setSonando(false);
-      quiereSonar.current = false;
+      setEstado("pausada");
       try {
-        localStorage.setItem(CLAVE_APAGADA, "1");
+        localStorage.setItem(MUSICA_CLAVE_APAGADA, "1");
       } catch {
         /* sin almacenamiento */
       }
     } else {
-      quiereSonar.current = true;
       try {
-        localStorage.removeItem(CLAVE_APAGADA);
+        localStorage.removeItem(MUSICA_CLAVE_APAGADA);
       } catch {
         /* sin almacenamiento */
       }
-      await iniciar();
+      a.volume = VOLUMEN;
+      await a.play().catch(() => setEstado("bloqueada"));
     }
   };
 
+  const mostrandoSonido = estado === "sonando" || estado === "inicio";
+
   return (
-    <>
-      <audio ref={ref} src="/audio/all-star.m4a" loop preload="auto" playsInline />
-      <div className="fixed bottom-[92px] left-3 z-50 flex items-center gap-2 lg:bottom-6 lg:left-6 print:hidden">
+    <div className="fixed bottom-[92px] left-3 z-50 flex items-center gap-2 lg:bottom-6 lg:left-6 print:hidden">
+      <button
+        type="button"
+        onClick={alternar}
+        aria-label={mostrandoSonido ? "Silenciar la música" : "Activar la música"}
+        title={mostrandoSonido ? "Silenciar la música" : "Activar la música"}
+        className="grid h-12 w-12 place-items-center rounded-full bg-[#0b2014]/90 text-[#caff55] shadow-[0_8px_24px_-6px_rgba(0,0,0,0.8),0_0_0_2px_rgba(166,226,46,0.45)] backdrop-blur transition-transform hover:scale-105 active:scale-95"
+      >
+        {mostrandoSonido ? (
+          <span className="flex h-5 items-end gap-[3px]" aria-hidden>
+            {[0, 0.25, 0.5, 0.15].map((d) => (
+              <span key={d} className="shk-eq h-full w-[3px] rounded-full bg-[#caff55]" style={{ animationDelay: `${d}s` }} />
+            ))}
+          </span>
+        ) : estado === "bloqueada" ? (
+          <Volume2 size={20} />
+        ) : (
+          <VolumeX size={20} />
+        )}
+      </button>
+      {estado === "bloqueada" && (
         <button
           type="button"
           onClick={alternar}
-          aria-label={sonando ? "Silenciar la música" : "Activar la música"}
-          title={sonando ? "Silenciar la música" : "Activar la música"}
-          className="grid h-12 w-12 place-items-center rounded-full bg-[#0b2014]/90 text-[#caff55] shadow-[0_8px_24px_-6px_rgba(0,0,0,0.8),0_0_0_2px_rgba(166,226,46,0.45)] backdrop-blur transition-transform hover:scale-105 active:scale-95"
+          className="animate-pulse rounded-full bg-[#caff55] px-3.5 py-2 text-[12px] font-black text-[#0b2504] shadow-lg"
         >
-          {sonando ? (
-            <span className="flex h-5 items-end gap-[3px]" aria-hidden>
-              <span className="shk-eq h-full w-[3px] rounded-full bg-[#caff55]" style={{ animationDelay: "0s" }} />
-              <span className="shk-eq h-full w-[3px] rounded-full bg-[#caff55]" style={{ animationDelay: "0.25s" }} />
-              <span className="shk-eq h-full w-[3px] rounded-full bg-[#caff55]" style={{ animationDelay: "0.5s" }} />
-              <span className="shk-eq h-full w-[3px] rounded-full bg-[#caff55]" style={{ animationDelay: "0.15s" }} />
-            </span>
-          ) : (
-            <VolumeX size={20} />
-          )}
+          Toca para activar la música
         </button>
-        {bloqueada && !sonando && (
-          <button
-            type="button"
-            onClick={alternar}
-            className="animate-pulse rounded-full bg-[#caff55] px-3.5 py-2 text-[12px] font-black text-[#0b2504] shadow-lg"
-          >
-            Toca para activar la música
-          </button>
-        )}
-      </div>
-    </>
+      )}
+    </div>
   );
 }

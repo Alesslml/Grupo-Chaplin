@@ -31,7 +31,7 @@ import {
 import { SeatMap, type MapAvailability } from "@/components/shrek/SeatMap";
 import { Fireflies } from "@/components/shrek/Fireflies";
 import { Tutorial } from "@/components/shrek/Tutorial";
-import { MusicaAmbiente } from "@/components/shrek/Musica";
+import { MusicaAmbiente, MUSICA_SCRIPT } from "@/components/shrek/Musica";
 import flyerOficial from "@/assets/shrek/flyer-oficial.jpg";
 import shrekPersonaje from "@/assets/shrek/shrek-personaje.png";
 
@@ -57,7 +57,9 @@ export const Route = createFileRoute("/entradas")({
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Lilita+One&family=Cinzel:wght@700;900&display=swap",
       },
+      { rel: "preload", as: "audio", href: "/audio/all-star.m4a" },
     ],
+    scripts: [{ children: MUSICA_SCRIPT }],
   }),
   component: EntradasPage,
 });
