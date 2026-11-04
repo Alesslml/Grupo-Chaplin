@@ -1206,14 +1206,13 @@ function EntradasPage() {
               <Users className="mr-2 -mt-1 inline text-[#a6e22e]" size={22} />
               Elenco de lujo
             </p>
-            <p className="mx-auto max-w-3xl text-[16px] leading-[2] text-white/75">
-              {ELENCO.map((n, i) => (
-                <span key={n}>
+            <ul className="mx-auto flex max-w-3xl flex-wrap justify-center gap-x-7 gap-y-2.5 text-[16px] text-white/80">
+              {ELENCO.map((n) => (
+                <li key={n} className="whitespace-nowrap">
                   {n}
-                  {i < ELENCO.length - 1 && <span className="mx-2.5 text-[#a6e22e]">•</span>}
-                </span>
+                </li>
               ))}
-            </p>
+            </ul>
           </Reveal>
         </div>
       </section>
