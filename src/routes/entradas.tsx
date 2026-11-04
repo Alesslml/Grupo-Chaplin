@@ -31,7 +31,6 @@ import {
 import { SeatMap, type MapAvailability } from "@/components/shrek/SeatMap";
 import { Fireflies } from "@/components/shrek/Fireflies";
 import { Tutorial } from "@/components/shrek/Tutorial";
-import { MusicaAmbiente, MUSICA_SCRIPT } from "@/components/shrek/Musica";
 import flyerOficial from "@/assets/shrek/flyer-oficial.jpg";
 import shrekPersonaje from "@/assets/shrek/shrek-personaje.png";
 
@@ -57,9 +56,7 @@ export const Route = createFileRoute("/entradas")({
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Lilita+One&family=Cinzel:wght@700;900&display=swap",
       },
-      { rel: "preload", as: "audio", href: "/audio/all-star.m4a" },
     ],
-    scripts: [{ children: MUSICA_SCRIPT }],
   }),
   component: EntradasPage,
 });
@@ -490,8 +487,6 @@ function EntradasPage() {
 
   return (
     <div className="shk-root min-h-screen pb-24 font-body lg:pb-0">
-      <MusicaAmbiente />
-
       {/* ─────────── barra superior ─────────── */}
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#06120b]/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
