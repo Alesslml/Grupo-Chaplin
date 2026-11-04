@@ -11,13 +11,14 @@ interface Aliado {
   logo?: string; // logo con sus colores originales; si no hay, se muestra el nombre en texto
   href?: string; // al hacer clic se abre su Instagram / página
   fondoCompleto?: boolean; // el logo trae su propio fondo y ocupa todo el cuadro
+  mostrarNombre?: string; // texto que se muestra junto al logo
 }
 
 const aliados: Aliado[] = [
   { nombre: "AMARÉ", logo: amareLogo, href: "https://instagram.com/amarestudio.pe", fondoCompleto: true },
   { nombre: "EL SABOR MILAGROSO", logo: saborMilagrosoLogo, href: "https://www.instagram.com/elsabormilagroso" },
   { nombre: "LA CARTELERA", logo: laCarteleraLogo, href: "https://www.youtube.com/@lacartelera1076", fondoCompleto: true },
-  { nombre: "TRUEAIMOS", logo: trueAimosLogo, href: "https://trueaimos.com" },
+  { nombre: "TRUEAIMOS", logo: trueAimosLogo, href: "https://trueaimos-landing.vercel.app", mostrarNombre: "TrueAIMOS" },
   ...[
     "LA TÍA", "ARCSUR", "CINCO PIEDRAS",
     "LIMÓN Y SAL", "RESPIRA", "VILLA DEL SOL", "OLIMPO",
@@ -63,7 +64,17 @@ export function Aliados() {
             const tile = a.logo
               ? "al-fade bg-negro aspect-[3/2] overflow-hidden group flex items-center justify-center"
               : "al-fade bg-negro aspect-[3/2] flex items-center justify-center p-4 group hover:bg-rojo transition-colors duration-500";
-            const contenido = a.logo ? (
+            const contenido = a.logo && a.mostrarNombre ? (
+              <span className="flex flex-col items-center justify-center gap-1.5 px-2 transition-transform duration-500 group-hover:scale-105">
+                <img
+                  src={a.logo}
+                  alt={`Logo de ${a.mostrarNombre}`}
+                  loading="lazy"
+                  className="h-[52px] w-[52px] shrink-0 rounded-[13px] object-cover sm:h-[60px] sm:w-[60px]"
+                />
+                <span className="font-body text-[14px] font-bold tracking-wide text-blanco sm:text-[16px]">{a.mostrarNombre}</span>
+              </span>
+            ) : a.logo ? (
               <img
                 src={a.logo}
                 alt={`Logo de ${a.nombre}`}
