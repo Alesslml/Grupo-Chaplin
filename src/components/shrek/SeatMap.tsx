@@ -86,15 +86,9 @@ export function SeatMap({ zonas, availability, selected, onSelect }: Props) {
         </text>
       </g>
 
-      {/* Pasillos */}
+      {/* Franja gris entre Duloc y Ogro (zona de cortesía del mapa oficial), sin rótulo */}
       <rect x="56" y="289" width="293" height="19" rx="6" fill="#6b7280" fillOpacity="0.55" />
       <rect x="409" y="289" width="293" height="19" rx="6" fill="#6b7280" fillOpacity="0.55" />
-      <text x="205" y="303" textAnchor="middle" fontSize="14" fill="#e5e7eb" fillOpacity="0.85" letterSpacing="3">
-        PASILLO
-      </text>
-      <text x="555" y="303" textAnchor="middle" fontSize="14" fill="#e5e7eb" fillOpacity="0.85" letterSpacing="3">
-        PASILLO
-      </text>
 
       {/* Primer piso: rótulo lateral */}
       <text
