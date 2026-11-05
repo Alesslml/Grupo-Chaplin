@@ -82,16 +82,16 @@ const ELENCO = [
   "Antoinette Hernández",
   "Marth Fernández",
   "Angelina Rosas",
-  "Anyeli",
+  "Anyeli Velásquez",
   "Victoria Di Antonis",
   "Keselhy Martinez",
   "Esteban Anicama",
-  "Valentino",
-  "Abraham",
+  "Valentino Bendezú",
+  "Abrahám Severino",
   "Patrick",
-  "Arianna",
-  "Gabriela",
-  "Sebastián",
+  "Arianna Márquez",
+  "Gabriela Alday",
+  "Sebastián Alday",
 ];
 
 const FAQ: { q: string; a: ReactNode }[] = [

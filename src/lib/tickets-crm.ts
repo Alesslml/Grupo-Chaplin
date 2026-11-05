@@ -263,9 +263,9 @@ export const ZONAS_CONFIG: Record<string, ZoneMeta> = {
   getsemani: { key: "getsemani", label: "Zona Getsemaní", color: "#f2d675", totalSeats: 47 },
   hosanna: { key: "hosanna", label: "Zona Hosanna", color: "#7dd3e8", totalSeats: 67 },
   pueblo: { key: "pueblo", label: "Zona Pueblo (2do piso)", color: "#2b3a8f", totalSeats: 80 },
-  duloc: { key: "duloc", label: "Zona Duloc", color: "#e11d2e", totalSeats: 60 },
-  ogro: { key: "ogro", label: "Zona Ogro", color: "#22b04f", totalSeats: 114 },
-  pantano: { key: "pantano", label: "Zona Pantano (2do piso)", color: "#2f93e0", totalSeats: 80 },
+  duloc: { key: "duloc", label: "Zona Duloc", color: "#e11d2e", totalSeats: 90 },
+  ogro: { key: "ogro", label: "Zona Ogro", color: "#22b04f", totalSeats: 80 },
+  pantano: { key: "pantano", label: "Zona Pantano (2do piso)", color: "#2f93e0", totalSeats: 75 },
 };
 
 const STORAGE_KEY_BASE = "chaplin_crm_reservations_v3";
