@@ -16,7 +16,7 @@ export const Route = createFileRoute("/terminos")({
   component: TerminosPage,
 });
 
-const ACTUALIZADO = "3 de noviembre de 2026";
+const ACTUALIZADO = "20 de noviembre de 2026";
 const WHATSAPP = "956 060 826";
 
 interface Seccion {
@@ -96,6 +96,14 @@ const secciones: Seccion[] = [
     items: [
       "Si Chaplin cancela la función o cambia su fecha, el comprador puede elegir entre conservar su entrada para la nueva fecha o solicitar el reembolso del monto pagado.",
       "El reembolso se coordina por WhatsApp y se realiza por el mismo medio de pago con el que se compró.",
+    ],
+  },
+  {
+    id: "fuerza-mayor",
+    titulo: "Caso fortuito o fuerza mayor",
+    items: [
+      "Chaplin Grupo Cultural no se hace responsable por daños, gastos ni perjuicios (transporte, alojamiento u otros) derivados de sismos, desastres naturales, siniestros, emergencias o disposiciones de la autoridad que impidan o interrumpan la función.",
+      "En esos casos, la devolución del importe de la entrada procederá únicamente en los términos que exige la ley.",
     ],
   },
   {
